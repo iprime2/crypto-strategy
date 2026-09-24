@@ -1,10 +1,12 @@
 //! SQLx runtime helpers (no compile-time query! macros).
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Timelike, Utc};
 use serde_json::Value;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::{PgPool, Row};
+use std::collections::BTreeMap;
 
+use crate::analytics::{avg_nullable_bps, AnalyticsBucket};
 use crate::tca::{compute_tca, markout_bps, net_5s_bps};
 
 #[derive(Clone)]
@@ -638,5 +640,172 @@ pub async fn reconcile(pool: &PgPool, strategy_id: &str, limit: Option<i64>) -> 
     Ok(serde_json::json!({
         "mismatches": mismatches.into_iter().map(map_row).collect::<Vec<_>>(),
         "latest_by_symbol": latest.into_iter().map(map_row).collect::<Vec<_>>(),
+    }))
+}
+
+#[derive(Default)]
+struct FillBucketAgg {
+    slippage: Vec<Option<f64>>,
+    fee_quote: f64,
+    volume_quote: f64,
+    effective_spread: Vec<Option<f64>>,
+    markout_5s: Vec<Option<f64>>,
+    net_5s: Vec<Option<f64>>,
+}
+
+/// Analytics series + heatmap for a strategy over `[from, to]` (UTC).
+pub async fn analytics(
+    pool: &PgPool,
+    strategy_id: &str,
+    from: DateTime<Utc>,
+    to: DateTime<Utc>,
+    bucket: AnalyticsBucket,
+) -> sqlx::Result<Value> {
+    let trunc = bucket.date_trunc_unit();
+
+    // Fills joined to TCA — raw rows; bucket in Rust so unit-tested avg applies.
+    let fill_sql = format!(
+        r#"SELECT date_trunc('{trunc}', f.created_at) AS bucket_ts,
+                  f.created_at,
+                  f.price * f.qty AS volume_quote,
+                  t.slippage_bps,
+                  t.fee_quote,
+                  t.effective_spread_bps,
+                  t.markout_5s_bps,
+                  t.net_5s_bps
+           FROM fills f
+           JOIN tca_fills t
+             ON t.strategy_id = f.strategy_id AND t.trade_id = f.trade_id
+           WHERE f.strategy_id = $1
+             AND f.created_at >= $2
+             AND f.created_at <= $3
+           ORDER BY f.created_at ASC"#
+    );
+    let fill_rows = sqlx::query(&fill_sql)
+        .bind(strategy_id)
+        .bind(from)
+        .bind(to)
+        .fetch_all(pool)
+        .await?;
+
+    let mut fill_by_bucket: BTreeMap<DateTime<Utc>, FillBucketAgg> = BTreeMap::new();
+    let mut heat_slip: BTreeMap<(String, i32), Vec<Option<f64>>> = BTreeMap::new();
+    let mut heat_fee: BTreeMap<(String, i32), f64> = BTreeMap::new();
+    let mut heat_vol: BTreeMap<(String, i32), f64> = BTreeMap::new();
+
+    for r in fill_rows {
+        let bucket_ts: DateTime<Utc> = r.get("bucket_ts");
+        let created: DateTime<Utc> = r.get("created_at");
+        let volume_quote: f64 = r.get("volume_quote");
+        let slippage: f64 = r.get("slippage_bps");
+        let fee_quote: f64 = r.get("fee_quote");
+        let eff: f64 = r.get("effective_spread_bps");
+        let markout_5s: Option<f64> = r.get("markout_5s_bps");
+        let net_5s: Option<f64> = r.get("net_5s_bps");
+
+        let agg = fill_by_bucket.entry(bucket_ts).or_default();
+        agg.slippage.push(Some(slippage));
+        agg.fee_quote += fee_quote;
+        agg.volume_quote += volume_quote;
+        agg.effective_spread.push(Some(eff));
+        agg.markout_5s.push(markout_5s);
+        agg.net_5s.push(net_5s);
+
+        let day = created.format("%Y-%m-%d").to_string();
+        let hour = created.hour() as i32;
+        let key = (day, hour);
+        heat_slip.entry(key.clone()).or_default().push(Some(slippage));
+        *heat_fee.entry(key.clone()).or_default() += fee_quote;
+        *heat_vol.entry(key).or_default() += volume_quote;
+    }
+
+    // PnL: last snapshot in each series bucket; equity heatmap by UTC day+hour.
+    let pnl_sql = format!(
+        r#"SELECT date_trunc('{trunc}', ts) AS bucket_ts,
+                  ts, equity, realized, unrealized
+           FROM pnl_snapshots
+           WHERE strategy_id = $1
+             AND ts >= $2
+             AND ts <= $3
+           ORDER BY ts ASC"#
+    );
+    let pnl_rows = sqlx::query(&pnl_sql)
+        .bind(strategy_id)
+        .bind(from)
+        .bind(to)
+        .fetch_all(pool)
+        .await?;
+
+    let mut pnl_by_bucket: BTreeMap<DateTime<Utc>, (f64, f64, f64)> = BTreeMap::new();
+    let mut heat_equity: BTreeMap<(String, i32), f64> = BTreeMap::new();
+    for r in pnl_rows {
+        let bucket_ts: DateTime<Utc> = r.get("bucket_ts");
+        let ts: DateTime<Utc> = r.get("ts");
+        let equity: f64 = r.get("equity");
+        let realized: f64 = r.get("realized");
+        let unrealized: f64 = r.get("unrealized");
+        // ASC order → last write wins = last snapshot in bucket.
+        pnl_by_bucket.insert(bucket_ts, (equity, realized, unrealized));
+        let day = ts.format("%Y-%m-%d").to_string();
+        let hour = ts.hour() as i32;
+        heat_equity.insert((day, hour), equity);
+    }
+
+    let mut series_keys: BTreeMap<DateTime<Utc>, ()> = BTreeMap::new();
+    for k in fill_by_bucket.keys() {
+        series_keys.insert(*k, ());
+    }
+    for k in pnl_by_bucket.keys() {
+        series_keys.insert(*k, ());
+    }
+
+    let series: Vec<Value> = series_keys
+        .into_keys()
+        .map(|ts| {
+            let fill = fill_by_bucket.get(&ts);
+            let pnl = pnl_by_bucket.get(&ts);
+            serde_json::json!({
+                "ts": ts,
+                "slippage_bps": fill.and_then(|f| avg_nullable_bps(&f.slippage)),
+                "fee_quote": fill.map(|f| f.fee_quote).unwrap_or(0.0),
+                "volume_quote": fill.map(|f| f.volume_quote).unwrap_or(0.0),
+                "equity": pnl.map(|(e, _, _)| *e),
+                "realized": pnl.map(|(_, r, _)| *r),
+                "unrealized": pnl.map(|(_, _, u)| *u),
+                "effective_spread_bps": fill.and_then(|f| avg_nullable_bps(&f.effective_spread)),
+                "markout_5s_bps": fill.and_then(|f| avg_nullable_bps(&f.markout_5s)),
+                "net_5s_bps": fill.and_then(|f| avg_nullable_bps(&f.net_5s)),
+            })
+        })
+        .collect();
+
+    let heat_cells = |map: &BTreeMap<(String, i32), f64>| -> Vec<Value> {
+        map.iter()
+            .map(|((day, hour), value)| {
+                serde_json::json!({ "day": day, "hour": hour, "value": value })
+            })
+            .collect()
+    };
+    let heat_avg_cells = |map: &BTreeMap<(String, i32), Vec<Option<f64>>>| -> Vec<Value> {
+        map.iter()
+            .filter_map(|((day, hour), vals)| {
+                avg_nullable_bps(vals).map(|value| {
+                    serde_json::json!({ "day": day, "hour": hour, "value": value })
+                })
+            })
+            .collect()
+    };
+
+    Ok(serde_json::json!({
+        "from": from,
+        "to": to,
+        "bucket": bucket.as_str(),
+        "series": series,
+        "heatmap": {
+            "slippage_bps": heat_avg_cells(&heat_slip),
+            "fee_quote": heat_cells(&heat_fee),
+            "volume_quote": heat_cells(&heat_vol),
+            "equity": heat_cells(&heat_equity),
+        },
     }))
 }

@@ -17,6 +17,7 @@ use tokio::sync::broadcast;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 
+use crate::analytics::{choose_bucket, validate_analytics_range};
 use crate::config_guard::find_forbidden_secret_key;
 use crate::db::{self, Db};
 use crate::delta::DeltaClient;
@@ -62,6 +63,7 @@ pub fn router(state: AppState) -> Router {
         .route("/api/fills", get(get_fills))
         .route("/api/reconcile", get(get_reconcile))
         .route("/api/tca", get(get_tca))
+        .route("/api/analytics", get(get_analytics))
         .layer(
             CorsLayer::new()
                 .allow_origin(
@@ -497,6 +499,61 @@ async fn get_tca(State(st): State<AppState>, Query(q): Query<StrategyQuery>) -> 
         Err(r) => return r,
     };
     match db::list_tca(&db.pool, &sid(&q), q.limit).await {
+        Ok(v) => Json(v).into_response(),
+        Err(e) => err_json(StatusCode::INTERNAL_SERVER_ERROR, "db_error", e.to_string()),
+    }
+}
+
+#[derive(Deserialize)]
+struct AnalyticsQuery {
+    strategy_id: Option<String>,
+    from: Option<String>,
+    to: Option<String>,
+}
+
+async fn get_analytics(State(st): State<AppState>, Query(q): Query<AnalyticsQuery>) -> Response {
+    let Some(strategy_id) = q.strategy_id.as_deref().filter(|s| !s.is_empty()) else {
+        return err_json(
+            StatusCode::BAD_REQUEST,
+            "missing_strategy_id",
+            "strategy_id is required",
+        );
+    };
+    let Some(from_s) = q.from.as_deref() else {
+        return err_json(StatusCode::BAD_REQUEST, "missing_from", "from is required");
+    };
+    let Some(to_s) = q.to.as_deref() else {
+        return err_json(StatusCode::BAD_REQUEST, "missing_to", "to is required");
+    };
+    let from = match chrono::DateTime::parse_from_rfc3339(from_s) {
+        Ok(dt) => dt.with_timezone(&chrono::Utc),
+        Err(_) => {
+            return err_json(
+                StatusCode::BAD_REQUEST,
+                "invalid_from",
+                "from must be ISO-8601 / RFC3339",
+            );
+        }
+    };
+    let to = match chrono::DateTime::parse_from_rfc3339(to_s) {
+        Ok(dt) => dt.with_timezone(&chrono::Utc),
+        Err(_) => {
+            return err_json(
+                StatusCode::BAD_REQUEST,
+                "invalid_to",
+                "to must be ISO-8601 / RFC3339",
+            );
+        }
+    };
+    if let Err(msg) = validate_analytics_range(from, to) {
+        return err_json(StatusCode::BAD_REQUEST, "invalid_range", msg);
+    }
+    let bucket = choose_bucket(from, to);
+    let db = match db_required(&st) {
+        Ok(d) => d,
+        Err(r) => return r,
+    };
+    match db::analytics(&db.pool, strategy_id, from, to, bucket).await {
         Ok(v) => Json(v).into_response(),
         Err(e) => err_json(StatusCode::INTERNAL_SERVER_ERROR, "db_error", e.to_string()),
     }

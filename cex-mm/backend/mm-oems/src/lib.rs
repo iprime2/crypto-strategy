@@ -1,3 +1,4 @@
+pub mod analytics;
 pub mod api;
 pub mod config_guard;
 pub mod db;

@@ -1,10 +1,12 @@
 import { apiGet, apiPost, API_BASE, listPath, type ListParams } from './client'
 import type {
+  AnalyticsResponse,
   Fill,
   LatestSnapshot,
   Order,
   PnlSnapshot,
   Position,
+  ReconcileResponse,
   ReconcileRow,
   SnapshotStreamEvent,
   Strategy,
@@ -68,12 +70,34 @@ export async function fetchFills(params: ListParams): Promise<Fill[]> {
   return asArray(await apiGet(listPath('/api/fills', params)))
 }
 
-export async function fetchReconcile(params: ListParams): Promise<ReconcileRow[]> {
-  return asArray(await apiGet(listPath('/api/reconcile', params)))
+export async function fetchReconcile(params: ListParams): Promise<ReconcileResponse> {
+  const data = await apiGet<ReconcileResponse | ReconcileRow[]>(listPath('/api/reconcile', params))
+  if (Array.isArray(data)) {
+    return {
+      latest_by_symbol: data,
+      mismatches: data.filter((r) => r.mismatch),
+    }
+  }
+  return {
+    latest_by_symbol: asArray(data?.latest_by_symbol),
+    mismatches: asArray(data?.mismatches),
+  }
 }
 
 export async function fetchTca(params: ListParams): Promise<TcaRow[]> {
   return asArray(await apiGet(listPath('/api/tca', params)))
+}
+
+export async function fetchAnalytics(params: {
+  strategy_id: string
+  from: string
+  to: string
+}): Promise<AnalyticsResponse> {
+  const q = new URLSearchParams()
+  q.set('strategy_id', params.strategy_id)
+  q.set('from', params.from)
+  q.set('to', params.to)
+  return apiGet<AnalyticsResponse>(`/api/analytics?${q.toString()}`)
 }
 
 export async function fetchConfig(strategyId: string): Promise<StrategyConfigResponse | null> {

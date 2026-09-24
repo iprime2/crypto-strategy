@@ -11,6 +11,11 @@ export function fmtUsd(value: number | null | undefined, digits = 2): string {
   return `$${fmtNum(value, digits)}`
 }
 
+export function fmtBps(value: number | null | undefined, digits = 2): string {
+  if (value === null || value === undefined || Number.isNaN(value)) return '—'
+  return `${fmtNum(value, digits)} bps`
+}
+
 export function fmtSigned(value: number | null | undefined, digits = 2): string {
   if (value === null || value === undefined || Number.isNaN(value)) return '—'
   const sign = value > 0 ? '+' : ''
