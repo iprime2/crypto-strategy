@@ -1,13 +1,25 @@
 ---
-description: Git permissions for crypto-strategy / cex-mm
+description: Git flow for crypto-strategy — branch, pull request, CI, then merge
 globs: crypto-strategy/**
-alwaysApply: false
+alwaysApply: true
 ---
 
 # Git
 
-Never `git pull`, `git push`, or `git commit` unless the user **explicitly asks** in this conversation.
+Do not commit directly to `main`.
 
-Read-only git (`status`, `diff`, `log`, `show`) is allowed.
+When the user asks for a code change that should be kept:
 
-Never commit `cex-mm/.env` or API secrets.
+1. Create a branch from `main` named `type/short-topic` (for example `feat/eth-only-quotes`).
+2. Commit only on that branch.
+3. Push the branch and open a pull request into `main`.
+4. Wait for the PR checks: Rust build and test, web typecheck and build, and the security scan.
+5. Review the diff. Fix anything the checks or the review reject with a new commit on the same branch.
+6. Merge into `main` only after the review is clean and the checks are green.
+7. Do not force-push `main`.
+
+Still do not commit or push when the user only asked a question or asked to try something locally.
+
+Never commit `cex-mm/.env`, `cex-mm/quote-bot/.env`, or API secrets.
+
+Read-only git (`status`, `diff`, `log`, `show`) is allowed without asking.
