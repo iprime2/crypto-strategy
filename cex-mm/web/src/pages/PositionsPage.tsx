@@ -2,6 +2,12 @@ import { useCallback, useEffect, useState } from 'react'
 import { fetchPositions } from '@/api/oems'
 import type { Position } from '@/api/types'
 import { DataState } from '@/components/DataState'
+import {
+  POSITIONS_PAGE_SIZE,
+  TablePagination,
+  pageCount,
+  slicePage,
+} from '@/components/TablePagination'
 import { Badge } from '@/components/ui/badge'
 import {
   Card,
@@ -25,12 +31,14 @@ export function PositionsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [rows, setRows] = useState<Position[]>([])
+  const [page, setPage] = useState(1)
 
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
       setRows(await fetchPositions({ strategy_id: strategyId, limit: 100 }))
+      setPage(1)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load positions')
     } finally {
@@ -41,6 +49,14 @@ export function PositionsPage() {
   useEffect(() => {
     void load()
   }, [load])
+
+  useEffect(() => {
+    setPage(1)
+  }, [strategyId])
+
+  const totalPages = pageCount(rows.length, POSITIONS_PAGE_SIZE)
+  const safePage = Math.min(page, totalPages)
+  const pageRows = slicePage(rows, safePage, POSITIONS_PAGE_SIZE)
 
   return (
     <div className="px-4 lg:px-6">
@@ -69,7 +85,7 @@ export function PositionsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map((row) => {
+                {pageRows.map((row) => {
                   const mismatch = positionMismatch(row)
                   return (
                     <TableRow
@@ -112,6 +128,11 @@ export function PositionsPage() {
                 })}
               </TableBody>
             </Table>
+            <TablePagination
+              page={safePage}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
           </CardContent>
         </Card>
       </DataState>
