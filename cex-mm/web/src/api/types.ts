@@ -35,6 +35,17 @@ export type LatestSnapshot = {
   status?: StrategyStatus
 }
 
+/** Live event from GET /api/stream/snapshots. */
+export type SnapshotStreamEvent = {
+  strategy_id: string
+  ts: string
+  equity: number
+  realized: number
+  unrealized: number
+  available?: number | null
+  pnl?: PnlSnapshot | null
+}
+
 export type Position = {
   strategy_id?: string
   symbol: string

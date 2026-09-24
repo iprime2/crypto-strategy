@@ -1,23 +1,27 @@
 //! Axum HTTP API for mm-oems.
 
+use std::convert::Infallible;
 use std::path::PathBuf;
 use std::sync::Arc;
 
 use axum::extract::{Path, Query, State};
 use axum::http::{HeaderValue, Method, StatusCode};
+use axum::response::sse::{Event, KeepAlive, Sse};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
+use futures_util::stream::Stream;
 use serde::Deserialize;
 use serde_json::{json, Value};
+use tokio::sync::broadcast;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 
 use crate::config_guard::find_forbidden_secret_key;
 use crate::db::{self, Db};
 use crate::delta::DeltaClient;
-use crate::snapshot::{apply_fill_to_bot_qty, BotQtyMap};
-use crate::supervisor::{load_env_file, Supervisor, SupervisorError, StartRequest};
+use crate::snapshot::{apply_fill_to_bot_qty, BotQtyMap, SnapshotEventTx};
+use crate::supervisor::{load_env_file, StartRequest, Supervisor, SupervisorError};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -27,6 +31,7 @@ pub struct AppState {
     pub quote_bot_env: PathBuf,
     pub bot_qty: BotQtyMap,
     pub db_ok: bool,
+    pub snapshot_tx: SnapshotEventTx,
 }
 
 #[derive(Deserialize)]
@@ -50,6 +55,7 @@ pub fn router(state: AppState) -> Router {
         .route("/api/events/orders", post(event_order))
         .route("/api/events/fills", post(event_fill))
         .route("/api/snapshots/latest", get(snapshots_latest))
+        .route("/api/stream/snapshots", get(stream_snapshots))
         .route("/api/pnl", get(get_pnl))
         .route("/api/positions", get(get_positions))
         .route("/api/orders", get(get_orders))
@@ -394,6 +400,40 @@ async fn snapshots_latest(State(st): State<AppState>, Query(q): Query<StrategyQu
         Ok(v) => Json(v).into_response(),
         Err(e) => err_json(StatusCode::INTERNAL_SERVER_ERROR, "db_error", e.to_string()),
     }
+}
+
+async fn stream_snapshots(
+    State(st): State<AppState>,
+    Query(q): Query<StrategyQuery>,
+) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
+    let strategy_id = sid(&q);
+    let rx = st.snapshot_tx.subscribe();
+    let stream = futures_util::stream::unfold(rx, move |mut rx| {
+        let strategy_id = strategy_id.clone();
+        async move {
+            loop {
+                match rx.recv().await {
+                    Ok(value) => {
+                        let event_sid = value
+                            .get("strategy_id")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("");
+                        if event_sid != strategy_id {
+                            continue;
+                        }
+                        let data = match serde_json::to_string(&value) {
+                            Ok(s) => s,
+                            Err(_) => continue,
+                        };
+                        return Some((Ok(Event::default().data(data)), rx));
+                    }
+                    Err(broadcast::error::RecvError::Lagged(_)) => continue,
+                    Err(broadcast::error::RecvError::Closed) => return None,
+                }
+            }
+        }
+    });
+    Sse::new(stream).keep_alive(KeepAlive::default())
 }
 
 async fn get_pnl(State(st): State<AppState>, Query(q): Query<StrategyQuery>) -> Response {
