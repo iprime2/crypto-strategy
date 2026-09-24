@@ -54,7 +54,8 @@ jobs:
         working-directory: cex-mm
         run: |
           cargo install cargo-audit --locked
-          cargo audit
+          # rsa 0.9 (via sqlx) has RUSTSEC-2023-0071 and no fixed release.
+          cargo audit --ignore RUSTSEC-2023-0071
       - uses: actions/setup-node@v4
         with:
           node-version: 22
