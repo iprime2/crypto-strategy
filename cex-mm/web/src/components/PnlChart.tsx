@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts'
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import type { PnlSnapshot } from '@/api/types'
 import {
   ChartContainer,
@@ -52,12 +52,76 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-type Props = {
-  points: PnlSnapshot[]
+/**
+ * Pad the Y domain around data min/max so a nearly flat series is not stuck to a
+ * zero baseline. Equal min/max still get a small band centered on that value.
+ */
+export function yAxisDomain(values: number[]): [number, number] {
+  const finite = values.filter((v) => Number.isFinite(v))
+  if (finite.length === 0) return [-1, 1]
+  const min = Math.min(...finite)
+  const max = Math.max(...finite)
+  const span = max - min
+  if (span === 0) {
+    const pad = Math.max(Math.abs(min) * 0.02, 0.01)
+    return [min - pad, max + pad]
+  }
+  const pad = span * 0.1
+  return [min - pad, max + pad]
 }
 
-export function PnlChart({ points }: Props) {
-  const [series, setSeries] = useState<ChartSeries>('equity')
+type Props = {
+  points: PnlSnapshot[]
+  /** When true, omit the series select (parent renders it in the card header). */
+  hideSeriesSelect?: boolean
+  series?: ChartSeries
+  onSeriesChange?: (series: ChartSeries) => void
+}
+
+export function PnlSeriesSelect({
+  series,
+  onSeriesChange,
+  id = 'pnl-series',
+}: {
+  series: ChartSeries
+  onSeriesChange: (series: ChartSeries) => void
+  id?: string
+}) {
+  return (
+    <>
+      <Label htmlFor={id} className="sr-only">
+        Chart series
+      </Label>
+      <Select
+        value={series}
+        onValueChange={(value) => {
+          if (value === 'equity' || value === 'realized' || value === 'unrealized') {
+            onSeriesChange(value)
+          }
+        }}
+      >
+        <SelectTrigger id={id} size="sm" className="w-[12rem]">
+          <SelectValue placeholder="Series" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="equity">{SERIES.equity.label}</SelectItem>
+          <SelectItem value="realized">{SERIES.realized.label}</SelectItem>
+          <SelectItem value="unrealized">{SERIES.unrealized.label}</SelectItem>
+        </SelectContent>
+      </Select>
+    </>
+  )
+}
+
+export function PnlChart({
+  points,
+  hideSeriesSelect = false,
+  series: seriesProp,
+  onSeriesChange,
+}: Props) {
+  const [internalSeries, setInternalSeries] = useState<ChartSeries>('equity')
+  const series = seriesProp ?? internalSeries
+  const setSeries = onSeriesChange ?? setInternalSeries
   const meta = SERIES[series]
 
   const data = useMemo(
@@ -69,30 +133,21 @@ export function PnlChart({ points }: Props) {
     [points, series],
   )
 
+  const domain = useMemo(
+    () => yAxisDomain(data.map((d) => d.value).filter((v): v is number => v != null && Number.isFinite(v))),
+    [data],
+  )
+
+  const tickFormatter = (value: number) =>
+    meta.signed ? fmtSignedUsd(value) : fmtUsd(value)
+
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-2 px-2 sm:px-0">
-        <Label htmlFor="pnl-series" className="sr-only">
-          Chart series
-        </Label>
-        <Select
-          value={series}
-          onValueChange={(value) => {
-            if (value === 'equity' || value === 'realized' || value === 'unrealized') {
-              setSeries(value)
-            }
-          }}
-        >
-          <SelectTrigger id="pnl-series" size="sm" className="w-[12rem]">
-            <SelectValue placeholder="Series" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="equity">{SERIES.equity.label}</SelectItem>
-            <SelectItem value="realized">{SERIES.realized.label}</SelectItem>
-            <SelectItem value="unrealized">{SERIES.unrealized.label}</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      {!hideSeriesSelect ? (
+        <div className="flex items-center gap-2 px-2 sm:px-0">
+          <PnlSeriesSelect series={series} onSeriesChange={setSeries} />
+        </div>
+      ) : null}
 
       <ChartContainer config={chartConfig} className="aspect-auto h-[250px] w-full">
         <AreaChart data={data} accessibilityLayer>
@@ -119,6 +174,14 @@ export function PnlChart({ points }: Props) {
                 minute: '2-digit',
               })
             }}
+          />
+          <YAxis
+            domain={domain}
+            tickLine={false}
+            axisLine={false}
+            width={72}
+            tickMargin={4}
+            tickFormatter={tickFormatter}
           />
           <ChartTooltip
             cursor={false}

@@ -18,6 +18,8 @@ type StrategyContextValue = {
   strategies: Strategy[]
   status: StrategyStatus
   snapshot: LatestSnapshot | null
+  /** Push Overview SSE / fetch updates into the header without a second EventSource. */
+  setSnapshot: (value: LatestSnapshot | null | ((prev: LatestSnapshot | null) => LatestSnapshot | null)) => void
   headerError: string | null
   refreshHeader: () => Promise<void>
 }
@@ -82,6 +84,7 @@ export function StrategyProvider({ children }: { children: ReactNode }) {
       strategies,
       status,
       snapshot,
+      setSnapshot,
       headerError,
       refreshHeader,
     }),

@@ -4,6 +4,7 @@ import { startStrategy, stopStrategy } from '@/api/oems'
 import { toastError } from '@/lib/toast'
 import { StrategyConfigDialog } from '@/components/StrategyConfigDialog'
 import { useStrategy } from '@/context/StrategyContext'
+import { fmtTs } from '@/lib/format'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -32,13 +33,21 @@ function pageTitle(pathname: string): string {
 
 export function Header() {
   const location = useLocation()
-  const { strategyId, setStrategyId, strategies, status, headerError, refreshHeader } =
-    useStrategy()
+  const {
+    strategyId,
+    setStrategyId,
+    strategies,
+    status,
+    snapshot,
+    headerError,
+    refreshHeader,
+  } = useStrategy()
   const [configOpen, setConfigOpen] = useState(false)
   const [actionPending, setActionPending] = useState(false)
 
   const running = status === 'running'
   const statusLabel = running ? 'running' : 'stopped'
+  const asOfTs = snapshot?.ts ?? snapshot?.balance?.ts
 
   useEffect(() => {
     if (headerError) {
@@ -69,6 +78,9 @@ export function Header() {
           className="mx-2 data-[orientation=vertical]:h-4"
         />
         <h1 className="text-base font-medium">{pageTitle(location.pathname)}</h1>
+        {asOfTs ? (
+          <span className="text-sm text-muted-foreground">As of {fmtTs(asOfTs)}</span>
+        ) : null}
 
         <div className="ml-auto flex items-center gap-2">
           <Badge
