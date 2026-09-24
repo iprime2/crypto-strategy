@@ -1,0 +1,13 @@
+---
+description: Git permissions for crypto-strategy / cex-mm
+globs: crypto-strategy/**
+alwaysApply: false
+---
+
+# Git
+
+Never `git pull`, `git push`, or `git commit` unless the user **explicitly asks** in this conversation.
+
+Read-only git (`status`, `diff`, `log`, `show`) is allowed.
+
+Never commit `cex-mm/.env` or API secrets.

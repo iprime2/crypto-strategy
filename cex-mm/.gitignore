@@ -1,0 +1,9 @@
+/target/
+**/*.rs.bk
+.env
+.env.*
+!.env.example
+artifacts/**/*.log
+artifacts/**/*.jsonl
+!artifacts/backtest/.gitkeep
+*.pem

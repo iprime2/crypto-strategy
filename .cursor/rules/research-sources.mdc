@@ -1,0 +1,15 @@
+---
+description: Conventions for STRATEGY.md and resource/ research notes
+globs: crypto-strategy/STRATEGY.md,crypto-strategy/resource/**
+alwaysApply: false
+---
+
+# Research and design docs
+
+- **Source of truth for “why”:** `STRATEGY.md` + `resource/01`–`06`. Implementation in `cex-mm/` must not contradict these without updating the design doc.
+- **Citations:** keep URLs on factual claims; tag unverified claims `[UNVERIFIED]`; illustrative numbers `[SYNTHETIC]` or *(start)* per existing convention in `resource/README` / notes.
+- **GoDark reference:** code-grounded analysis in `resource/06-godark-vanilla-mm-strategy-analysis.md`; full export under `resource/godark-mm-bot/` is reference only — do not copy 1.4GB artifacts into `cex-mm/`.
+- **Parameter changes:** prefer documenting *(start)* → calibrated-from-data in STRATEGY or plan slices, not silent constant tweaks in code only.
+- **New research:** add to numbered `resource/0N-*.md` or extend an existing file; update `crypto-strategy/README.md` reading order if major.
+
+Plans for delivery live in `plans/`, not in `resource/`.

@@ -1,0 +1,17 @@
+---
+description: Locked stack and crate boundaries for cex-mm
+globs: crypto-strategy/cex-mm/**
+alwaysApply: false
+---
+
+# Stack (cex-mm)
+
+- **Language:** Rust 2021 workspace under `crypto-strategy/cex-mm/`.
+- **Crates:** `mm-core` (pure quote/risk math), `mm-bybit`, `mm-binance` (venues/feeds), `mm-bot` (CLI + loop). No GoDark SDK; no second language in the hot path.
+- **Venue order:** Bybit USDT linear first (testnet → mainnet on evidence). OKX/Binance **quoting** = trait stub only unless the user expands scope.
+- **Config:** env + `config/example.env`; secrets in gitignored `cex-mm/.env` only.
+- **Plans/skills:** live at `crypto-strategy/plans/` and `crypto-strategy/.cursor/` — not new plan files under `cex-mm/`.
+- **Dependencies:** match existing `Cargo.toml` workspace versions; do not add heavy deps without reason.
+- **Async:** tokio; bounded work per symbol; respect Bybit order rate budget in OMS.
+
+Business/strategy numbers come from `STRATEGY.md` and `resource/`; implementation must not invent parallel “strategy docs” inside `cex-mm/` except runbooks (`docs/`, `README.md`).

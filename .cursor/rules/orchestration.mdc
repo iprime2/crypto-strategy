@@ -1,0 +1,23 @@
+---
+description: How agents route work in crypto-strategy (skills + plans)
+alwaysApply: true
+---
+
+# Orchestration
+
+For non-trivial work in this folder, start with **`.cursor/skills/using-cs-skills/SKILL.md`** and load only the skills you need.
+
+| Kind of work | Skill(s) |
+|--------------|----------|
+| Research / STRATEGY / resource | mm-research-analyst |
+| Plan + slices + review | lead-engineer |
+| Rust bot | mm-rust-engineer, cex-mm |
+| mm-core math | tdd-workflow-mm |
+| Testnet / recorder | testnet-ops |
+| Keys / auth / logs | security-mm |
+| Before “done” | verification-loop |
+| Independent check | qa-mm |
+
+Plans: `plans/`. Code: `cex-mm/`. Do not store plans under `cex-mm/`.
+
+Git: see `git.mdc` — no commit/push/pull unless the user explicitly asks.

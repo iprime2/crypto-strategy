@@ -1,0 +1,15 @@
+services:
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: cex-mm-timescale
+    environment:
+      POSTGRES_USER: oems
+      POSTGRES_PASSWORD: oems_local
+      POSTGRES_DB: cex_mm_oems
+    ports:
+      - "127.0.0.1:5462:5432"
+    volumes:
+      - cex_mm_timescale:/var/lib/postgresql/data
+
+volumes:
+  cex_mm_timescale:

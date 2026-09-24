@@ -1,0 +1,31 @@
+---
+description: crypto-strategy scope — research, plans, skills here; implementation in cex-mm/
+globs: crypto-strategy/**
+alwaysApply: false
+---
+
+# crypto-strategy context
+
+This tree is **one product**: CEX market-making research + Rust bot.
+
+## Scope
+
+- **Research / design:** `STRATEGY.md`, `resource/`, `plans/`
+- **Agent config:** `crypto-strategy/.cursor/` (rules + skills)—not under `cex-mm/` alone
+- **Code:** `cex-mm/` workspace (`mm-core`, `mm-bybit`, `mm-bot`, …)
+
+When the user asks about strategy, plans, or skills, work from **`crypto-strategy/`** root. When building or fixing the bot, work in **`crypto-strategy/cex-mm/`** and match existing Rust patterns.
+
+Do not copy MM conventions into other projects under `projects/` unless asked.
+
+## Plans
+
+Canonical plan files: `crypto-strategy/plans/*.plan.md`. Do not treat `cex-mm/` as the place to store build plans.
+
+## Skills
+
+Load from `crypto-strategy/.cursor/skills/` — start with **`using-cs-skills`**. Workspace-level `projects/.cursor/skills/` is fallback only if a skill is missing here.
+
+## Lead Engineer
+
+Non-trivial MM features: acceptance criteria + vertical slices per `lead-engineer` skill and active plan in `plans/`. Evidence-gated QA before sign-off.

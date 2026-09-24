@@ -1,0 +1,39 @@
+[workspace]
+resolver = "2"
+members = [
+    "quote-bot/mm-core",
+    "quote-bot/mm-binance",
+    "quote-bot/mm-bybit",
+    "quote-bot/mm-delta",
+    "quote-bot/mm-bot",
+    "backend/mm-oems",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[workspace.dependencies]
+anyhow = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+clap = { version = "4.5", features = ["derive", "env"] }
+futures-util = "0.3"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "2.0"
+tokio = { version = "1.40", features = ["full"] }
+tokio-tungstenite = { version = "0.24", features = ["rustls-tls-webpki-roots"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+url = "2.5"
+hmac = "0.12"
+sha2 = "0.10"
+hex = "0.4"
+dotenvy = "0.15"
+
+mm-core = { path = "quote-bot/mm-core" }
+mm-binance = { path = "quote-bot/mm-binance" }
+mm-bybit = { path = "quote-bot/mm-bybit" }
+mm-delta = { path = "quote-bot/mm-delta" }

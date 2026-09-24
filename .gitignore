@@ -1,0 +1,24 @@
+# Build output
+**/target/
+**/node_modules/
+**/dist/
+
+# Secrets
+**/.env
+**/.env.*
+!**/.env.example
+**/*.pem
+**/credentials.json
+
+# Logs and local run data
+**/*.log
+cex-mm/artifacts/*.log
+
+# Large reference recordings (source notes stay in resource/)
+resource/godark-mm-bot/mms/artifacts/
+
+# Python
+**/__pycache__/
+**/*.pyc
+.DS_Store
+*.swp

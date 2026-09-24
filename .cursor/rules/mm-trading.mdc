@@ -1,0 +1,17 @@
+---
+description: Non-negotiables for live MM — post-only, gates, kill path, secrets
+globs: crypto-strategy/cex-mm/**
+alwaysApply: false
+---
+
+# MM trading invariants
+
+1. **Post-only** for quoting limits unless explicitly reduce-only flatten (document any exception).
+2. **Testnet first** — testnet validates code; **mainnet** only per `cex-mm/docs/MAINNET_GATE.md` and markout evidence, not testnet PnL alone.
+3. **Exchange PnL is truth**; internal `FillEconomics` is debug/restart aid only.
+4. **Kill path:** cancel-all must remain reachable (`mm-bot cancel-all`, fire drill script); on book staleness / L3 regime / reject storm → cancel before re-quote.
+5. **API keys:** Read + Trade only; **no withdraw**. Never commit or log keys, signatures, or full private WS payloads with secrets.
+6. **Markout before edge claims** — log signed markouts at configured horizons; widen on adverse selection (side-aware when enabled).
+7. **Multi-symbol:** respect combined order rate limits; prefer small `MM_TOP_N` until proven stable.
+
+When changing quote or risk behavior, check alignment with `STRATEGY.md` §2–8 and `resource/05-risk-hedging-pnl-failure-modes.md`.

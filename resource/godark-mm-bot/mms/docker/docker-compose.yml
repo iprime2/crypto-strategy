@@ -1,0 +1,41 @@
+# MM strategy metrics — dedicated TimescaleDB (not gdx-edge godark DB).
+# Port defaults to 5462 on localhost (gdx-cli timescale uses 5432; GoCredit uses 5434).
+#
+#   bash ~/scripts/mms/start-mm-db.sh
+#   bash ~/scripts/mms/stop-mm-db.sh
+
+name: mm-strategy
+
+services:
+  timescale:
+    image: timescale/timescaledb:2.23.1-pg16
+    container_name: mm-strategy-timescale
+    environment:
+      POSTGRES_USER: ${MM_TSDB_USER:-mm}
+      POSTGRES_PASSWORD: ${MM_TSDB_PASSWORD:-mm_local_dev_only}
+      POSTGRES_DB: ${MM_TSDB_DB:-mm_ops}
+    ports:
+      - "127.0.0.1:${MM_TSDB_PORT:-5462}:5432"
+    volumes:
+      - mm-strategy-timescale:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    command:
+      - postgres
+      - -c
+      - timescaledb.max_background_workers=4
+      - -c
+      - max_worker_processes=8
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${MM_TSDB_USER:-mm} -d ${MM_TSDB_DB:-mm_ops}",
+        ]
+      interval: 3s
+      timeout: 3s
+      retries: 12
+      start_period: 15s
+    restart: on-failure:5
+
+volumes:
+  mm-strategy-timescale:

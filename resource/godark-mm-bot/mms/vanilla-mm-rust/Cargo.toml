@@ -1,0 +1,27 @@
+[package]
+name = "vanilla-mm-rust"
+version = "0.1.0"
+edition = "2021"
+description = "Vanilla GoDark MM bot (HPKE / mass_quote) for devnet"
+
+[[bin]]
+name = "vanilla-mm-rust"
+path = "src/main.rs"
+
+[[bin]]
+name = "mm-admin"
+path = "src/bin/mm-admin.rs"
+
+[lib]
+name = "vanilla_mm_rust"
+path = "src/lib.rs"
+
+[dependencies]
+godark = { path = "../../../gdx/gdx-sdk/gdx-rust-sdk" }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "sync", "time"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+uuid = { version = "1", features = ["v4"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }

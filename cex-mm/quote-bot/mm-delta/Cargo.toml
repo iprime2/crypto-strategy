@@ -1,0 +1,32 @@
+[package]
+name = "mm-delta"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow = { workspace = true }
+chrono = { workspace = true }
+hmac = { workspace = true }
+hex = { workspace = true }
+futures-util = { workspace = true }
+mm-core = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+tokio = { workspace = true }
+tokio-tungstenite = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+dotenvy = { workspace = true }
+tokio = { workspace = true }
+
+[[example]]
+name = "smoke_order"
+path = "examples/smoke_order.rs"
+
+[[example]]
+name = "cancel_smoke_orders"
+path = "examples/cancel_smoke_orders.rs"
