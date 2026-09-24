@@ -1157,6 +1157,7 @@ dependencies = [
  "axum",
  "chrono",
  "dotenvy",
+ "futures-util",
  "hex",
  "hmac",
  "reqwest",

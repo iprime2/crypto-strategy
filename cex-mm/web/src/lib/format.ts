@@ -6,10 +6,22 @@ export function fmtNum(value: number | null | undefined, digits = 2): string {
   })
 }
 
+export function fmtUsd(value: number | null | undefined, digits = 2): string {
+  if (value === null || value === undefined || Number.isNaN(value)) return '—'
+  return `$${fmtNum(value, digits)}`
+}
+
 export function fmtSigned(value: number | null | undefined, digits = 2): string {
   if (value === null || value === undefined || Number.isNaN(value)) return '—'
   const sign = value > 0 ? '+' : ''
   return sign + fmtNum(value, digits)
+}
+
+export function fmtSignedUsd(value: number | null | undefined, digits = 2): string {
+  if (value === null || value === undefined || Number.isNaN(value)) return '—'
+  if (value > 0) return `+$${fmtNum(value, digits)}`
+  if (value < 0) return `-$${fmtNum(Math.abs(value), digits)}`
+  return `$${fmtNum(0, digits)}`
 }
 
 export function fmtTs(value: string | null | undefined): string {

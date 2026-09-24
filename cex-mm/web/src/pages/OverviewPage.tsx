@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { fetchLatestSnapshot, fetchPnl, fetchPositions } from '@/api/oems'
-import type { LatestSnapshot, PnlSnapshot, Position } from '@/api/types'
+import { fetchLatestSnapshot, fetchPnl, fetchPositions, snapshotStreamUrl } from '@/api/oems'
+import type { LatestSnapshot, PnlSnapshot, Position, SnapshotStreamEvent } from '@/api/types'
 import { DataState } from '@/components/DataState'
 import { PnlChart } from '@/components/PnlChart'
 import { Badge } from '@/components/ui/badge'
@@ -21,13 +21,33 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useStrategy } from '@/context/StrategyContext'
-import { fmtNum, fmtSigned, fmtTs, positionMismatch } from '@/lib/format'
+import { fmtNum, fmtSignedUsd, fmtTs, fmtUsd, positionMismatch } from '@/lib/format'
 
 function helperLine(latest: LatestSnapshot | null): string {
   if (!latest) return 'No snapshots yet'
   const ts = latest.ts ?? latest.balance?.ts
   if (ts) return `As of ${fmtTs(ts)}`
   return 'Latest venue snapshot'
+}
+
+function applyStreamEvent(
+  prev: LatestSnapshot | null,
+  data: SnapshotStreamEvent,
+): LatestSnapshot {
+  return {
+    ...prev,
+    strategy_id: data.strategy_id,
+    ts: data.ts,
+    equity: data.equity,
+    realized: data.realized,
+    unrealized: data.unrealized,
+    balance: {
+      ...prev?.balance,
+      equity: data.equity,
+      available: data.available ?? prev?.balance?.available ?? null,
+      ts: data.ts,
+    },
+  }
 }
 
 export function OverviewPage() {
@@ -61,6 +81,57 @@ export function OverviewPage() {
     void load()
   }, [load])
 
+  useEffect(() => {
+    let closed = false
+    let es: EventSource | null = null
+    let retryTimer: ReturnType<typeof setTimeout> | undefined
+
+    function connect() {
+      if (closed) return
+      es = new EventSource(snapshotStreamUrl(strategyId))
+      es.onmessage = (ev) => {
+        try {
+          const data = JSON.parse(ev.data) as SnapshotStreamEvent
+          if (data.strategy_id && data.strategy_id !== strategyId) return
+          setLatest((prev) => applyStreamEvent(prev, data))
+          void fetchPositions({ strategy_id: strategyId, limit: 20 })
+            .then(setPositions)
+            .catch(() => {})
+          const point = data.pnl
+          if (point?.ts) {
+            setPnl((prev) => {
+              if (prev.some((p) => p.ts === point.ts)) return prev
+              return [
+                {
+                  ts: point.ts,
+                  equity: point.equity,
+                  realized: point.realized,
+                  unrealized: point.unrealized,
+                },
+                ...prev,
+              ].slice(0, 100)
+            })
+          }
+        } catch {
+          // ignore malformed events
+        }
+      }
+      es.onerror = () => {
+        es?.close()
+        es = null
+        if (closed) return
+        retryTimer = setTimeout(connect, 2000)
+      }
+    }
+
+    connect()
+    return () => {
+      closed = true
+      if (retryTimer !== undefined) clearTimeout(retryTimer)
+      es?.close()
+    }
+  }, [strategyId])
+
   const asOf = helperLine(latest)
   const equity = latest?.equity ?? latest?.balance?.equity ?? null
   const available = latest?.balance?.available ?? null
@@ -72,7 +143,7 @@ export function OverviewPage() {
           <CardHeader>
             <CardDescription>Equity</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              {fmtNum(equity)}
+              {fmtUsd(equity)}
             </CardTitle>
           </CardHeader>
           <CardFooter className="text-sm text-muted-foreground">{asOf}</CardFooter>
@@ -82,7 +153,7 @@ export function OverviewPage() {
           <CardHeader>
             <CardDescription>Unrealized PnL</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              {fmtSigned(latest?.unrealized)}
+              {fmtSignedUsd(latest?.unrealized)}
             </CardTitle>
           </CardHeader>
           <CardFooter className="text-sm text-muted-foreground">{asOf}</CardFooter>
@@ -92,7 +163,7 @@ export function OverviewPage() {
           <CardHeader>
             <CardDescription>Realized PnL</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              {fmtSigned(latest?.realized)}
+              {fmtSignedUsd(latest?.realized)}
             </CardTitle>
           </CardHeader>
           <CardFooter className="text-sm text-muted-foreground">{asOf}</CardFooter>
@@ -102,7 +173,7 @@ export function OverviewPage() {
           <CardHeader>
             <CardDescription>Available margin</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              {fmtNum(available)}
+              {fmtUsd(available)}
             </CardTitle>
           </CardHeader>
           <CardFooter className="text-sm text-muted-foreground">
@@ -114,8 +185,8 @@ export function OverviewPage() {
       <div className="px-4 lg:px-6">
         <Card>
           <CardHeader>
-            <CardTitle>Equity</CardTitle>
-            <CardDescription>Realized and unrealized</CardDescription>
+            <CardTitle>PnL</CardTitle>
+            <CardDescription>Equity, realized, and unrealized over time</CardDescription>
           </CardHeader>
           <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
             {pnl.length === 0 ? (
@@ -156,7 +227,7 @@ export function OverviewPage() {
                           {fmtNum(row.venue_qty, 6)}
                         </TableCell>
                         <TableCell className="tabular-nums">
-                          {fmtSigned(row.unrealized)}
+                          {fmtSignedUsd(row.unrealized)}
                         </TableCell>
                         <TableCell>
                           {mismatch ? (

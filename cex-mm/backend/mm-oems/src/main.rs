@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use mm_oems::api::{router, AppState};
 use mm_oems::db::Db;
-use mm_oems::snapshot::{new_bot_qty_map, run_snapshot_loop};
+use mm_oems::snapshot::{new_bot_qty_map, new_snapshot_event_tx, run_snapshot_loop};
 use mm_oems::supervisor::Supervisor;
 use tracing_subscriber::EnvFilter;
 
@@ -52,11 +52,13 @@ async fn main() {
     };
 
     let bot_qty = new_bot_qty_map();
+    let snapshot_tx = new_snapshot_event_tx();
     if let Some(db_clone) = db.clone() {
         let env_path = quote_bot_env.clone();
         let map = bot_qty.clone();
+        let tx = snapshot_tx.clone();
         tokio::spawn(async move {
-            run_snapshot_loop(Some(db_clone), env_path, map, "mm".into()).await;
+            run_snapshot_loop(Some(db_clone), env_path, map, "mm".into(), tx).await;
         });
     }
 
@@ -67,6 +69,7 @@ async fn main() {
         quote_bot_env,
         bot_qty,
         db_ok,
+        snapshot_tx,
     };
 
     let app = router(state);

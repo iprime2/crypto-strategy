@@ -1,4 +1,4 @@
-import { apiGet, apiPost, listPath, type ListParams } from './client'
+import { apiGet, apiPost, API_BASE, listPath, type ListParams } from './client'
 import type {
   Fill,
   LatestSnapshot,
@@ -6,11 +6,14 @@ import type {
   PnlSnapshot,
   Position,
   ReconcileRow,
+  SnapshotStreamEvent,
   Strategy,
   StrategyConfigBody,
   StrategyConfigResponse,
   TcaRow,
 } from './types'
+
+export type { SnapshotStreamEvent }
 
 function asArray<T>(data: T[] | { items?: T[]; data?: T[] } | null | undefined): T[] {
   if (Array.isArray(data)) return data
@@ -44,6 +47,13 @@ export async function fetchLatestSnapshot(strategyId: string): Promise<LatestSna
 
 export async function fetchPnl(params: ListParams): Promise<PnlSnapshot[]> {
   return asArray(await apiGet(listPath('/api/pnl', params)))
+}
+
+/** SSE URL for live snapshot updates (use with EventSource). */
+export function snapshotStreamUrl(strategyId: string): string {
+  const q = new URLSearchParams()
+  q.set('strategy_id', strategyId)
+  return `${API_BASE}/api/stream/snapshots?${q.toString()}`
 }
 
 export async function fetchPositions(params: ListParams): Promise<Position[]> {
