@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { AlertCircleIcon } from 'lucide-react'
 import { fetchConfig, postConfig, startStrategy, stopStrategy } from '@/api/oems'
+import { toastError } from '@/lib/toast'
 import type { StrategyConfigBody } from '@/api/types'
 import { DataState } from '@/components/DataState'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -36,10 +35,8 @@ export function ControlPage() {
   const [form, setForm] = useState<StrategyConfigBody>(DEFAULT_CONFIG)
 
   const [actionPending, setActionPending] = useState(false)
-  const [actionError, setActionError] = useState<string | null>(null)
 
   const [savePending, setSavePending] = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
   const [saveOk, setSaveOk] = useState<string | null>(null)
 
   const load = useCallback(async () => {
@@ -67,7 +64,6 @@ export function ControlPage() {
 
   async function onToggle() {
     setActionPending(true)
-    setActionError(null)
     try {
       if (status === 'running') {
         await stopStrategy(strategyId)
@@ -76,13 +72,13 @@ export function ControlPage() {
       }
       await refreshHeader()
     } catch (err) {
-      setActionError(
+      const message =
         err instanceof Error
           ? err.message
           : status === 'running'
             ? 'Stop failed'
-            : 'Start failed',
-      )
+            : 'Start failed'
+      toastError(status === 'running' ? 'Stop failed' : 'Start failed', message)
     } finally {
       setActionPending(false)
     }
@@ -91,7 +87,6 @@ export function ControlPage() {
   async function onSave(e: FormEvent) {
     e.preventDefault()
     setSavePending(true)
-    setSaveError(null)
     setSaveOk(null)
     try {
       const body: StrategyConfigBody = {
@@ -110,7 +105,8 @@ export function ControlPage() {
       setForm({ ...DEFAULT_CONFIG, ...res.body })
       setSaveOk(`Saved config version ${res.version}`)
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : 'Config save failed')
+      const message = err instanceof Error ? err.message : 'Config save failed'
+      toastError('Save failed', message)
     } finally {
       setSavePending(false)
     }
@@ -149,13 +145,6 @@ export function ControlPage() {
                 ? `Stop ${strategyId}`
                 : `Start ${strategyId}`}
           </Button>
-          {actionError && (
-            <Alert variant="destructive">
-              <AlertCircleIcon />
-              <AlertTitle>Action failed</AlertTitle>
-              <AlertDescription>{actionError}</AlertDescription>
-            </Alert>
-          )}
         </CardContent>
       </Card>
 
@@ -295,13 +284,6 @@ export function ControlPage() {
               <Button type="submit" disabled={savePending}>
                 {savePending ? 'Saving…' : 'Save config'}
               </Button>
-              {saveError && (
-                <Alert variant="destructive">
-                  <AlertCircleIcon />
-                  <AlertTitle>Save failed</AlertTitle>
-                  <AlertDescription>{saveError}</AlertDescription>
-                </Alert>
-              )}
               {saveOk && <p className="text-sm text-muted-foreground">{saveOk}</p>}
             </form>
           </CardContent>
