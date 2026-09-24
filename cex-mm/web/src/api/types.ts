@@ -107,9 +107,51 @@ export type TcaRow = {
   slippage_bps: number | null
   effective_spread_bps: number | null
   fee_bps: number | null
+  fee_quote?: number | null
   markout_5s_bps: number | null
   net_5s_bps: number | null
   quoted_half_spread_bps?: number | null
+}
+
+export type ReconcileResponse = {
+  latest_by_symbol: ReconcileRow[]
+  mismatches: ReconcileRow[]
+}
+
+export type AnalyticsBucket = 'hour' | 'day'
+
+export type AnalyticsSeriesPoint = {
+  ts: string
+  slippage_bps: number | null
+  fee_quote: number
+  volume_quote: number
+  equity: number | null
+  realized: number | null
+  unrealized: number | null
+  effective_spread_bps: number | null
+  markout_5s_bps: number | null
+  net_5s_bps: number | null
+}
+
+export type HeatmapCell = {
+  day: string
+  hour: number
+  value: number
+}
+
+export type AnalyticsHeatmap = {
+  slippage_bps: HeatmapCell[]
+  fee_quote: HeatmapCell[]
+  volume_quote: HeatmapCell[]
+  equity: HeatmapCell[]
+}
+
+export type AnalyticsResponse = {
+  from: string
+  to: string
+  bucket: AnalyticsBucket
+  series: AnalyticsSeriesPoint[]
+  heatmap: AnalyticsHeatmap
 }
 
 /** Strategy config body — no api key / secret / token fields. */
