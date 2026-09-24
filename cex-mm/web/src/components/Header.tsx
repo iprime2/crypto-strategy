@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { startStrategy, stopStrategy } from '@/api/oems'
+import { toastError } from '@/lib/toast'
 import { StrategyConfigDialog } from '@/components/StrategyConfigDialog'
 import { useStrategy } from '@/context/StrategyContext'
 import { Badge } from '@/components/ui/badge'
@@ -35,20 +36,25 @@ export function Header() {
     useStrategy()
   const [configOpen, setConfigOpen] = useState(false)
   const [actionPending, setActionPending] = useState(false)
-  const [actionError, setActionError] = useState<string | null>(null)
 
   const running = status === 'running'
   const statusLabel = running ? 'running' : 'stopped'
 
+  useEffect(() => {
+    if (headerError) {
+      toastError('Could not refresh status', headerError)
+    }
+  }, [headerError])
+
   async function onToggle() {
     setActionPending(true)
-    setActionError(null)
     try {
       if (running) await stopStrategy(strategyId)
       else await startStrategy(strategyId)
       await refreshHeader()
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Start or stop failed')
+      const message = err instanceof Error ? err.message : 'Start or stop failed'
+      toastError(running ? 'Stop failed' : 'Start failed', message)
     } finally {
       setActionPending(false)
     }
@@ -130,12 +136,6 @@ export function Header() {
         open={configOpen}
         onOpenChange={setConfigOpen}
       />
-
-      {(headerError || actionError) && (
-        <p className="border-t px-4 py-1.5 text-xs text-destructive lg:px-6">
-          {actionError ?? headerError}
-        </p>
-      )}
     </header>
   )
 }

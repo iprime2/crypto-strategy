@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { Toaster } from '@/components/ui/toaster'
 import { Layout } from './components/Layout'
 import { StrategyProvider } from './context/StrategyContext'
 import { ControlPage } from './pages/ControlPage'
@@ -12,6 +13,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <StrategyProvider>
+        <Toaster />
         <Routes>
           <Route element={<Layout />}>
             <Route index element={<OverviewPage />} />
