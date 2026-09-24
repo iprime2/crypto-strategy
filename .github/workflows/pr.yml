@@ -1,0 +1,68 @@
+name: Pull request
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  rust:
+    name: Rust build and test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cex-mm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: cex-mm
+      - name: Test workspace
+        run: cargo test --workspace --locked
+
+  web:
+    name: Web typecheck and build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cex-mm/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: cex-mm/web/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
+
+  security:
+    name: Security scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Secret scan
+        run: |
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.24.3/gitleaks_8.24.3_linux_x64.tar.gz | tar -xz -C /tmp
+          /tmp/gitleaks detect --source . --redact --verbose --no-banner
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Rust dependency audit
+        working-directory: cex-mm
+        run: |
+          cargo install cargo-audit --locked
+          # rsa 0.9 (via sqlx) has RUSTSEC-2023-0071 and no fixed release.
+          cargo audit --ignore RUSTSEC-2023-0071
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: cex-mm/web/package-lock.json
+      - name: npm audit
+        working-directory: cex-mm/web
+        run: |
+          npm ci
+          npm audit --audit-level=high

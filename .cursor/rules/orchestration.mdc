@@ -17,6 +17,7 @@ For non-trivial work in this folder, start with **`.cursor/skills/using-cs-skill
 | Keys / auth / logs | security-mm |
 | Before “done” | verification-loop |
 | Independent check | qa-mm |
+| Saving the change | branch, pull request, green CI, review, then merge to `main` (see `.cursor/rules/git.mdc`) |
 
 Plans: `plans/`. Code: `cex-mm/`. Do not store plans under `cex-mm/`.
 
