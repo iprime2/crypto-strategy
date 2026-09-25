@@ -39,6 +39,8 @@ pub struct AppState {
 pub struct StrategyQuery {
     pub strategy_id: Option<String>,
     pub limit: Option<i64>,
+    pub from: Option<String>,
+    pub to: Option<String>,
 }
 
 fn sid(q: &StrategyQuery) -> String {
@@ -443,6 +445,34 @@ async fn get_pnl(State(st): State<AppState>, Query(q): Query<StrategyQuery>) -> 
         Ok(d) => d,
         Err(r) => return r,
     };
+    if q.from.is_some() || q.to.is_some() {
+        let (Some(from_s), Some(to_s)) = (q.from.as_deref(), q.to.as_deref()) else {
+            return err_json(
+                StatusCode::BAD_REQUEST,
+                "invalid_range",
+                "from and to must both be set",
+            );
+        };
+        let from = match chrono::DateTime::parse_from_rfc3339(from_s) {
+            Ok(dt) => dt.with_timezone(&chrono::Utc),
+            Err(_) => {
+                return err_json(StatusCode::BAD_REQUEST, "invalid_from", "from must be RFC3339");
+            }
+        };
+        let to = match chrono::DateTime::parse_from_rfc3339(to_s) {
+            Ok(dt) => dt.with_timezone(&chrono::Utc),
+            Err(_) => {
+                return err_json(StatusCode::BAD_REQUEST, "invalid_to", "to must be RFC3339");
+            }
+        };
+        if from > to {
+            return err_json(StatusCode::BAD_REQUEST, "invalid_range", "from is after to");
+        }
+        return match db::list_pnl_between(&db.pool, &sid(&q), from, to).await {
+            Ok(v) => Json(v).into_response(),
+            Err(e) => err_json(StatusCode::INTERNAL_SERVER_ERROR, "db_error", e.to_string()),
+        };
+    }
     match db::list_pnl(&db.pool, &sid(&q), q.limit).await {
         Ok(v) => Json(v).into_response(),
         Err(e) => err_json(StatusCode::INTERNAL_SERVER_ERROR, "db_error", e.to_string()),
