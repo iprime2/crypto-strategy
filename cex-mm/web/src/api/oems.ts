@@ -36,9 +36,17 @@ export async function fetchStrategy(id: string): Promise<Strategy> {
 
 export async function fetchLatestSnapshot(strategyId: string): Promise<LatestSnapshot | null> {
   try {
-    return await apiGet<LatestSnapshot>(
+    const raw = await apiGet<LatestSnapshot>(
       `/api/snapshots/latest?strategy_id=${encodeURIComponent(strategyId)}`,
     )
+    if (!raw) return null
+    return {
+      ...raw,
+      ts: raw.ts ?? raw.pnl?.ts ?? raw.balance?.ts,
+      equity: raw.equity ?? raw.pnl?.equity ?? raw.balance?.equity,
+      realized: raw.realized ?? raw.pnl?.realized,
+      unrealized: raw.unrealized ?? raw.pnl?.unrealized,
+    }
   } catch (err) {
     if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 404) {
       return null
@@ -47,8 +55,15 @@ export async function fetchLatestSnapshot(strategyId: string): Promise<LatestSna
   }
 }
 
-export async function fetchPnl(params: ListParams): Promise<PnlSnapshot[]> {
-  return asArray(await apiGet(listPath('/api/pnl', params)))
+export async function fetchPnl(
+  params: ListParams & { from?: string; to?: string },
+): Promise<PnlSnapshot[]> {
+  const q = new URLSearchParams()
+  q.set('strategy_id', params.strategy_id)
+  if (params.from) q.set('from', params.from)
+  if (params.to) q.set('to', params.to)
+  if (!params.from) q.set('limit', String(params.limit ?? 100))
+  return asArray(await apiGet(`/api/pnl?${q.toString()}`))
 }
 
 /** SSE URL for live snapshot updates (use with EventSource). */

@@ -26,6 +26,7 @@ export type LatestSnapshot = {
   equity?: number | null
   realized?: number | null
   unrealized?: number | null
+  pnl?: PnlSnapshot | null
   balance?: {
     equity?: number | null
     available?: number | null

@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState } from 'react'
-import { fetchLatestSnapshot, fetchPnl, fetchPositions, snapshotStreamUrl } from '@/api/oems'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { fetchAnalytics, fetchLatestSnapshot, fetchPnl, fetchPositions, snapshotStreamUrl } from '@/api/oems'
 import type { LatestSnapshot, PnlSnapshot, Position, SnapshotStreamEvent } from '@/api/types'
 import { DataState } from '@/components/DataState'
 import { InfoTip } from '@/components/InfoTip'
-import { PnlChart, PnlSeriesSelect, type ChartSeries } from '@/components/PnlChart'
+import { chartSeriesLabel, PnlChart, PnlSeriesSelect, type ChartSeries } from '@/components/PnlChart'
 import {
   POSITIONS_PAGE_SIZE,
   TablePagination,
@@ -11,6 +11,8 @@ import {
   slicePage,
 } from '@/components/TablePagination'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Card,
   CardAction,
@@ -30,6 +32,40 @@ import {
 } from '@/components/ui/table'
 import { useStrategy } from '@/context/StrategyContext'
 import { fmtNum, fmtSignedUsd, fmtUsd, positionMismatch } from '@/lib/format'
+
+type ChartPreset = '1d' | '7d' | 'custom'
+
+function toDateInputValue(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+function startOfLocalDay(dateStr: string): Date {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  return new Date(y, m - 1, d, 0, 0, 0, 0)
+}
+
+function endOfLocalDay(dateStr: string): Date {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  return new Date(y, m - 1, d, 23, 59, 59, 999)
+}
+
+function chartRange(preset: ChartPreset, customFrom: string, customTo: string): {
+  from: string
+  to: string
+} {
+  const now = new Date()
+  if (preset === 'custom') {
+    return {
+      from: startOfLocalDay(customFrom).toISOString(),
+      to: endOfLocalDay(customTo).toISOString(),
+    }
+  }
+  const ms = preset === '1d' ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000
+  return { from: new Date(now.getTime() - ms).toISOString(), to: now.toISOString() }
+}
 
 function applyStreamEvent(
   prev: LatestSnapshot | null,
@@ -58,19 +94,25 @@ export function OverviewPage() {
   const [pnl, setPnl] = useState<PnlSnapshot[]>([])
   const [positions, setPositions] = useState<Position[]>([])
   const [chartSeries, setChartSeries] = useState<ChartSeries>('equity')
+  const [chartPreset, setChartPreset] = useState<ChartPreset>('1d')
+  const today = useMemo(() => toDateInputValue(new Date()), [])
+  const [customFrom, setCustomFrom] = useState(today)
+  const [customTo, setCustomTo] = useState(today)
+  const range = useMemo(
+    () => chartRange(chartPreset, customFrom, customTo),
+    [chartPreset, customFrom, customTo],
+  )
   const [posPage, setPosPage] = useState(1)
 
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const [snap, series, pos] = await Promise.all([
+      const [snap, pos] = await Promise.all([
         fetchLatestSnapshot(strategyId),
-        fetchPnl({ strategy_id: strategyId, limit: 100 }),
         fetchPositions({ strategy_id: strategyId, limit: 20 }),
       ])
       setSnapshot(snap)
-      setPnl(series)
       setPositions(pos)
       setPosPage(1)
     } catch (err) {
@@ -83,6 +125,47 @@ export function OverviewPage() {
   useEffect(() => {
     void load()
   }, [load])
+
+  useEffect(() => {
+    let cancelled = false
+    const fromMs = new Date(range.from).getTime()
+    const toMs = new Date(range.to).getTime()
+    const spanDays = (toMs - fromMs) / (24 * 60 * 60 * 1000)
+    async function loadChart() {
+      try {
+        if (spanDays > 2) {
+          const analytics = await fetchAnalytics({
+            strategy_id: strategyId,
+            from: range.from,
+            to: range.to,
+          })
+          if (cancelled) return
+          const points = analytics.series
+            .filter((p) => p.equity != null || p.realized != null || p.unrealized != null)
+            .map((p) => ({
+              ts: p.ts,
+              equity: p.equity ?? 0,
+              realized: p.realized ?? 0,
+              unrealized: p.unrealized ?? 0,
+            }))
+          setPnl(points.reverse())
+        } else {
+          const series = await fetchPnl({
+            strategy_id: strategyId,
+            from: range.from,
+            to: range.to,
+          })
+          if (!cancelled) setPnl(series)
+        }
+      } catch {
+        if (!cancelled) setPnl([])
+      }
+    }
+    void loadChart()
+    return () => {
+      cancelled = true
+    }
+  }, [strategyId, range.from, range.to])
 
   useEffect(() => {
     setPosPage(1)
@@ -105,7 +188,12 @@ export function OverviewPage() {
             .then(setPositions)
             .catch(() => {})
           const point = data.pnl
-          if (point?.ts) {
+          const pointMs = point?.ts ? new Date(point.ts).getTime() : NaN
+          const inRange =
+            Number.isFinite(pointMs) &&
+            pointMs >= new Date(range.from).getTime() &&
+            pointMs <= new Date(range.to).getTime()
+          if (point?.ts && inRange) {
             setPnl((prev) => {
               if (prev.some((p) => p.ts === point.ts)) return prev
               return [
@@ -116,7 +204,7 @@ export function OverviewPage() {
                   unrealized: point.unrealized,
                 },
                 ...prev,
-              ].slice(0, 100)
+              ].slice(0, 2000)
             })
           }
         } catch {
@@ -137,7 +225,7 @@ export function OverviewPage() {
       if (retryTimer !== undefined) clearTimeout(retryTimer)
       es?.close()
     }
-  }, [strategyId, setSnapshot])
+  }, [strategyId, setSnapshot, range.from, range.to])
 
   const equity = latest?.equity ?? latest?.balance?.equity ?? null
   const available = latest?.balance?.available ?? null
@@ -214,13 +302,44 @@ export function OverviewPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-1.5">
-              PnL
+              {chartSeriesLabel(chartSeries)}
               <InfoTip label="About PnL chart">
-                Equity, realized, and unrealized over time, in USD.
+                {`${chartSeriesLabel(chartSeries)} in USD for the selected range.`}
               </InfoTip>
             </CardTitle>
-            <CardDescription>Equity, realized, and unrealized over time</CardDescription>
-            <CardAction>
+            <CardDescription>USD over the selected range</CardDescription>
+            <CardAction className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
+                {(['1d', '7d', 'custom'] as const).map((preset) => (
+                  <Button
+                    key={preset}
+                    type="button"
+                    size="sm"
+                    variant={chartPreset === preset ? 'default' : 'outline'}
+                    onClick={() => setChartPreset(preset)}
+                  >
+                    {preset === '1d' ? '1D' : preset === '7d' ? '7D' : 'Custom'}
+                  </Button>
+                ))}
+              </div>
+              {chartPreset === 'custom' && (
+                <>
+                  <Input
+                    type="date"
+                    value={customFrom}
+                    onChange={(e) => setCustomFrom(e.target.value)}
+                    className="h-8 w-[9.5rem]"
+                    aria-label="From date"
+                  />
+                  <Input
+                    type="date"
+                    value={customTo}
+                    onChange={(e) => setCustomTo(e.target.value)}
+                    className="h-8 w-[9.5rem]"
+                    aria-label="To date"
+                  />
+                </>
+              )}
               <PnlSeriesSelect series={chartSeries} onSeriesChange={setChartSeries} />
             </CardAction>
           </CardHeader>

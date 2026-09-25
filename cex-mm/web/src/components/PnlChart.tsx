@@ -37,6 +37,10 @@ const SERIES = {
 
 export type ChartSeries = keyof typeof SERIES
 
+export function chartSeriesLabel(series: ChartSeries): string {
+  return SERIES[series].label
+}
+
 const chartConfig = {
   equity: {
     label: SERIES.equity.label,

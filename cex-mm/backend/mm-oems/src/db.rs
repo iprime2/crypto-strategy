@@ -447,6 +447,35 @@ pub async fn latest_snapshots(pool: &PgPool, strategy_id: &str) -> sqlx::Result<
     }))
 }
 
+pub async fn list_pnl_between(
+    pool: &PgPool,
+    strategy_id: &str,
+    from: DateTime<Utc>,
+    to: DateTime<Utc>,
+) -> sqlx::Result<Vec<Value>> {
+    let rows = sqlx::query(
+        r#"SELECT ts, realized, unrealized, equity FROM pnl_snapshots
+           WHERE strategy_id = $1 AND ts >= $2 AND ts <= $3
+           ORDER BY ts DESC LIMIT 2000"#,
+    )
+    .bind(strategy_id)
+    .bind(from)
+    .bind(to)
+    .fetch_all(pool)
+    .await?;
+    Ok(rows
+        .into_iter()
+        .map(|r| {
+            serde_json::json!({
+                "ts": r.get::<DateTime<Utc>, _>("ts"),
+                "realized": r.get::<f64, _>("realized"),
+                "unrealized": r.get::<f64, _>("unrealized"),
+                "equity": r.get::<f64, _>("equity"),
+            })
+        })
+        .collect())
+}
+
 pub async fn list_pnl(pool: &PgPool, strategy_id: &str, limit: Option<i64>) -> sqlx::Result<Vec<Value>> {
     let lim = clamp_limit(limit);
     let rows = sqlx::query(
