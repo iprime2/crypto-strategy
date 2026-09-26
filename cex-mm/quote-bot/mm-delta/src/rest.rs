@@ -129,7 +129,12 @@ impl DeltaRest {
 
     pub async fn cancel_all(&self, mm_symbol: &str) -> Result<()> {
         let meta = self.products.get(mm_symbol)?;
-        let body = json!({ "product_id": meta.product_id }).to_string();
+        let body = json!({
+            "product_id": meta.product_id,
+            "cancel_limit_orders": true,
+            "cancel_stop_orders": true
+        })
+        .to_string();
         let resp = self
             .signed_request(reqwest::Method::DELETE, "/v2/orders/all", "", &body)
             .await?;

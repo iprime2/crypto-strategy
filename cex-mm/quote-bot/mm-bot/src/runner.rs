@@ -466,8 +466,23 @@ async fn run_symbol_loop(
             .unwrap_or(true)
         {
             if let Some(r) = &rest {
-                let _ = r.cancel_all(&symbol).await;
-                tracing::info!(%symbol, "startup cancel-all (sync with exchange before quoting)");
+                let mut cancelled = false;
+                for attempt in 1..=3 {
+                    match r.cancel_all(&symbol).await {
+                        Ok(()) => {
+                            tracing::info!(%symbol, attempt, "startup cancel-all");
+                            cancelled = true;
+                            break;
+                        }
+                        Err(e) => {
+                            tracing::warn!(%symbol, attempt, error = %e, "startup cancel-all failed");
+                            tokio::time::sleep(Duration::from_millis(400)).await;
+                        }
+                    }
+                }
+                if !cancelled {
+                    tracing::error!(%symbol, "startup cancel-all did not succeed; quoting anyway");
+                }
             }
         }
     }
