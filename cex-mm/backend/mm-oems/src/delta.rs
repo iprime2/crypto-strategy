@@ -133,7 +133,12 @@ impl DeltaClient {
 
     /// Best-effort cancel all open orders for a product_id.
     pub async fn cancel_all_product(&self, product_id: u64) -> anyhow::Result<()> {
-        let body = serde_json::json!({ "product_id": product_id }).to_string();
+        let body = serde_json::json!({
+            "product_id": product_id,
+            "cancel_limit_orders": true,
+            "cancel_stop_orders": true
+        })
+        .to_string();
         let _ = self
             .signed(reqwest::Method::DELETE, "/v2/orders/all", "", &body)
             .await?;
