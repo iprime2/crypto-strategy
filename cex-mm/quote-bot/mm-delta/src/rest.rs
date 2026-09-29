@@ -178,6 +178,7 @@ impl DeltaRest {
         Ok(-position * rate * 10_000.0)
     }
 
+    /// Returns the Delta order id when the response includes one.
     pub async fn place_limit_post_only(
         &self,
         mm_symbol: &str,
@@ -185,7 +186,7 @@ impl DeltaRest {
         qty_base: f64,
         price: f64,
         link_id: &str,
-    ) -> Result<()> {
+    ) -> Result<Option<u64>> {
         self.place_limit(
             mm_symbol,
             side,
@@ -219,6 +220,60 @@ impl DeltaRest {
             "ioc",
         )
         .await
+        .map(|_| ())
+    }
+
+    /// Move a resting post-only order to a new price and size.
+    pub async fn edit_post_only(
+        &self,
+        mm_symbol: &str,
+        order_id: u64,
+        qty_base: f64,
+        price: f64,
+    ) -> Result<()> {
+        let meta = self.products.get(mm_symbol)?;
+        let size = self.products.contracts_for_qty(mm_symbol, qty_base)?;
+        let body = json!({
+            "id": order_id,
+            "product_id": meta.product_id,
+            "limit_price": format!("{price}"),
+            "size": size,
+            "post_only": "true",
+        })
+        .to_string();
+        let resp = self
+            .signed_request(reqwest::Method::PUT, "/v2/orders", "", &body)
+            .await?;
+        let text = resp.text().await?;
+        let parsed: ApiEnvelope<serde_json::Value> =
+            serde_json::from_str(&text).context("edit order json")?;
+        if parsed.success == Some(false) {
+            let msg = parsed
+                .error
+                .and_then(|e| e.message.or(e.code))
+                .unwrap_or(text);
+            anyhow::bail!("edit: {msg}");
+        }
+        Ok(())
+    }
+
+    pub async fn cancel_order(&self, mm_symbol: &str, order_id: u64) -> Result<()> {
+        let meta = self.products.get(mm_symbol)?;
+        let body = json!({ "id": order_id, "product_id": meta.product_id }).to_string();
+        let resp = self
+            .signed_request(reqwest::Method::DELETE, "/v2/orders", "", &body)
+            .await?;
+        let text = resp.text().await?;
+        let parsed: ApiEnvelope<serde_json::Value> =
+            serde_json::from_str(&text).context("cancel order json")?;
+        if parsed.success == Some(false) {
+            let msg = parsed
+                .error
+                .and_then(|e| e.message.or(e.code))
+                .unwrap_or(text);
+            anyhow::bail!("cancel: {msg}");
+        }
+        Ok(())
     }
 
     async fn place_limit(
@@ -231,7 +286,7 @@ impl DeltaRest {
         post_only: bool,
         reduce_only: bool,
         time_in_force: &str,
-    ) -> Result<()> {
+    ) -> Result<Option<u64>> {
         let meta = self.products.get(mm_symbol)?;
         let size = self.products.contracts_for_qty(mm_symbol, qty_base)?;
         let side = if side.eq_ignore_ascii_case("buy") {
@@ -264,7 +319,11 @@ impl DeltaRest {
                 .unwrap_or(text);
             anyhow::bail!("place: {msg}");
         }
-        Ok(())
+        Ok(parsed
+            .result
+            .as_ref()
+            .and_then(|r| r.get("id"))
+            .and_then(|v| v.as_u64()))
     }
 
     /// Delta accumulates resting orders if we only place; cancel before replace.

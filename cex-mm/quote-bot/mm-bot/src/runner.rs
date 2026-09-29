@@ -702,8 +702,7 @@ async fn run_symbol_loop(
             if let Some(r) = &rest {
                 let _ = r.cancel_all(&symbol).await;
             }
-            oms.live.bid = None;
-            oms.live.ask = None;
+            oms.live.clear();
             tracing::warn!(%symbol, ?regime.level, depth_ratio, jump_bps, "regime L3 pause — cancel all");
             continue;
         }
@@ -712,6 +711,7 @@ async fn run_symbol_loop(
             if let Some(r) = &rest {
                 let _ = r.cancel_all(&symbol).await;
             }
+            oms.live.clear();
             tracing::warn!(%symbol, reject_count = risk.reject_count, "risk kill — cancel all");
             if risk.halt {
                 break;
@@ -799,8 +799,7 @@ async fn run_symbol_loop(
 
         if should_taker_flatten(inventory, max_inv, base_qty) {
             let _ = r.cancel_all(&symbol).await;
-            oms.live.bid = None;
-            oms.live.ask = None;
+            oms.live.clear();
             if last_reduce_only.elapsed() >= Duration::from_secs(2) {
                 if let Some(clip) = hard_cap_reduce(inventory, max_inv, base_qty, min_qty) {
                     let price = if clip.side.eq_ignore_ascii_case("sell") {
@@ -879,10 +878,56 @@ async fn run_symbol_loop(
             continue;
         }
 
-        if r.cancel_before_requote() && (need_bid || need_ask) {
-            let _ = r.cancel_all(&symbol).await;
-            oms.live.bid = None;
-            oms.live.ask = None;
+        let mut need_bid = need_bid;
+        let mut need_ask = need_ask;
+        if r.cancel_before_requote() {
+            if oms.live.has_untracked() {
+                let _ = r.cancel_all(&symbol).await;
+                oms.live.clear();
+                need_bid = true;
+                need_ask = true;
+            } else {
+                let bid_qty = clip_reducing_qty(inventory, false, plan.order_qty, min_qty);
+                let ask_qty = clip_reducing_qty(inventory, true, plan.order_qty, min_qty);
+                if need_bid {
+                    if let Some(id) = oms.live.bid_id {
+                        let crosses = top.best_ask > 0.0 && plan.bid >= top.best_ask;
+                        if !plan.place_bid {
+                            let _ = r.cancel_order(&symbol, id).await;
+                            oms.live.clear_bid();
+                            need_bid = false;
+                        } else if !crosses
+                            && r.edit_post_only(&symbol, id, bid_qty, plan.bid).await.is_ok()
+                        {
+                            oms.live.bid = Some(plan.bid);
+                            need_bid = false;
+                            tracing::info!(target: "MM_ORDER", %symbol, side = "buy", price = plan.bid, qty = bid_qty, "edited post-only");
+                        } else {
+                            let _ = r.cancel_order(&symbol, id).await;
+                            oms.live.clear_bid();
+                        }
+                    }
+                }
+                if need_ask {
+                    if let Some(id) = oms.live.ask_id {
+                        let crosses = top.best_bid > 0.0 && plan.ask <= top.best_bid;
+                        if !plan.place_ask {
+                            let _ = r.cancel_order(&symbol, id).await;
+                            oms.live.clear_ask();
+                            need_ask = false;
+                        } else if !crosses
+                            && r.edit_post_only(&symbol, id, ask_qty, plan.ask).await.is_ok()
+                        {
+                            oms.live.ask = Some(plan.ask);
+                            need_ask = false;
+                            tracing::info!(target: "MM_ORDER", %symbol, side = "sell", price = plan.ask, qty = ask_qty, "edited post-only");
+                        } else {
+                            let _ = r.cancel_order(&symbol, id).await;
+                            oms.live.clear_ask();
+                        }
+                    }
+                }
+            }
         }
 
         let ts = Utc::now().timestamp_millis();
@@ -894,10 +939,10 @@ async fn run_symbol_loop(
             if bid_reduces && plan.bid >= top.best_ask && top.best_ask > 0.0 && bid_qty > 0.0 {
                 let price = (top.best_ask - tick).max(top.best_bid);
                 let link = format!("mm-{symbol}-bid-{ts}");
-                if let Err(e) = r
+                let placed = r
                     .place_limit_post_only(&symbol, "Buy", bid_qty, price, &link)
-                    .await
-                {
+                    .await;
+                if let Err(e) = &placed {
                     let msg = format!("{e:#}");
                     crate::oems::post_order(&link, &symbol, "buy", price, bid_qty, false, Some(&msg));
                     tracing::warn!(
@@ -915,6 +960,7 @@ async fn run_symbol_loop(
                 } else {
                     risk.reject_count = risk.reject_count.saturating_sub(2);
                     oms.live.bid = Some(price);
+                    oms.live.bid_id = placed.ok().flatten();
                     crate::oems::post_order(&link, &symbol, "buy", price, bid_qty, false, None);
                     tracing::info!(
                         target: "MM_ORDER",
@@ -935,10 +981,10 @@ async fn run_symbol_loop(
                 queue_front_frac,
             ) {
                 let link = format!("mm-{symbol}-bid-{ts}");
-                if let Err(e) = r
+                let placed = r
                     .place_limit_post_only(&symbol, "Buy", bid_qty, plan.bid, &link)
-                    .await
-                {
+                    .await;
+                if let Err(e) = &placed {
                     let msg = format!("{e:#}");
                     crate::oems::post_order(
                         &link,
@@ -964,6 +1010,7 @@ async fn run_symbol_loop(
                 } else {
                     risk.reject_count = risk.reject_count.saturating_sub(2);
                     oms.live.bid = Some(plan.bid);
+                    oms.live.bid_id = placed.ok().flatten();
                     crate::oems::post_order(&link, &symbol, "buy", plan.bid, bid_qty, false, None);
                     tracing::info!(
                         target: "MM_ORDER",
@@ -983,10 +1030,10 @@ async fn run_symbol_loop(
             if ask_reduces && plan.ask <= top.best_bid && top.best_bid > 0.0 && ask_qty > 0.0 {
                 let price = (top.best_bid + tick).min(top.best_ask);
                 let link = format!("mm-{symbol}-ask-{ts}");
-                if let Err(e) = r
+                let placed = r
                     .place_limit_post_only(&symbol, "Sell", ask_qty, price, &link)
-                    .await
-                {
+                    .await;
+                if let Err(e) = &placed {
                     let msg = format!("{e:#}");
                     crate::oems::post_order(&link, &symbol, "sell", price, ask_qty, false, Some(&msg));
                     tracing::warn!(
@@ -1004,6 +1051,7 @@ async fn run_symbol_loop(
                 } else {
                     risk.reject_count = risk.reject_count.saturating_sub(2);
                     oms.live.ask = Some(price);
+                    oms.live.ask_id = placed.ok().flatten();
                     crate::oems::post_order(&link, &symbol, "sell", price, ask_qty, false, None);
                     tracing::info!(
                         target: "MM_ORDER",
@@ -1024,10 +1072,10 @@ async fn run_symbol_loop(
                 queue_front_frac,
             ) {
                 let link = format!("mm-{symbol}-ask-{ts}");
-                if let Err(e) = r
+                let placed = r
                     .place_limit_post_only(&symbol, "Sell", ask_qty, plan.ask, &link)
-                    .await
-                {
+                    .await;
+                if let Err(e) = &placed {
                     let msg = format!("{e:#}");
                     crate::oems::post_order(
                         &link,
@@ -1053,6 +1101,7 @@ async fn run_symbol_loop(
                 } else {
                     risk.reject_count = risk.reject_count.saturating_sub(2);
                     oms.live.ask = Some(plan.ask);
+                    oms.live.ask_id = placed.ok().flatten();
                     crate::oems::post_order(&link, &symbol, "sell", plan.ask, ask_qty, false, None);
                     tracing::info!(
                         target: "MM_ORDER",
