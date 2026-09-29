@@ -136,6 +136,17 @@ impl Supervisor {
     }
 }
 
+/// Badge state: a saved "running" row is stopped once its process is gone.
+pub fn status_for_display(desired_state: &str, process_alive: bool) -> &'static str {
+    if desired_state == "running" && !process_alive {
+        "stopped"
+    } else if desired_state == "running" {
+        "running"
+    } else {
+        "stopped"
+    }
+}
+
 pub fn pid_alive(pid: u32) -> bool {
     if pid == 0 {
         return false;
@@ -214,6 +225,13 @@ fn apply_config_env(cmd: &mut std::process::Command, body: &Value) {
 mod tests {
     use super::*;
     use std::sync::Arc;
+
+    #[test]
+    fn dead_process_displays_stopped() {
+        assert_eq!(status_for_display("running", false), "stopped");
+        assert_eq!(status_for_display("running", true), "running");
+        assert_eq!(status_for_display("stopped", true), "stopped");
+    }
 
     #[test]
     fn stop_ignores_pid_not_recorded_by_supervisor() {
