@@ -133,7 +133,8 @@ async fn main() -> Result<()> {
     println!(
         "placing post-only BUY 1 contract (~{qty_base} base) @ {price} (best_bid={best_bid})"
     );
-    rest.place_limit_post_only(&mm_symbol, "buy", qty_base, price, &link)
+    let _ = rest
+        .place_limit_post_only(&mm_symbol, "buy", qty_base, price, &link)
         .await
         .context("place order")?;
     println!("PLACE OK (order should rest on book briefly)");

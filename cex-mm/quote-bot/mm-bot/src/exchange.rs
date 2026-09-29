@@ -45,16 +45,36 @@ impl QuotingRest {
         qty: f64,
         price: f64,
         link_id: &str,
-    ) -> Result<()> {
+    ) -> Result<Option<u64>> {
         match self {
-            Self::Bybit(r) => {
-                r.place_limit_post_only(symbol, side, qty, price, link_id)
-                    .await
-            }
+            Self::Bybit(r) => r
+                .place_limit_post_only(symbol, side, qty, price, link_id)
+                .await
+                .map(|_| None),
             Self::Delta(r) => {
                 r.place_limit_post_only(symbol, side, qty, price, link_id)
                     .await
             }
+        }
+    }
+
+    pub async fn edit_post_only(
+        &self,
+        symbol: &str,
+        order_id: u64,
+        qty: f64,
+        price: f64,
+    ) -> Result<()> {
+        match self {
+            Self::Bybit(_) => anyhow::bail!("edit by order id is Delta-only"),
+            Self::Delta(r) => r.edit_post_only(symbol, order_id, qty, price).await,
+        }
+    }
+
+    pub async fn cancel_order(&self, symbol: &str, order_id: u64) -> Result<()> {
+        match self {
+            Self::Bybit(_) => anyhow::bail!("cancel by order id is Delta-only"),
+            Self::Delta(r) => r.cancel_order(symbol, order_id).await,
         }
     }
 

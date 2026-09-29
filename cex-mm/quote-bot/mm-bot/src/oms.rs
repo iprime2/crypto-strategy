@@ -33,6 +33,29 @@ pub struct LiveQuotes {
     pub ask: Option<f64>,
     pub bid_link: Option<String>,
     pub ask_link: Option<String>,
+    pub bid_id: Option<u64>,
+    pub ask_id: Option<u64>,
+}
+
+impl LiveQuotes {
+    pub fn clear(&mut self) {
+        *self = Self::default();
+    }
+
+    pub fn clear_bid(&mut self) {
+        self.bid = None;
+        self.bid_id = None;
+    }
+
+    pub fn clear_ask(&mut self) {
+        self.ask = None;
+        self.ask_id = None;
+    }
+
+    /// A side has a resting order we cannot address by id, so only cancel-all is safe.
+    pub fn has_untracked(&self) -> bool {
+        (self.bid.is_some() && self.bid_id.is_none()) || (self.ask.is_some() && self.ask_id.is_none())
+    }
 }
 
 pub struct OmsState {
@@ -62,5 +85,29 @@ impl OmsState {
             .map(|p| (p - ask).abs() / ask * 10_000.0 <= tol_bps)
             .unwrap_or(false);
         (!bid_ok, !ask_ok)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn resting_order_without_id_forces_cancel_all() {
+        let mut live = LiveQuotes::default();
+        assert!(!live.has_untracked());
+
+        live.bid = Some(2700.0);
+        live.bid_id = Some(1);
+        assert!(!live.has_untracked());
+
+        live.ask = Some(2705.0);
+        assert!(live.has_untracked());
+
+        live.clear_ask();
+        assert!(!live.has_untracked());
+
+        live.clear();
+        assert!(live.bid.is_none() && live.bid_id.is_none());
     }
 }
