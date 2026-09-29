@@ -18,7 +18,11 @@ use serde::Serialize;
 #[derive(Debug, Clone, Copy, Default)]
 pub struct QuoteExtensions {
     pub binance_mid: Option<f64>,
+    /// Recent Binance mid change in bps (see `fair::move_bps`).
+    pub binance_move_bps: f64,
     pub lead_weight: f64,
+    /// Clamp on `lead_weight * binance_move_bps`; `<= 0` disables the clamp.
+    pub lead_max_bps: f64,
     pub ofi_drift_bps: f64,
     pub funding_carry_bps: f64,
     pub alpha_mu_bps: f64,

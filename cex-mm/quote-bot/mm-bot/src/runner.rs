@@ -20,7 +20,7 @@ use crate::oms::OmsState;
 use crate::risk::counts_toward_reject_kill;
 use crate::symbols::{env_f64_for_symbol, normalize_symbol, resolve_symbols_from_env};
 use crate::universe::{UniverseOptions, resolve_universe};
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -458,6 +458,11 @@ async fn run_symbol_loop(
     let mut oms = OmsState::default();
     let mut last_fair: Option<f64> = None;
     let mut last_binance_mid: f64 = 0.0;
+    let lead_lookback_sec = env_f64_for_symbol(&symbol, "MM_LEAD_LOOKBACK_SEC", 3.0).max(0.0);
+    let lead_beta = env_f64_for_symbol(&symbol, "MM_LEAD_BETA", 0.8);
+    let lead_max_bps = env_f64_for_symbol(&symbol, "MM_LEAD_MAX_BPS", 15.0);
+    let lead_clock = Instant::now();
+    let mut binance_hist: VecDeque<(f64, f64)> = VecDeque::new();
     let warm_samples = env_f64_for_symbol(&symbol, "MM_WARMUP_SAMPLES", 32.0) as usize;
 
     if !dry_run {
@@ -584,6 +589,21 @@ async fn run_symbol_loop(
         if binance_mid > 0.0 {
             last_binance_mid = binance_mid;
         }
+        let lead_now = lead_clock.elapsed().as_secs_f64();
+        if binance_mid > 0.0 {
+            binance_hist.push_back((lead_now, binance_mid));
+        }
+        while binance_hist
+            .front()
+            .is_some_and(|(t, _)| *t < lead_now - 2.0 * lead_lookback_sec)
+        {
+            binance_hist.pop_front();
+        }
+        let binance_move_bps = if binance_mid > 0.0 {
+            mm_core::fair::move_bps(binance_hist.make_contiguous(), lead_now, lead_lookback_sec)
+        } else {
+            0.0
+        };
 
         let jump_bps = last_fair
             .map(|lf| (fair_native - lf) / lf * 10_000.0)
@@ -654,7 +674,9 @@ async fn run_symbol_loop(
             } else {
                 None
             },
-            lead_weight: 0.5,
+            binance_move_bps,
+            lead_weight: lead_beta,
+            lead_max_bps,
             ofi_drift_bps: ofi.drift_bps(ofi_beta, top.bid_qty + top.ask_qty),
             funding_carry_bps: funding_bps,
             alpha_mu_bps,
