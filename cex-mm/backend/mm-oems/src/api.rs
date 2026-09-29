@@ -104,13 +104,45 @@ fn db_required(st: &AppState) -> Result<&Db, Response> {
         .ok_or_else(|| err_json(StatusCode::SERVICE_UNAVAILABLE, "db_unavailable", "database unavailable"))
 }
 
+/// If the saved process is gone, persist stopped so the badge matches the OS.
+async fn reconcile_liveness(pool: &sqlx::PgPool, row: &mut Value) {
+    let desired = row
+        .get("desired_state")
+        .and_then(|v| v.as_str())
+        .unwrap_or("stopped");
+    let pid = row.get("last_pid").and_then(|v| v.as_i64());
+    let alive = match pid {
+        Some(pid) if (1..=u32::MAX as i64).contains(&pid) => {
+            crate::supervisor::pid_alive(pid as u32)
+        }
+        _ => false,
+    };
+    let shown = crate::supervisor::status_for_display(desired, alive);
+    if shown == desired {
+        return;
+    }
+    let Some(id) = row.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()) else {
+        return;
+    };
+    let _ = db::set_desired_state_and_pid(pool, &id, shown, None).await;
+    if let Some(obj) = row.as_object_mut() {
+        obj.insert("desired_state".into(), json!(shown));
+        obj.insert("last_pid".into(), Value::Null);
+    }
+}
+
 async fn list_strategies(State(st): State<AppState>) -> Response {
     let db = match db_required(&st) {
         Ok(d) => d,
         Err(r) => return r,
     };
     match db::list_strategies(&db.pool).await {
-        Ok(rows) => Json(rows).into_response(),
+        Ok(mut rows) => {
+            for row in rows.iter_mut() {
+                reconcile_liveness(&db.pool, row).await;
+            }
+            Json(rows).into_response()
+        }
         Err(e) => err_json(StatusCode::INTERNAL_SERVER_ERROR, "db_error", e.to_string()),
     }
 }
@@ -121,7 +153,10 @@ async fn get_strategy(State(st): State<AppState>, Path(id): Path<String>) -> Res
         Err(r) => return r,
     };
     match db::get_strategy(&db.pool, &id).await {
-        Ok(Some(row)) => Json(row).into_response(),
+        Ok(Some(mut row)) => {
+            reconcile_liveness(&db.pool, &mut row).await;
+            Json(row).into_response()
+        }
         Ok(None) => err_json(StatusCode::NOT_FOUND, "not_found", format!("strategy {id}")),
         Err(e) => err_json(StatusCode::INTERNAL_SERVER_ERROR, "db_error", e.to_string()),
     }
