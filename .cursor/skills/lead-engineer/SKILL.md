@@ -24,9 +24,15 @@ Sources distilled for this skill: [Cursor — Developing features](https://curso
 
 **Skip the full loop** for typos, one-file config, or docs with no behavior change. Still respect git permission and the target project's patterns.
 
-## Git (workspace invariant)
+## Git
 
-Never `git pull`, `git push`, or `git commit` unless the user explicitly asks in this conversation. Read-only git is fine. Propose a commit message if useful; wait for "commit" / "push" / "pull".
+Follow `.cursor/rules/git.mdc`. A change the user wants kept goes on a `type/short-topic` branch, then a pull request, green CI, your review, and a merge to `main`. Do not commit when the user only asked a question or asked to try something locally.
+
+## Models
+
+- **Lead (you):** the model selected for this chat. You plan, review, QA, and ship.
+- **Engineer:** spawn with `model: "grok-4.7-high-fast"`. If that slug is not in the available model list, stop and tell the user which models are available instead of substituting.
+- **QA subagent** (when used): the same engineer model, never the engineer's own run.
 
 ## Quality bar
 
@@ -60,6 +66,12 @@ You do **not** write the feature implementation. Spawn engineer subagent(s) via 
 
 Prompt each engineer with: project root, slice, acceptance criteria, patterns to copy, files **not** to touch, and "run this repo's tests after the slice."
 
+The prompt must also:
+
+- List the skill files to read first, by absolute path (for the bot: `mm-rust-engineer`, `tdd-workflow-mm`; for OEMS: the matching `oems-*` skills).
+- Say: no commit, push, or pull; no `.env` edits; do not start, stop, or kill `mm-bot`, `mm-oems`, or `vite`.
+- Ask for the changed files, the final formula or contract, and the pasted test and build output.
+
 - One engineer unless backend and frontend are independent **and** the API contract is already defined.
 - After each slice: system still builds; existing tests still pass.
 
@@ -72,7 +84,7 @@ Engineer instructions to include:
 
 ### 3. Review (you)
 
-Read the diff against the plan. Five axes:
+Read the actual diff (`git diff`), not the engineer's summary. Five axes:
 
 | Axis | Fail if |
 |------|---------|
@@ -82,7 +94,7 @@ Read the diff against the plan. Five axes:
 | Security | Unvalidated input, string-built SQL, XSS, secrets, missing authz |
 | Performance | N+1, unbounded lists, sync I/O on a hot path |
 
-Label findings: **Must fix** / **Should fix** / **Nit**. Resume the engineer until Must-fix is gone. Do not rubber-stamp.
+Label findings: **Must fix** / **Should fix** / **Nit**. For any Must fix, resume the **same** engineer (`Task` with `resume: <agent id>`) with the concrete required change, then review the new diff. Repeat until no Must fix remains. Do not fix it yourself and do not rubber-stamp.
 
 Approve when the change **improves** the codebase and meets criteria — not only if you would have typed the same code.
 
@@ -99,6 +111,15 @@ QA reports PASS/FAIL with commands and output:
 
 On FAIL, send concrete repros back to the engineer. Sign off only with evidence.
 
+At minimum, rerun the repo's tests and build yourself; do not trust the engineer's pasted output alone. For a quote-bot change, also restart the strategy through the OEMS API (`POST /api/strategies/mm/stop`, then `/start`), confirm the process is alive, and check the live Delta orders show the intended behavior.
+
+### 5. Ship
+
+1. Branch `type/short-topic`, stage only the slice's files (never `.env`, never `artifacts/economics/*.json`), commit, push.
+2. Open the pull request with a summary and a test plan that lists what you actually ran.
+3. Wait for Rust build and test, web typecheck and build, and the security scan. Fix failures with a new commit on the branch.
+4. Merge, check out `main`, pull, and confirm the bot is still running if it was restarted.
+
 ## Anti-patterns
 
 - Coding the whole feature yourself "to go faster"
@@ -107,4 +128,5 @@ On FAIL, send concrete repros back to the engineer. Sign off only with evidence.
 - Horizontal layers that stay unintegrated until the end
 - Mixing refactor and feature in one slice
 - Claiming done without pasted command output
-- Pulling, pushing, or committing to "wrap up"
+- Committing to `main`, or merging before CI is green and the review is clean
+- Accepting the engineer's summary without reading the diff

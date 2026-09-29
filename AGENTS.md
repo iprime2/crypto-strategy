@@ -21,7 +21,8 @@ Research, design, and implementation of **CEX USDT-perp market making** (Bybit-f
 3. For non-trivial bot work: **lead-engineer** + active plan in `plans/`.
 4. Implement from **`cex-mm/`**; verify with **verification-loop**; independent **qa-mm** for slices.
 5. Rules: `.cursor/rules/` (`orchestration` is always on in this folder).
-6. Git: never pull/push/commit unless the user explicitly asks in the conversation.
+6. Git: follow `.cursor/rules/git.mdc` — branch, pull request, green CI, review, then merge to `main`. Never commit to `main` directly.
+7. Non-trivial changes: lead on this chat's model, delegate the code to a Grok 4.7 High Fast engineer subagent, review the diff, and resume that engineer until the review is clean.
 
 ## Opening in Cursor
 
