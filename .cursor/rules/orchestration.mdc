@@ -10,7 +10,7 @@ For non-trivial work in this folder, start with **`.cursor/skills/using-cs-skill
 | Kind of work | Skill(s) |
 |--------------|----------|
 | Research / STRATEGY / resource | mm-research-analyst |
-| Plan + slices + review | lead-engineer |
+| Plan + slices + review | lead-engineer (you lead on this chat's model; the engineer subagent runs on Grok 4.7 High Fast) |
 | Rust bot | mm-rust-engineer, cex-mm |
 | mm-core math | tdd-workflow-mm |
 | Testnet / recorder | testnet-ops |
@@ -21,4 +21,4 @@ For non-trivial work in this folder, start with **`.cursor/skills/using-cs-skill
 
 Plans: `plans/`. Code: `cex-mm/`. Do not store plans under `cex-mm/`.
 
-Git: see `git.mdc` — no commit/push/pull unless the user explicitly asks.
+Git: see `git.mdc`. Code changes to keep go through a branch, a pull request, green CI, review, and a merge to `main`.
