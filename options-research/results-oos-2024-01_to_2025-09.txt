@@ -1,0 +1,12 @@
+
+=== BTC out-of-sample 2024-01-06 → 2025-09-28: 630 expiries; implied 166 vs realised 172 bps
+  strangle_3 every day      : n=629 win  86% mean   -0.4 bps t -0.11 worst  -1224 total   -279
+  strangle_3 rule (k=1.5)    : n= 93 win  88% mean   +7.8 bps t +0.60 worst   -695 total   +725
+  put_3 every day      : n=629 win  93% mean   +0.5 bps t +0.17 worst  -1236 total   +331
+  put_3 rule (k=1.5)    : n= 93 win  91% mean   -0.3 bps t -0.03 worst   -458 total    -24
+
+=== ETH out-of-sample 2024-02-07 → 2025-09-28: 600 expiries; implied 220 vs realised 250 bps
+  strangle_3 every day      : n=599 win  79% mean  -16.1 bps t -1.99 worst  -1899 total  -9627
+  strangle_3 rule (k=1.5)    : n= 60 win  82% mean   -4.2 bps t -0.24 worst   -555 total   -251
+  put_3 every day      : n=599 win  89% mean   -7.8 bps t -1.28 worst  -1912 total  -4645
+  put_3 rule (k=1.5)    : n= 60 win  88% mean   +6.1 bps t +0.59 worst   -467 total   +366
