@@ -1,10 +1,19 @@
-//! Process supervisor for quote-bot mm-bot — only signals PIDs it spawned.
+//! Process supervisor for quote-bot mm-bot — only signals PIDs it spawned or adopted.
+//!
+//! - Every spawned child is waited on from a thread, so an exited bot is reaped
+//!   instead of lingering as a zombie that `kill(pid, 0)` would report as alive.
+//! - Bot stdout/stderr go to `artifacts/logs/mm-bot-<strategy>-<utc>.log`; the
+//!   telemetry tailer reads `MM_METRICS` and events from there.
+//! - After an OEMS restart the bot keeps running; `adopt` re-attaches to it when
+//!   `/proc/<pid>/cmdline` shows it is our `mm-bot run`.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
+use chrono::{DateTime, Utc};
 use serde_json::Value;
 
 #[derive(Debug, Clone)]
@@ -27,11 +36,30 @@ pub enum SupervisorError {
     Spawn(String),
 }
 
-/// In-memory record of PIDs this OEMS process spawned. Never signal others.
+#[derive(Debug, Clone)]
+pub struct ProcInfo {
+    pub pid: u32,
+    pub started_at: Option<DateTime<Utc>>,
+    pub log_path: Option<PathBuf>,
+    pub adopted: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExitInfo {
+    pub pid: u32,
+    pub code: Option<i32>,
+    pub at: DateTime<Utc>,
+}
+
+/// In-memory record of PIDs this OEMS process spawned or adopted. Never signal others.
 #[derive(Default)]
 pub struct Supervisor {
-    spawned: Mutex<HashMap<String, u32>>,
+    spawned: Mutex<HashMap<String, ProcInfo>>,
+    exits: Arc<Mutex<HashMap<String, ExitInfo>>>,
 }
+
+/// Default log filter for a supervised bot when the env file does not set one.
+const BOT_RUST_LOG: &str = "info,mm_bot=info,MM_METRICS=info,MM_ORDER=info";
 
 impl Supervisor {
     pub fn new() -> Self {
@@ -39,15 +67,24 @@ impl Supervisor {
     }
 
     pub fn recorded_pid(&self, strategy_id: &str) -> Option<u32> {
-        self.spawned
-            .lock()
-            .ok()
-            .and_then(|g| g.get(strategy_id).copied())
+        self.info(strategy_id).map(|p| p.pid)
+    }
+
+    pub fn info(&self, strategy_id: &str) -> Option<ProcInfo> {
+        self.spawned.lock().ok().and_then(|g| g.get(strategy_id).cloned())
+    }
+
+    pub fn last_exit(&self, strategy_id: &str) -> Option<ExitInfo> {
+        self.exits.lock().ok().and_then(|g| g.get(strategy_id).cloned())
     }
 
     pub fn record_spawned(&self, strategy_id: &str, pid: u32) {
+        self.record(strategy_id, ProcInfo { pid, started_at: Some(Utc::now()), log_path: None, adopted: false });
+    }
+
+    fn record(&self, strategy_id: &str, info: ProcInfo) {
         if let Ok(mut g) = self.spawned.lock() {
-            g.insert(strategy_id.to_string(), pid);
+            g.insert(strategy_id.to_string(), info);
         }
     }
 
@@ -62,28 +99,51 @@ impl Supervisor {
         self.recorded_pid(strategy_id) == Some(pid)
     }
 
-    /// Stop: SIGTERM only a pid this supervisor recorded for the strategy.
-    /// Returns Ok(true) if signaled, Ok(false) if ignored (not ours / none).
+    /// Re-attach to a bot left running by a previous OEMS process. Only adopts a
+    /// live process whose command line is `mm-bot … run`.
+    pub fn adopt(&self, strategy_id: &str, pid: u32) -> bool {
+        if self.recorded_pid(strategy_id).is_some() || !pid_alive(pid) || !is_mm_bot_run(pid) {
+            return false;
+        }
+        self.record(
+            strategy_id,
+            ProcInfo {
+                pid,
+                started_at: process_start_time(pid),
+                log_path: log_path_for_pid(pid),
+                adopted: true,
+            },
+        );
+        true
+    }
+
+    /// Stop: SIGTERM only a pid this supervisor recorded, wait up to `grace` for it
+    /// to exit, then SIGKILL. Returns Ok(true) if signaled, Ok(false) if not ours / none.
     pub fn stop_owned(&self, strategy_id: &str) -> std::io::Result<bool> {
-        let pid = match self.recorded_pid(strategy_id) {
-            Some(p) => p,
-            None => return Ok(false),
+        self.stop_owned_with_grace(strategy_id, Duration::from_secs(5))
+    }
+
+    pub fn stop_owned_with_grace(&self, strategy_id: &str, grace: Duration) -> std::io::Result<bool> {
+        let Some(pid) = self.recorded_pid(strategy_id) else {
+            return Ok(false);
         };
-        // Refuse to signal if map was cleared / mismatched.
-        if !self.owns_pid(strategy_id, pid) {
+        if !pid_alive(pid) {
+            self.clear_spawned(strategy_id);
             return Ok(false);
         }
-        signal_sigterm(pid)?;
+        signal(pid, SIGTERM)?;
+        if !wait_for_exit(pid, grace) {
+            let _ = signal(pid, SIGKILL);
+            wait_for_exit(pid, Duration::from_secs(2));
+        }
         self.clear_spawned(strategy_id);
         Ok(true)
     }
 
-    /// Start mm-bot with env from quote-bot/.env (+ config vars). Does not touch other pids.
+    /// Start mm-bot with env from quote-bot/.env (+ config overrides). Does not touch other pids.
     pub fn start(&self, req: StartRequest) -> Result<u32, SupervisorError> {
         if !req.quote_bot_env.is_file() {
-            return Err(SupervisorError::MissingEnv(
-                req.quote_bot_env.display().to_string(),
-            ));
+            return Err(SupervisorError::MissingEnv(req.quote_bot_env.display().to_string()));
         }
         if let Some(pid) = self.recorded_pid(&req.strategy_id) {
             if pid_alive(pid) {
@@ -97,68 +157,152 @@ impl Supervisor {
             return Err(SupervisorError::MissingBinary(bin.display().to_string()));
         }
 
+        let log_dir = req.cex_mm_root.join("artifacts/logs");
+        std::fs::create_dir_all(&log_dir).map_err(|e| SupervisorError::Spawn(e.to_string()))?;
+        let log_path = log_dir.join(format!(
+            "mm-bot-{}-{}.log",
+            req.strategy_id,
+            Utc::now().format("%Y%m%dT%H%M%SZ")
+        ));
+        let log = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&log_path)
+            .map_err(|e| SupervisorError::Spawn(e.to_string()))?;
+        let log_err = log.try_clone().map_err(|e| SupervisorError::Spawn(e.to_string()))?;
+
         let env_pairs = load_env_file(&req.quote_bot_env);
         let mut cmd = std::process::Command::new(&bin);
-        cmd.args([
-            "run",
-            "--venue",
-            "delta",
-            "--env",
-            "testnet",
-            "--loop-ms",
-            "400",
-        ])
-        .current_dir(&req.cex_mm_root)
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .env_clear();
-
-        // Preserve minimal PATH for the child.
+        cmd.args(["run", "--venue", "delta", "--env", "testnet", "--loop-ms", "400"])
+            .current_dir(&req.cex_mm_root)
+            .stdin(Stdio::null())
+            .stdout(Stdio::from(log))
+            .stderr(Stdio::from(log_err))
+            .env_clear();
         if let Ok(path) = std::env::var("PATH") {
             cmd.env("PATH", path);
         }
         for (k, v) in &env_pairs {
             cmd.env(k, v);
         }
+        if !env_map_has_key(&env_pairs, "RUST_LOG") {
+            cmd.env("RUST_LOG", BOT_RUST_LOG);
+        }
+        cmd.env("NO_COLOR", "1");
         if let Some(body) = &req.config_body {
-            apply_config_env(&mut cmd, body);
+            for (k, v) in config_env_pairs(body) {
+                cmd.env(k, v);
+            }
         }
 
-        let child = cmd
-            .spawn()
-            .map_err(|e| SupervisorError::Spawn(e.to_string()))?;
+        let mut child = cmd.spawn().map_err(|e| SupervisorError::Spawn(e.to_string()))?;
         let pid = child.id();
-        self.record_spawned(&req.strategy_id, pid);
-        // Detach: drop Child without waiting (process keeps running).
-        std::mem::forget(child);
+        self.record(
+            &req.strategy_id,
+            ProcInfo { pid, started_at: Some(Utc::now()), log_path: Some(log_path), adopted: false },
+        );
+        // Reap the child when it exits so it never lingers as a zombie.
+        let exits = self.exits.clone();
+        let strategy_id = req.strategy_id.clone();
+        std::thread::spawn(move || {
+            let code = child.wait().ok().and_then(|s| s.code());
+            if let Ok(mut g) = exits.lock() {
+                g.insert(strategy_id, ExitInfo { pid, code, at: Utc::now() });
+            }
+        });
         Ok(pid)
     }
 }
 
 /// Badge state: a saved "running" row is stopped once its process is gone.
 pub fn status_for_display(desired_state: &str, process_alive: bool) -> &'static str {
-    if desired_state == "running" && !process_alive {
-        "stopped"
-    } else if desired_state == "running" {
+    if desired_state == "running" && process_alive {
         "running"
     } else {
         "stopped"
     }
 }
 
+/// Alive = exists and is not a zombie (`kill(pid, 0)` alone reports zombies as alive).
 pub fn pid_alive(pid: u32) -> bool {
     if pid == 0 {
         return false;
     }
-    // kill(pid, 0) — existence check; do not send a real signal.
-    let rc = unsafe { libc_kill(pid as i32, 0) };
-    rc == 0
+    // kill(pid, 0) — existence check; does not send a real signal.
+    if unsafe { libc_kill(pid as i32, 0) } != 0 {
+        return false;
+    }
+    !matches!(proc_state(pid), Some('Z') | Some('X'))
 }
 
-fn signal_sigterm(pid: u32) -> std::io::Result<()> {
-    let rc = unsafe { libc_kill(pid as i32, 15) }; // SIGTERM
-    if rc == 0 {
+/// Single-letter process state from `/proc/<pid>/stat` (R, S, Z, …).
+fn proc_state(pid: u32) -> Option<char> {
+    let stat = std::fs::read_to_string(format!("/proc/{pid}/stat")).ok()?;
+    parse_stat_state(&stat)
+}
+
+fn parse_stat_state(stat: &str) -> Option<char> {
+    // Format: pid (comm) S ...; comm may contain spaces, so split after the last ')'.
+    let rest = &stat[stat.rfind(')')? + 1..];
+    rest.split_whitespace().next()?.chars().next()
+}
+
+fn is_mm_bot_run(pid: u32) -> bool {
+    let Ok(raw) = std::fs::read(format!("/proc/{pid}/cmdline")) else {
+        return false;
+    };
+    cmdline_is_mm_bot_run(&raw)
+}
+
+fn cmdline_is_mm_bot_run(raw: &[u8]) -> bool {
+    let args: Vec<String> = raw
+        .split(|b| *b == 0)
+        .filter(|a| !a.is_empty())
+        .map(|a| String::from_utf8_lossy(a).into_owned())
+        .collect();
+    args.first().is_some_and(|a| a.ends_with("mm-bot")) && args.iter().any(|a| a == "run")
+}
+
+/// Where the process writes stdout, if it is a regular file (not /dev/null or a pipe).
+pub fn log_path_for_pid(pid: u32) -> Option<PathBuf> {
+    let target = std::fs::read_link(format!("/proc/{pid}/fd/1")).ok()?;
+    if target.is_file() {
+        Some(target)
+    } else {
+        None
+    }
+}
+
+/// Process start time from `/proc/<pid>/stat` (field 22, clock ticks since boot).
+pub fn process_start_time(pid: u32) -> Option<DateTime<Utc>> {
+    let stat = std::fs::read_to_string(format!("/proc/{pid}/stat")).ok()?;
+    let rest = &stat[stat.rfind(')')? + 1..];
+    // After ')' the fields start at #3 (state); starttime is #22 → index 19.
+    let ticks: u64 = rest.split_whitespace().nth(19)?.parse().ok()?;
+    let btime: i64 = std::fs::read_to_string("/proc/stat")
+        .ok()?
+        .lines()
+        .find_map(|l| l.strip_prefix("btime ").and_then(|v| v.trim().parse().ok()))?;
+    const CLK_TCK: u64 = 100;
+    DateTime::from_timestamp(btime + (ticks / CLK_TCK) as i64, 0)
+}
+
+fn wait_for_exit(pid: u32, timeout: Duration) -> bool {
+    let start = Instant::now();
+    while start.elapsed() < timeout {
+        if !pid_alive(pid) {
+            return true;
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    !pid_alive(pid)
+}
+
+const SIGTERM: i32 = 15;
+const SIGKILL: i32 = 9;
+
+fn signal(pid: u32, sig: i32) -> std::io::Result<()> {
+    if unsafe { libc_kill(pid as i32, sig) } == 0 {
         Ok(())
     } else {
         Err(std::io::Error::last_os_error())
@@ -198,32 +342,93 @@ pub fn env_map_has_key(pairs: &[(String, String)], key: &str) -> bool {
     pairs.iter().any(|(k, v)| k == key && !v.is_empty())
 }
 
-fn apply_config_env(cmd: &mut std::process::Command, body: &Value) {
+/// Legacy UI config keys → the env names mm-bot actually reads.
+const LEGACY_KEYS: &[(&str, &str)] = &[
+    ("symbols", "MM_SYMBOLS"),
+    ("order_qty", "MM_ORDER_QTY"),
+    ("max_inventory", "MM_MAX_INVENTORY"),
+    ("half_spread_bps", "MM_HALF_SPREAD_BPS"),
+    ("min_half_spread_bps", "MM_MIN_HALF_SPREAD_BPS"),
+    ("max_half_spread_bps", "MM_MAX_HALF_SPREAD_BPS"),
+    ("inv_spread_widen", "MM_INV_SPREAD_WIDEN"),
+    ("reject_kill_count", "MM_REJECT_KILL_COUNT"),
+    ("l3_jump_bps", "MM_REGIME_L3_JUMP_BPS"),
+];
+
+/// Env var name for a config key: `MM_*` names pass through, legacy keys are mapped,
+/// anything else is ignored (it would not affect the bot).
+pub fn env_key_for(key: &str) -> Option<String> {
+    let is_env_name = key.starts_with("MM_")
+        && key.chars().all(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || c == '_');
+    if is_env_name {
+        return Some(key.to_string());
+    }
+    LEGACY_KEYS.iter().find(|(k, _)| *k == key).map(|(_, v)| v.to_string())
+}
+
+fn env_value(v: &Value) -> Option<String> {
+    match v {
+        Value::String(s) => Some(s.trim().to_string()),
+        Value::Number(n) => Some(n.to_string()),
+        Value::Bool(b) => Some(if *b { "1" } else { "0" }.to_string()),
+        Value::Array(items) => Some(
+            items
+                .iter()
+                .filter_map(|i| env_value(i))
+                .filter(|s| !s.is_empty())
+                .collect::<Vec<_>>()
+                .join(","),
+        ),
+        Value::Null | Value::Object(_) => None,
+    }
+}
+
+/// Config body → env pairs for the bot. Secret-looking keys are dropped.
+pub fn config_env_pairs(body: &Value) -> Vec<(String, String)> {
     let Some(obj) = body.as_object() else {
-        return;
+        return Vec::new();
     };
+    let mut out = Vec::new();
     for (k, v) in obj {
-        if crate::config_guard::find_forbidden_secret_key(&Value::Object(
-            [(k.clone(), v.clone())].into_iter().collect(),
-        ))
-        .is_some()
-        {
+        let single = Value::Object([(k.clone(), v.clone())].into_iter().collect());
+        if crate::config_guard::find_forbidden_secret_key(&single).is_some() {
             continue;
         }
-        let val = match v {
-            Value::String(s) => s.clone(),
-            Value::Number(n) => n.to_string(),
-            Value::Bool(b) => b.to_string(),
-            Value::Null => continue,
-            other => other.to_string(),
-        };
-        cmd.env(k, val);
+        if let (Some(name), Some(val)) = (env_key_for(k), env_value(v)) {
+            out.push((name, val));
+        }
     }
+    out
+}
+
+fn is_secret_name(name: &str) -> bool {
+    let upper = name.to_uppercase();
+    ["KEY", "SECRET", "TOKEN", "PASS"].iter().any(|s| upper.contains(s))
+}
+
+/// What the bot will run with: `MM_*` / `RUST_LOG` from the env file overlaid with
+/// config overrides. Values are tagged with their source. Secrets never appear.
+pub fn effective_env(file_pairs: &[(String, String)], body: Option<&Value>) -> BTreeMap<String, (String, &'static str)> {
+    let mut out = BTreeMap::new();
+    for (k, v) in file_pairs {
+        if (k.starts_with("MM_") || k == "RUST_LOG") && !is_secret_name(k) {
+            out.insert(k.clone(), (v.clone(), "env_file"));
+        }
+    }
+    if let Some(b) = body {
+        for (k, v) in config_env_pairs(b) {
+            if !is_secret_name(&k) {
+                out.insert(k, (v, "override"));
+            }
+        }
+    }
+    out
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
     use std::sync::Arc;
 
     #[test]
@@ -245,7 +450,6 @@ mod tests {
     #[test]
     fn stop_ignores_when_only_foreign_pid_claimed() {
         let s = Supervisor::new();
-        // Simulate: we never recorded; caller might know some OS pid.
         assert!(!s.owns_pid("mm", 99999));
         assert_eq!(s.recorded_pid("mm"), None);
         assert!(!s.stop_owned("mm").unwrap());
@@ -276,5 +480,67 @@ mod tests {
         assert!(s.owns_pid("mm", 4242));
         assert!(!s.owns_pid("mm", 1111));
         assert!(!s.owns_pid("other", 4242));
+    }
+
+    #[test]
+    fn zombie_state_is_parsed_after_comm() {
+        assert_eq!(parse_stat_state("7388 (mm-bot) Z 5403 7388 0 0"), Some('Z'));
+        assert_eq!(parse_stat_state("55781 (mm bot (x)) S 5403 55781"), Some('S'));
+    }
+
+    #[test]
+    fn exited_child_is_reaped_not_zombie() {
+        let mut child = std::process::Command::new("true").spawn().expect("spawn true");
+        let pid = child.id();
+        let _ = child.wait();
+        assert!(!pid_alive(pid));
+    }
+
+    #[test]
+    fn adopt_only_matches_mm_bot_run() {
+        assert!(cmdline_is_mm_bot_run(b"/x/target/debug/mm-bot\0run\0--venue\0delta\0"));
+        assert!(!cmdline_is_mm_bot_run(b"/x/target/release/mm-bot\0dry-run\0--venue\0delta\0"));
+        assert!(!cmdline_is_mm_bot_run(b"/usr/bin/python3\0run\0"));
+        // Our own test process is not mm-bot, so adoption is refused.
+        let s = Supervisor::new();
+        assert!(!s.adopt("mm", std::process::id()));
+    }
+
+    #[test]
+    fn legacy_config_keys_map_to_bot_env_names() {
+        let body = json!({
+            "symbols": "ETHUSDT",
+            "min_half_spread_bps": 8,
+            "MM_LEAD_BETA": 0.8,
+            "MM_SYMBOLS_EXTRA": ["ADAUSDT", "NEARUSDT"],
+            "loop_ms": 400,
+            "delta_api_key": "nope"
+        });
+        let mut pairs = config_env_pairs(&body);
+        pairs.sort();
+        assert_eq!(
+            pairs,
+            vec![
+                ("MM_LEAD_BETA".to_string(), "0.8".to_string()),
+                ("MM_MIN_HALF_SPREAD_BPS".to_string(), "8".to_string()),
+                ("MM_SYMBOLS".to_string(), "ETHUSDT".to_string()),
+                ("MM_SYMBOLS_EXTRA".to_string(), "ADAUSDT,NEARUSDT".to_string()),
+            ]
+        );
+    }
+
+    #[test]
+    fn effective_env_hides_secrets_and_marks_overrides() {
+        let file = vec![
+            ("DELTA_API_KEY".to_string(), "k".to_string()),
+            ("MM_SYMBOLS".to_string(), "ETHUSDT".to_string()),
+            ("MM_HALF_SPREAD_BPS".to_string(), "8".to_string()),
+            ("RUST_LOG".to_string(), "info".to_string()),
+        ];
+        let eff = effective_env(&file, Some(&json!({"MM_HALF_SPREAD_BPS": 6})));
+        assert!(!eff.contains_key("DELTA_API_KEY"));
+        assert_eq!(eff["MM_SYMBOLS"], ("ETHUSDT".to_string(), "env_file"));
+        assert_eq!(eff["MM_HALF_SPREAD_BPS"], ("6".to_string(), "override"));
+        assert!(eff.contains_key("RUST_LOG"));
     }
 }

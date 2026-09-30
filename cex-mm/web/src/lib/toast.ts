@@ -1,6 +1,9 @@
+type Tone = 'error' | 'success'
+
 type ToastInput = {
   title: string
   description?: string
+  tone: Tone
 }
 
 type Listener = (toast: ToastInput) => void
@@ -14,7 +17,14 @@ export function subscribeToasts(listener: Listener): () => void {
   }
 }
 
-export function toastError(title: string, description?: string): void {
-  const toast = { title, description }
+function emit(toast: ToastInput) {
   for (const listener of listeners) listener(toast)
+}
+
+export function toastError(title: string, description?: string): void {
+  emit({ title, description, tone: 'error' })
+}
+
+export function toastSuccess(title: string, description?: string): void {
+  emit({ title, description, tone: 'success' })
 }

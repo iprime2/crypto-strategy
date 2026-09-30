@@ -3,7 +3,8 @@ import type { ApiErrorBody } from './types'
 export const API_BASE =
   import.meta.env.VITE_OEMS_URL?.replace(/\/$/, '') || 'http://127.0.0.1:8791'
 
-export const DEFAULT_LIMIT = 100
+/** Sent on every control request; the OEMS refuses start/stop/cancel/close without it. */
+const CLIENT_HEADER = { 'X-OEMS-Client': 'web' }
 
 export class ApiError extends Error {
   readonly code: string
@@ -27,20 +28,8 @@ async function parseError(res: Response): Promise<ApiError> {
   return new ApiError(res.status, body, `Request failed (${res.status})`)
 }
 
-export type ListParams = {
-  strategy_id: string
-  limit?: number
-}
-
-function withListQuery(path: string, params: ListParams): string {
-  const q = new URLSearchParams()
-  q.set('strategy_id', params.strategy_id)
-  q.set('limit', String(params.limit ?? DEFAULT_LIMIT))
-  return `${path}?${q.toString()}`
-}
-
-export async function apiGet<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`)
+export async function apiGet<T>(path: string, signal?: AbortSignal): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, { signal })
   if (!res.ok) throw await parseError(res)
   return (await res.json()) as T
 }
@@ -48,16 +37,19 @@ export async function apiGet<T>(path: string): Promise<T> {
 export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...CLIENT_HEADER },
     body: body === undefined ? undefined : JSON.stringify(body),
   })
   if (!res.ok) throw await parseError(res)
-  if (res.status === 204) return undefined as T
   const text = await res.text()
-  if (!text) return undefined as T
-  return JSON.parse(text) as T
+  return (text ? JSON.parse(text) : undefined) as T
 }
 
-export function listPath(path: string, params: ListParams): string {
-  return withListQuery(path, params)
+export function query(params: Record<string, string | number | undefined | null>): string {
+  const q = new URLSearchParams()
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== null && v !== '') q.set(k, String(v))
+  }
+  const s = q.toString()
+  return s ? `?${s}` : ''
 }

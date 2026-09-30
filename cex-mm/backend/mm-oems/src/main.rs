@@ -3,9 +3,13 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use mm_oems::api::{router, AppState};
-use mm_oems::db::Db;
+use mm_oems::db::{self as oems_db, Db};
+use mm_oems::delta::delta_base;
+use mm_oems::market::Market;
 use mm_oems::snapshot::{new_bot_qty_map, new_snapshot_event_tx, run_snapshot_loop};
-use mm_oems::supervisor::Supervisor;
+use mm_oems::supervisor::{load_env_file, Supervisor};
+use mm_oems::sync::{new_venue_state, run_sync_loop};
+use mm_oems::telemetry::{new_telemetry, run_tail_loop};
 use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
@@ -53,27 +57,65 @@ async fn main() {
 
     let bot_qty = new_bot_qty_map();
     let snapshot_tx = new_snapshot_event_tx();
+    let supervisor = Arc::new(Supervisor::new());
+    let telemetry = new_telemetry();
+    let venue = new_venue_state();
+
+    let env_pairs = load_env_file(&quote_bot_env);
+    let mm_env = env_pairs.iter().find(|(k, _)| k == "MM_ENV").map(|(_, v)| v.as_str());
+    let venue_env = if delta_base(mm_env).contains("india.delta") { "mainnet" } else { "demo" };
+    let market = Market::new(delta_base(mm_env));
+
+    // Re-attach to a bot left running by a previous OEMS process.
+    if let Some(db) = &db {
+        if let Ok(rows) = oems_db::list_strategies(&db.pool).await {
+            for row in rows {
+                let id = row.get("id").and_then(|v| v.as_str()).unwrap_or_default();
+                if let Some(pid) = row.get("last_pid").and_then(|v| v.as_i64()) {
+                    if pid > 0 && supervisor.adopt(id, pid as u32) {
+                        tracing::info!(strategy = id, pid, "adopted running bot");
+                    }
+                }
+            }
+        }
+    }
+
     if let Some(db_clone) = db.clone() {
         let env_path = quote_bot_env.clone();
-        let map = bot_qty.clone();
+        let tel = telemetry.clone();
         let tx = snapshot_tx.clone();
         tokio::spawn(async move {
-            run_snapshot_loop(Some(db_clone), env_path, map, "mm".into(), tx).await;
+            run_snapshot_loop(Some(db_clone), env_path, tel, "mm".into(), tx).await;
         });
+    }
+    tokio::spawn(run_sync_loop(db.clone(), quote_bot_env.clone(), "mm".into(), market.clone(), venue.clone()));
+    // OEMS_TELEMETRY_LOG pins the tailer to a file (dev / shadow runs); otherwise follow the bot.
+    match std::env::var("OEMS_TELEMETRY_LOG").ok().filter(|s| !s.is_empty()) {
+        Some(path) => {
+            tokio::spawn(mm_oems::telemetry::run_fixed_tail_loop(telemetry.clone(), PathBuf::from(path)));
+        }
+        None => {
+            tokio::spawn(run_tail_loop(telemetry.clone(), supervisor.clone(), "mm".into()));
+        }
     }
 
     let state = AppState {
         db,
-        supervisor: Arc::new(Supervisor::new()),
+        supervisor,
         cex_mm_root,
         quote_bot_env,
         bot_qty,
         db_ok,
         snapshot_tx,
+        market,
+        venue,
+        telemetry,
+        venue_env,
     };
 
     let app = router(state);
-    let addr = SocketAddr::from(([127, 0, 0, 1], 8791));
+    let port: u16 = std::env::var("OEMS_PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(8791);
+    let addr = SocketAddr::from(([127, 0, 0, 1], port));
     tracing::info!(%addr, "mm-oems listening");
     let listener = match tokio::net::TcpListener::bind(addr).await {
         Ok(l) => l,
