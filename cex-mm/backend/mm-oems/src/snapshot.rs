@@ -1,4 +1,4 @@
-//! Periodic Delta venue snapshot + markout backfill.
+//! Periodic Delta wallet and position snapshot (closed positions get a zero row).
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -10,10 +10,9 @@ use serde_json::{json, Value};
 use tokio::sync::{broadcast, RwLock};
 
 use crate::delta::{parse_positions, parse_usd_balance, DeltaClient};
-use crate::db::{
-    backfill_markouts, insert_balance, insert_pnl_if_minute_elapsed, insert_position, Db,
-};
+use crate::db::{insert_balance, insert_pnl_if_minute_elapsed, insert_position, open_position_symbols, Db};
 use crate::supervisor::load_env_file;
+use crate::telemetry::Telemetry;
 
 pub type BotQtyMap = Arc<RwLock<HashMap<(String, String), f64>>>;
 pub type SnapshotEventTx = broadcast::Sender<Value>;
@@ -72,10 +71,20 @@ pub async fn apply_fill_to_bot_qty(map: &BotQtyMap, strategy_id: &str, symbol: &
         .or_insert(0.0) += signed;
 }
 
+/// Bot inventory for a symbol from fresh telemetry (`MM_METRICS.inventory`), if any.
+async fn bot_inventory(telemetry: &Telemetry, symbol: &str) -> Option<f64> {
+    let g = telemetry.read().await;
+    let (at, v) = g.metrics.get(symbol)?;
+    if (Utc::now() - *at).num_seconds() > 30 {
+        return None;
+    }
+    v.get("inventory").and_then(|x| x.as_f64())
+}
+
 pub async fn run_snapshot_loop(
     db: Option<Db>,
     quote_bot_env: PathBuf,
-    bot_qty: BotQtyMap,
+    telemetry: Telemetry,
     strategy_id: String,
     snapshot_tx: SnapshotEventTx,
 ) {
@@ -87,7 +96,7 @@ pub async fn run_snapshot_loop(
     loop {
         ticker.tick().await;
         if let Err(e) =
-            snapshot_once(&db, &quote_bot_env, &bot_qty, &strategy_id, &snapshot_tx).await
+            snapshot_once(&db, &quote_bot_env, &telemetry, &strategy_id, &snapshot_tx).await
         {
             tracing::warn!(error = %e, "delta snapshot failed");
         }
@@ -97,7 +106,7 @@ pub async fn run_snapshot_loop(
 async fn snapshot_once(
     db: &Db,
     quote_bot_env: &PathBuf,
-    bot_qty: &BotQtyMap,
+    telemetry: &Telemetry,
     strategy_id: &str,
     snapshot_tx: &SnapshotEventTx,
 ) -> anyhow::Result<()> {
@@ -132,17 +141,14 @@ async fn snapshot_once(
     .await?;
 
     let positions = parse_positions(&pos_json);
-    let qty_guard = bot_qty.read().await;
+    let previously_open = open_position_symbols(&db.pool, strategy_id).await.unwrap_or_default();
     let mut total_realized = 0.0;
     let mut total_unrealized = 0.0;
     for p in &positions {
         total_realized += p.realized;
         total_unrealized += p.unrealized;
-        let bot = qty_guard
-            .get(&(strategy_id.to_string(), p.symbol.clone()))
-            .copied()
-            .unwrap_or(0.0);
-        let mismatch = (p.venue_qty - bot).abs() > 1e-5;
+        let bot = bot_inventory(telemetry, &p.symbol).await;
+        let mismatch = bot.is_some_and(|b| (p.venue_qty - b).abs() > 1e-9);
         insert_position(
             &db.pool,
             strategy_id,
@@ -155,13 +161,22 @@ async fn snapshot_once(
             p.unrealized,
             p.realized,
             mismatch,
+            p.liq_price,
+            p.margin,
         )
         .await?;
-        if p.mark > 0.0 {
-            backfill_markouts(&db.pool, strategy_id, p.mark, ts).await?;
-        }
     }
-    drop(qty_guard);
+    // Delta stops listing a position once it is closed: record the zero so the
+    // UI does not keep showing the last open size.
+    for sym in previously_open {
+        if positions.iter().any(|p| p.symbol == sym) {
+            continue;
+        }
+        let bot = bot_inventory(telemetry, &sym).await;
+        let mismatch = bot.is_some_and(|b| b.abs() > 1e-9);
+        insert_position(&db.pool, strategy_id, &sym, ts, 0.0, bot, 0.0, 0.0, 0.0, 0.0, mismatch, None, None)
+            .await?;
+    }
 
     let pnl_inserted = insert_pnl_if_minute_elapsed(
         &db.pool,

@@ -1,144 +1,84 @@
-import { apiGet, apiPost, API_BASE, listPath, type ListParams } from './client'
+import { apiGet, apiPost, query } from './client'
 import type {
-  AnalyticsResponse,
+  Book,
+  BotTelemetry,
+  Candle,
+  EffectiveConfig,
   Fill,
-  LatestSnapshot,
-  Order,
+  MarketTrade,
+  Overview,
+  Performance,
   PnlSnapshot,
-  Position,
-  ReconcileResponse,
-  ReconcileRow,
-  SnapshotStreamEvent,
-  Strategy,
-  StrategyConfigBody,
-  StrategyConfigResponse,
   TcaRow,
+  Ticker,
+  VenueOrders,
 } from './types'
 
-export type { SnapshotStreamEvent }
+const enc = encodeURIComponent
 
-function asArray<T>(data: T[] | { items?: T[]; data?: T[] } | null | undefined): T[] {
-  if (Array.isArray(data)) return data
-  if (data && Array.isArray(data.items)) return data.items
-  if (data && Array.isArray(data.data)) return data.data
-  return []
+/** Local midnight as RFC3339, for day PnL. */
+export function localDayStart(now = new Date()): string {
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
 }
 
-export async function fetchStrategies(): Promise<Strategy[]> {
-  const data = await apiGet<Strategy[] | { strategies?: Strategy[] }>('/api/strategies')
-  if (Array.isArray(data)) return data
-  return data.strategies ?? []
-}
+export const fetchOverview = (strategyId: string, signal?: AbortSignal) =>
+  apiGet<Overview>(`/api/overview${query({ strategy_id: strategyId, day_start: localDayStart() })}`, signal)
 
-export async function fetchStrategy(id: string): Promise<Strategy> {
-  return apiGet<Strategy>(`/api/strategies/${encodeURIComponent(id)}`)
-}
+export const fetchVenueOrders = (signal?: AbortSignal) => apiGet<VenueOrders>('/api/venue/orders', signal)
 
-export async function fetchLatestSnapshot(strategyId: string): Promise<LatestSnapshot | null> {
-  try {
-    const raw = await apiGet<LatestSnapshot>(
-      `/api/snapshots/latest?strategy_id=${encodeURIComponent(strategyId)}`,
-    )
-    if (!raw) return null
-    return {
-      ...raw,
-      ts: raw.ts ?? raw.pnl?.ts ?? raw.balance?.ts,
-      equity: raw.equity ?? raw.pnl?.equity ?? raw.balance?.equity,
-      realized: raw.realized ?? raw.pnl?.realized,
-      unrealized: raw.unrealized ?? raw.pnl?.unrealized,
-    }
-  } catch (err) {
-    if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 404) {
-      return null
-    }
-    throw err
-  }
-}
+export const fetchTelemetry = (events = 150, signal?: AbortSignal) =>
+  apiGet<BotTelemetry>(`/api/bot/telemetry${query({ events })}`, signal)
 
-export async function fetchPnl(
-  params: ListParams & { from?: string; to?: string },
-): Promise<PnlSnapshot[]> {
-  const q = new URLSearchParams()
-  q.set('strategy_id', params.strategy_id)
-  if (params.from) q.set('from', params.from)
-  if (params.to) q.set('to', params.to)
-  if (!params.from) q.set('limit', String(params.limit ?? 100))
-  return asArray(await apiGet(`/api/pnl?${q.toString()}`))
-}
+export const fetchFills = (strategyId: string, limit = 200, signal?: AbortSignal) =>
+  apiGet<Fill[]>(`/api/fills${query({ strategy_id: strategyId, limit })}`, signal)
 
-/** SSE URL for live snapshot updates (use with EventSource). */
-export function snapshotStreamUrl(strategyId: string): string {
-  const q = new URLSearchParams()
-  q.set('strategy_id', strategyId)
-  return `${API_BASE}/api/stream/snapshots?${q.toString()}`
-}
+export const fetchTca = (strategyId: string, limit = 200, signal?: AbortSignal) =>
+  apiGet<TcaRow[]>(`/api/tca${query({ strategy_id: strategyId, limit })}`, signal)
 
-export async function fetchPositions(params: ListParams): Promise<Position[]> {
-  return asArray(await apiGet(listPath('/api/positions', params)))
-}
+export const fetchPnlRange = (strategyId: string, from: string, to: string, signal?: AbortSignal) =>
+  apiGet<PnlSnapshot[]>(`/api/pnl${query({ strategy_id: strategyId, from, to })}`, signal)
 
-export async function fetchOrders(params: ListParams): Promise<Order[]> {
-  return asArray(await apiGet(listPath('/api/orders', params)))
-}
+export const fetchPerformance = (strategyId: string, from: string, to: string, signal?: AbortSignal) =>
+  apiGet<Performance>(
+    `/api/performance${query({
+      strategy_id: strategyId,
+      from,
+      to,
+      tz_offset_min: -new Date().getTimezoneOffset(),
+    })}`,
+    signal,
+  )
 
-export async function fetchFills(params: ListParams): Promise<Fill[]> {
-  return asArray(await apiGet(listPath('/api/fills', params)))
-}
+export const fetchEffectiveConfig = (strategyId: string, signal?: AbortSignal) =>
+  apiGet<EffectiveConfig>(`/api/strategies/${enc(strategyId)}/effective-config`, signal)
 
-export async function fetchReconcile(params: ListParams): Promise<ReconcileResponse> {
-  const data = await apiGet<ReconcileResponse | ReconcileRow[]>(listPath('/api/reconcile', params))
-  if (Array.isArray(data)) {
-    return {
-      latest_by_symbol: data,
-      mismatches: data.filter((r) => r.mismatch),
-    }
-  }
-  return {
-    latest_by_symbol: asArray(data?.latest_by_symbol),
-    mismatches: asArray(data?.mismatches),
-  }
-}
+export const fetchTicker = (symbol: string, signal?: AbortSignal) =>
+  apiGet<Ticker>(`/api/market/${enc(symbol)}/ticker`, signal)
 
-export async function fetchTca(params: ListParams): Promise<TcaRow[]> {
-  return asArray(await apiGet(listPath('/api/tca', params)))
-}
+export const fetchBook = (symbol: string, depth = 20, signal?: AbortSignal) =>
+  apiGet<Book>(`/api/market/${enc(symbol)}/book${query({ depth })}`, signal)
 
-export async function fetchAnalytics(params: {
-  strategy_id: string
-  from: string
-  to: string
-}): Promise<AnalyticsResponse> {
-  const q = new URLSearchParams()
-  q.set('strategy_id', params.strategy_id)
-  q.set('from', params.from)
-  q.set('to', params.to)
-  return apiGet<AnalyticsResponse>(`/api/analytics?${q.toString()}`)
-}
+export const fetchTrades = (symbol: string, signal?: AbortSignal) =>
+  apiGet<MarketTrade[]>(`/api/market/${enc(symbol)}/trades`, signal)
 
-export async function fetchConfig(strategyId: string): Promise<StrategyConfigResponse | null> {
-  try {
-    return await apiGet<StrategyConfigResponse>(
-      `/api/strategies/${encodeURIComponent(strategyId)}/config`,
-    )
-  } catch (err) {
-    if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 404) {
-      return null
-    }
-    throw err
-  }
-}
+export const fetchCandles = (symbol: string, resolution: string, from: number, to: number, signal?: AbortSignal) =>
+  apiGet<Candle[]>(`/api/market/${enc(symbol)}/candles${query({ resolution, from, to })}`, signal)
 
-export async function postConfig(
-  strategyId: string,
-  body: StrategyConfigBody,
-): Promise<StrategyConfigResponse> {
-  return apiPost(`/api/strategies/${encodeURIComponent(strategyId)}/config`, body)
-}
+export const startStrategy = (id: string) => apiPost<{ pid: number }>(`/api/strategies/${enc(id)}/start`)
 
-export async function startStrategy(strategyId: string): Promise<unknown> {
-  return apiPost(`/api/strategies/${encodeURIComponent(strategyId)}/start`)
-}
+export const stopStrategy = (id: string) =>
+  apiPost<{ signaled: boolean; cancel: unknown }>(`/api/strategies/${enc(id)}/stop`)
 
-export async function stopStrategy(strategyId: string): Promise<unknown> {
-  return apiPost(`/api/strategies/${encodeURIComponent(strategyId)}/stop`)
-}
+export const cancelAllOrders = (id: string) => apiPost<{ cancel: unknown }>(`/api/strategies/${enc(id)}/cancel-all`)
+
+export const closePosition = (symbol: string, strategyId: string) =>
+  apiPost<{ side: string; contracts: number }>(`/api/positions/${enc(symbol)}/close`, {
+    confirm: symbol,
+    strategy_id: strategyId,
+  })
+
+export const saveOverrides = (id: string, body: Record<string, string | number>) =>
+  apiPost<{ version: number; restarted: { ok: boolean; error?: string } | null }>(
+    `/api/strategies/${enc(id)}/config`,
+    body,
+  )

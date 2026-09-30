@@ -5,6 +5,7 @@ type Item = {
   id: number
   title: string
   description?: string
+  tone: 'error' | 'success'
 }
 
 let nextId = 1
@@ -30,9 +31,14 @@ export function Toaster() {
         <div
           key={item.id}
           role="status"
-          className="pointer-events-auto rounded-lg border border-destructive/40 bg-popover px-3 py-2 text-popover-foreground shadow-lg"
+          className={`pointer-events-auto rounded-lg border bg-popover px-3 py-2 text-popover-foreground shadow-lg ${
+            item.tone === 'error' ? 'border-down/50' : 'border-up/50'
+          }`}
         >
-          <p className="text-sm font-medium text-destructive">{item.title}</p>
+          <p className={`text-sm font-medium ${item.tone === 'error' ? 'text-down' : 'text-up'}`}>
+            {item.tone === 'error' ? '✕ ' : '✓ '}
+            {item.title}
+          </p>
           {item.description && (
             <p className="mt-1 text-xs text-muted-foreground">{item.description}</p>
           )}

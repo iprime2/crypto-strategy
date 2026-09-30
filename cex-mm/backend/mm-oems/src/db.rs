@@ -7,7 +7,7 @@ use sqlx::{PgPool, Row};
 use std::collections::BTreeMap;
 
 use crate::analytics::{avg_nullable_bps, AnalyticsBucket};
-use crate::tca::{compute_tca, markout_bps, net_5s_bps};
+use crate::tca::{compute_tca, markout_bps};
 
 #[derive(Clone)]
 pub struct Db {
@@ -268,17 +268,20 @@ pub async fn insert_position(
     symbol: &str,
     ts: DateTime<Utc>,
     venue_qty: f64,
-    bot_qty: f64,
+    bot_qty: Option<f64>,
     entry: f64,
     mark: f64,
     unrealized: f64,
     realized: f64,
     mismatch: bool,
+    liq_price: Option<f64>,
+    margin: Option<f64>,
 ) -> sqlx::Result<()> {
     sqlx::query(
         r#"INSERT INTO positions
-            (strategy_id, symbol, ts, venue_qty, bot_qty, entry, mark, unrealized, realized, mismatch)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)"#,
+            (strategy_id, symbol, ts, venue_qty, bot_qty, entry, mark, unrealized, realized, mismatch,
+             liq_price, margin)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)"#,
     )
     .bind(strategy_id)
     .bind(symbol)
@@ -290,9 +293,25 @@ pub async fn insert_position(
     .bind(unrealized)
     .bind(realized)
     .bind(mismatch)
+    .bind(liq_price)
+    .bind(margin)
     .execute(pool)
     .await?;
     Ok(())
+}
+
+/// Symbols whose latest recorded venue position is non-zero.
+pub async fn open_position_symbols(pool: &PgPool, strategy_id: &str) -> sqlx::Result<Vec<String>> {
+    let rows = sqlx::query(
+        r#"SELECT symbol FROM (
+             SELECT DISTINCT ON (symbol) symbol, venue_qty FROM positions
+             WHERE strategy_id = $1 ORDER BY symbol, ts DESC) latest
+           WHERE venue_qty <> 0"#,
+    )
+    .bind(strategy_id)
+    .fetch_all(pool)
+    .await?;
+    Ok(rows.into_iter().map(|r| r.get::<String, _>("symbol")).collect())
 }
 
 pub async fn insert_pnl_if_minute_elapsed(
@@ -328,66 +347,23 @@ pub async fn insert_pnl_if_minute_elapsed(
     Ok(true)
 }
 
-/// Backfill TCA markouts using a fresh mark as mid_after.
-pub async fn backfill_markouts(
-    pool: &PgPool,
-    strategy_id: &str,
-    mid_after: f64,
-    now: DateTime<Utc>,
-) -> sqlx::Result<()> {
-    let rows = sqlx::query(
-        r#"SELECT f.trade_id, f.side, f.arrival_mid, f.created_at,
-                  t.effective_spread_bps, t.fee_bps,
-                  t.markout_1s_bps, t.markout_5s_bps, t.markout_30s_bps
-           FROM fills f
-           JOIN tca_fills t ON t.strategy_id = f.strategy_id AND t.trade_id = f.trade_id
-           WHERE f.strategy_id = $1
-             AND (t.markout_1s_bps IS NULL OR t.markout_5s_bps IS NULL OR t.markout_30s_bps IS NULL)"#,
-    )
-    .bind(strategy_id)
-    .fetch_all(pool)
-    .await?;
+const POSITION_COLS: &str =
+    "symbol, ts, venue_qty, bot_qty, entry, mark, unrealized, realized, mismatch, liq_price, margin";
 
-    for r in rows {
-        let trade_id: String = r.get("trade_id");
-        let side: String = r.get("side");
-        let arrival_mid: f64 = r.get("arrival_mid");
-        let created: DateTime<Utc> = r.get("created_at");
-        let age = (now - created).num_seconds();
-        let mut m1: Option<f64> = r.get("markout_1s_bps");
-        let mut m5: Option<f64> = r.get("markout_5s_bps");
-        let mut m30: Option<f64> = r.get("markout_30s_bps");
-        let eff: f64 = r.get("effective_spread_bps");
-        let fee_bps: f64 = r.get("fee_bps");
-        let mo = markout_bps(&side, mid_after, arrival_mid);
-        if m1.is_none() && age >= 1 {
-            m1 = Some(mo);
-        }
-        if m5.is_none() && age >= 5 {
-            m5 = Some(mo);
-        }
-        if m30.is_none() && age >= 30 {
-            m30 = Some(mo);
-        }
-        let net = net_5s_bps(eff, fee_bps, m5);
-        sqlx::query(
-            r#"UPDATE tca_fills SET
-                 markout_1s_bps = $3,
-                 markout_5s_bps = $4,
-                 markout_30s_bps = $5,
-                 net_5s_bps = $6
-               WHERE strategy_id = $1 AND trade_id = $2"#,
-        )
-        .bind(strategy_id)
-        .bind(&trade_id)
-        .bind(m1)
-        .bind(m5)
-        .bind(m30)
-        .bind(net)
-        .execute(pool)
-        .await?;
-    }
-    Ok(())
+fn position_json(r: &sqlx::postgres::PgRow) -> Value {
+    serde_json::json!({
+        "symbol": r.get::<String, _>("symbol"),
+        "ts": r.get::<DateTime<Utc>, _>("ts"),
+        "venue_qty": r.get::<f64, _>("venue_qty"),
+        "bot_qty": r.get::<Option<f64>, _>("bot_qty"),
+        "entry": r.get::<f64, _>("entry"),
+        "mark": r.get::<f64, _>("mark"),
+        "unrealized": r.get::<f64, _>("unrealized"),
+        "realized": r.get::<f64, _>("realized"),
+        "mismatch": r.get::<bool, _>("mismatch"),
+        "liq_price": r.get::<Option<f64>, _>("liq_price"),
+        "margin": r.get::<Option<f64>, _>("margin"),
+    })
 }
 
 fn clamp_limit(limit: Option<i64>) -> i64 {
@@ -410,12 +386,15 @@ pub async fn latest_snapshots(pool: &PgPool, strategy_id: &str) -> sqlx::Result<
     .bind(strategy_id)
     .fetch_optional(pool)
     .await?;
-    let positions = sqlx::query(
-        r#"SELECT DISTINCT ON (symbol)
-              symbol, ts, venue_qty, bot_qty, entry, mark, unrealized, realized, mismatch
-           FROM positions WHERE strategy_id = $1
-           ORDER BY symbol, ts DESC"#,
-    )
+    // Latest row per symbol, open positions only: a closed position gets a zero row
+    // from the snapshot loop, so it drops out here instead of showing stale size.
+    let positions = sqlx::query(&format!(
+        r#"SELECT * FROM (
+             SELECT DISTINCT ON (symbol) {POSITION_COLS}
+             FROM positions WHERE strategy_id = $1
+             ORDER BY symbol, ts DESC) latest
+           WHERE venue_qty <> 0"#
+    ))
     .bind(strategy_id)
     .fetch_all(pool)
     .await?;
@@ -433,17 +412,7 @@ pub async fn latest_snapshots(pool: &PgPool, strategy_id: &str) -> sqlx::Result<
             "unrealized": r.get::<f64, _>("unrealized"),
             "equity": r.get::<f64, _>("equity"),
         })),
-        "positions": positions.into_iter().map(|r| serde_json::json!({
-            "symbol": r.get::<String, _>("symbol"),
-            "ts": r.get::<DateTime<Utc>, _>("ts"),
-            "venue_qty": r.get::<f64, _>("venue_qty"),
-            "bot_qty": r.get::<f64, _>("bot_qty"),
-            "entry": r.get::<f64, _>("entry"),
-            "mark": r.get::<f64, _>("mark"),
-            "unrealized": r.get::<f64, _>("unrealized"),
-            "realized": r.get::<f64, _>("realized"),
-            "mismatch": r.get::<bool, _>("mismatch"),
-        })).collect::<Vec<_>>(),
+        "positions": positions.iter().map(position_json).collect::<Vec<_>>(),
     }))
 }
 
@@ -505,30 +474,14 @@ pub async fn list_positions(
     limit: Option<i64>,
 ) -> sqlx::Result<Vec<Value>> {
     let lim = clamp_limit(limit);
-    let rows = sqlx::query(
-        r#"SELECT symbol, ts, venue_qty, bot_qty, entry, mark, unrealized, realized, mismatch
-           FROM positions WHERE strategy_id = $1 ORDER BY ts DESC LIMIT $2"#,
-    )
+    let rows = sqlx::query(&format!(
+        "SELECT {POSITION_COLS} FROM positions WHERE strategy_id = $1 ORDER BY ts DESC LIMIT $2"
+    ))
     .bind(strategy_id)
     .bind(lim)
     .fetch_all(pool)
     .await?;
-    Ok(rows
-        .into_iter()
-        .map(|r| {
-            serde_json::json!({
-                "symbol": r.get::<String, _>("symbol"),
-                "ts": r.get::<DateTime<Utc>, _>("ts"),
-                "venue_qty": r.get::<f64, _>("venue_qty"),
-                "bot_qty": r.get::<f64, _>("bot_qty"),
-                "entry": r.get::<f64, _>("entry"),
-                "mark": r.get::<f64, _>("mark"),
-                "unrealized": r.get::<f64, _>("unrealized"),
-                "realized": r.get::<f64, _>("realized"),
-                "mismatch": r.get::<bool, _>("mismatch"),
-            })
-        })
-        .collect())
+    Ok(rows.iter().map(position_json).collect())
 }
 
 pub async fn list_orders(
@@ -570,7 +523,7 @@ pub async fn list_fills(
 ) -> sqlx::Result<Vec<Value>> {
     let lim = clamp_limit(limit);
     let rows = sqlx::query(
-        r#"SELECT trade_id, client_order_id, symbol, side, price, qty, fee,
+        r#"SELECT trade_id, client_order_id, order_id, symbol, side, role, source, price, qty, fee,
                   limit_price, arrival_mid, mid_at_fill, created_at
            FROM fills WHERE strategy_id = $1 ORDER BY created_at DESC LIMIT $2"#,
     )
@@ -581,21 +534,40 @@ pub async fn list_fills(
     Ok(rows
         .into_iter()
         .map(|r| {
+            let side: String = r.get("side");
+            let price: f64 = r.get("price");
+            let qty: f64 = r.get("qty");
+            let mid: f64 = r.get("mid_at_fill");
+            let fee: f64 = r.get("fee");
             serde_json::json!({
                 "trade_id": r.get::<String, _>("trade_id"),
                 "client_order_id": r.get::<Option<String>, _>("client_order_id"),
+                "order_id": r.get::<Option<String>, _>("order_id"),
                 "symbol": r.get::<String, _>("symbol"),
-                "side": r.get::<String, _>("side"),
-                "price": r.get::<f64, _>("price"),
-                "qty": r.get::<f64, _>("qty"),
-                "fee": r.get::<f64, _>("fee"),
+                "side": side,
+                "role": r.get::<Option<String>, _>("role"),
+                "source": r.get::<String, _>("source"),
+                "price": price,
+                "qty": qty,
+                "notional": price * qty,
+                "fee": fee,
+                "fee_bps": if price * qty > 0.0 { Some(fee / (price * qty) * 1e4) } else { None },
                 "limit_price": r.get::<f64, _>("limit_price"),
                 "arrival_mid": r.get::<f64, _>("arrival_mid"),
-                "mid_at_fill": r.get::<f64, _>("mid_at_fill"),
+                "mid_at_fill": mid,
+                "capture_bps": capture_bps(&side, price, mid),
                 "created_at": r.get::<DateTime<Utc>, _>("created_at"),
             })
         })
         .collect())
+}
+
+/// Spread earned vs the mid at fill, in bps: positive when a buy is below mid or a sell above it.
+pub fn capture_bps(side: &str, price: f64, mid: f64) -> Option<f64> {
+    if mid <= 0.0 {
+        return None;
+    }
+    Some(crate::tca::side_sign(side) * (mid - price) / mid * 10_000.0)
 }
 
 pub async fn list_tca(
@@ -605,10 +577,14 @@ pub async fn list_tca(
 ) -> sqlx::Result<Vec<Value>> {
     let lim = clamp_limit(limit);
     let rows = sqlx::query(
-        r#"SELECT trade_id, slippage_bps, quoted_half_spread_bps, effective_spread_bps,
-                  fee_quote, fee_bps, markout_1s_bps, markout_5s_bps, markout_30s_bps, net_5s_bps
-           FROM tca_fills WHERE strategy_id = $1
-           ORDER BY trade_id DESC LIMIT $2"#,
+        r#"SELECT t.trade_id, f.symbol, f.side, f.role, f.price, f.qty, f.mid_at_fill, f.created_at,
+                  t.slippage_bps, t.quoted_half_spread_bps, t.effective_spread_bps,
+                  t.fee_quote, t.fee_bps, t.markout_1s_bps, t.markout_5s_bps, t.markout_30s_bps,
+                  t.markout_60s_bps, t.net_5s_bps
+           FROM tca_fills t
+           JOIN fills f ON f.strategy_id = t.strategy_id AND f.trade_id = t.trade_id
+           WHERE t.strategy_id = $1
+           ORDER BY f.created_at DESC LIMIT $2"#,
     )
     .bind(strategy_id)
     .bind(lim)
@@ -617,17 +593,33 @@ pub async fn list_tca(
     Ok(rows
         .into_iter()
         .map(|r| {
+            let side: String = r.get("side");
+            let capture = capture_bps(&side, r.get("price"), r.get("mid_at_fill"));
+            let fee_bps: f64 = r.get("fee_bps");
+            let m60: Option<f64> = r.get("markout_60s_bps");
             serde_json::json!({
                 "trade_id": r.get::<String, _>("trade_id"),
+                "symbol": r.get::<String, _>("symbol"),
+                "side": side,
+                "role": r.get::<Option<String>, _>("role"),
+                "price": r.get::<f64, _>("price"),
+                "qty": r.get::<f64, _>("qty"),
+                "created_at": r.get::<DateTime<Utc>, _>("created_at"),
+                "capture_bps": capture,
                 "slippage_bps": r.get::<f64, _>("slippage_bps"),
                 "quoted_half_spread_bps": r.get::<f64, _>("quoted_half_spread_bps"),
                 "effective_spread_bps": r.get::<f64, _>("effective_spread_bps"),
                 "fee_quote": r.get::<f64, _>("fee_quote"),
-                "fee_bps": r.get::<f64, _>("fee_bps"),
+                "fee_bps": fee_bps,
                 "markout_1s_bps": r.get::<Option<f64>, _>("markout_1s_bps"),
                 "markout_5s_bps": r.get::<Option<f64>, _>("markout_5s_bps"),
                 "markout_30s_bps": r.get::<Option<f64>, _>("markout_30s_bps"),
+                "markout_60s_bps": m60,
                 "net_5s_bps": r.get::<Option<f64>, _>("net_5s_bps"),
+                "net_60s_bps": match (capture, m60) {
+                    (Some(c), Some(m)) => Some(c + m - fee_bps),
+                    _ => None,
+                },
             })
         })
         .collect())
@@ -635,40 +627,24 @@ pub async fn list_tca(
 
 pub async fn reconcile(pool: &PgPool, strategy_id: &str, limit: Option<i64>) -> sqlx::Result<Value> {
     let lim = clamp_limit(limit);
-    let mismatches = sqlx::query(
-        r#"SELECT symbol, ts, venue_qty, bot_qty, entry, mark, unrealized, realized, mismatch
-           FROM positions WHERE strategy_id = $1 AND mismatch = TRUE
-           ORDER BY ts DESC LIMIT $2"#,
-    )
+    let mismatches = sqlx::query(&format!(
+        r#"SELECT {POSITION_COLS} FROM positions WHERE strategy_id = $1 AND mismatch = TRUE
+           ORDER BY ts DESC LIMIT $2"#
+    ))
     .bind(strategy_id)
     .bind(lim)
     .fetch_all(pool)
     .await?;
-    let latest = sqlx::query(
-        r#"SELECT DISTINCT ON (symbol)
-              symbol, ts, venue_qty, bot_qty, entry, mark, unrealized, realized, mismatch
-           FROM positions WHERE strategy_id = $1
-           ORDER BY symbol, ts DESC"#,
-    )
+    let latest = sqlx::query(&format!(
+        r#"SELECT DISTINCT ON (symbol) {POSITION_COLS} FROM positions WHERE strategy_id = $1
+           ORDER BY symbol, ts DESC"#
+    ))
     .bind(strategy_id)
     .fetch_all(pool)
     .await?;
-    let map_row = |r: sqlx::postgres::PgRow| {
-        serde_json::json!({
-            "symbol": r.get::<String, _>("symbol"),
-            "ts": r.get::<DateTime<Utc>, _>("ts"),
-            "venue_qty": r.get::<f64, _>("venue_qty"),
-            "bot_qty": r.get::<f64, _>("bot_qty"),
-            "entry": r.get::<f64, _>("entry"),
-            "mark": r.get::<f64, _>("mark"),
-            "unrealized": r.get::<f64, _>("unrealized"),
-            "realized": r.get::<f64, _>("realized"),
-            "mismatch": r.get::<bool, _>("mismatch"),
-        })
-    };
     Ok(serde_json::json!({
-        "mismatches": mismatches.into_iter().map(map_row).collect::<Vec<_>>(),
-        "latest_by_symbol": latest.into_iter().map(map_row).collect::<Vec<_>>(),
+        "mismatches": mismatches.iter().map(position_json).collect::<Vec<_>>(),
+        "latest_by_symbol": latest.iter().map(position_json).collect::<Vec<_>>(),
     }))
 }
 
@@ -837,4 +813,474 @@ pub async fn analytics(
             "equity": heat_cells(&heat_equity),
         },
     }))
+}
+
+// ---------------------------------------------------------------- venue truth
+
+/// Insert a venue fill and its TCA row. Returns false when the fill was already stored.
+pub async fn insert_venue_fill(
+    pool: &PgPool,
+    strategy_id: &str,
+    f: &crate::delta::VenueFill,
+    mid: f64,
+) -> sqlx::Result<bool> {
+    let res = sqlx::query(
+        r#"INSERT INTO fills
+            (strategy_id, trade_id, client_order_id, order_id, symbol, side, role, source, price, qty,
+             fee, limit_price, arrival_mid, mid_at_fill, created_at)
+           VALUES ($1,$2,NULL,$3,$4,$5,$6,'venue',$7,$8,$9,$10,$11,$11,$12)
+           ON CONFLICT (strategy_id, trade_id) DO NOTHING"#,
+    )
+    .bind(strategy_id)
+    .bind(&f.id)
+    .bind(&f.order_id)
+    .bind(&f.symbol)
+    .bind(&f.side)
+    .bind(&f.role)
+    .bind(f.price)
+    .bind(f.qty)
+    .bind(f.fee)
+    .bind(f.order_price)
+    .bind(mid)
+    .bind(f.created_at)
+    .execute(pool)
+    .await?;
+    if res.rows_affected() == 0 {
+        return Ok(false);
+    }
+    let tca = compute_tca(&f.side, f.price, f.qty, f.fee, f.order_price, mid, mid);
+    sqlx::query(
+        r#"INSERT INTO tca_fills
+            (strategy_id, trade_id, slippage_bps, quoted_half_spread_bps, effective_spread_bps,
+             fee_quote, fee_bps, markout_1s_bps, markout_5s_bps, markout_30s_bps, net_5s_bps)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,NULL,NULL,NULL,NULL)
+           ON CONFLICT (strategy_id, trade_id) DO NOTHING"#,
+    )
+    .bind(strategy_id)
+    .bind(&f.id)
+    .bind(tca.slippage_bps)
+    .bind(tca.quoted_half_spread_bps)
+    .bind(tca.effective_spread_bps)
+    .bind(tca.fee_quote)
+    .bind(tca.fee_bps)
+    .execute(pool)
+    .await?;
+    Ok(true)
+}
+
+#[allow(clippy::too_many_arguments)]
+pub async fn insert_tick(
+    pool: &PgPool,
+    symbol: &str,
+    ts: DateTime<Utc>,
+    mark: f64,
+    bid: Option<f64>,
+    ask: Option<f64>,
+    last: Option<f64>,
+    spot: Option<f64>,
+) -> sqlx::Result<()> {
+    sqlx::query(
+        r#"INSERT INTO ticks (symbol, ts, mark, bid, ask, last, spot)
+           VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (symbol, ts) DO NOTHING"#,
+    )
+    .bind(symbol)
+    .bind(ts)
+    .bind(mark)
+    .bind(bid)
+    .bind(ask)
+    .bind(last)
+    .bind(spot)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+fn tick_mid(r: &sqlx::postgres::PgRow) -> f64 {
+    match (r.get::<Option<f64>, _>("bid"), r.get::<Option<f64>, _>("ask")) {
+        (Some(b), Some(a)) if b > 0.0 && a > 0.0 => (b + a) / 2.0,
+        _ => r.get::<f64, _>("mark"),
+    }
+}
+
+/// Book mid from the latest tick at or before `at`, no older than `max_age_secs`.
+pub async fn tick_mid_before(pool: &PgPool, symbol: &str, at: DateTime<Utc>, max_age_secs: i64) -> sqlx::Result<Option<f64>> {
+    let row = sqlx::query(
+        r#"SELECT mark, bid, ask FROM ticks
+           WHERE symbol = $1 AND ts <= $2 AND ts >= $2 - make_interval(secs => $3)
+           ORDER BY ts DESC LIMIT 1"#,
+    )
+    .bind(symbol)
+    .bind(at)
+    .bind(max_age_secs as f64)
+    .fetch_optional(pool)
+    .await?;
+    Ok(row.as_ref().map(tick_mid))
+}
+
+/// Book mid from the first tick at or after `at`, within `max_after_secs`.
+pub async fn tick_mid_after(pool: &PgPool, symbol: &str, at: DateTime<Utc>, max_after_secs: i64) -> sqlx::Result<Option<f64>> {
+    let row = sqlx::query(
+        r#"SELECT mark, bid, ask FROM ticks
+           WHERE symbol = $1 AND ts >= $2 AND ts <= $2 + make_interval(secs => $3)
+           ORDER BY ts ASC LIMIT 1"#,
+    )
+    .bind(symbol)
+    .bind(at)
+    .bind(max_after_secs as f64)
+    .fetch_optional(pool)
+    .await?;
+    Ok(row.as_ref().map(tick_mid))
+}
+
+/// Fill markouts at 1 s / 5 s / 30 s / 60 s from each fill's own symbol's ticks.
+/// Only fills from the last 30 minutes are attempted; older ones without ticks stay null.
+pub async fn backfill_markouts_from_ticks(pool: &PgPool, strategy_id: &str, now: DateTime<Utc>) -> sqlx::Result<()> {
+    let rows = sqlx::query(
+        r#"SELECT f.trade_id, f.symbol, f.side, f.mid_at_fill, f.created_at,
+                  t.markout_1s_bps, t.markout_5s_bps, t.markout_30s_bps, t.markout_60s_bps
+           FROM fills f
+           JOIN tca_fills t ON t.strategy_id = f.strategy_id AND t.trade_id = f.trade_id
+           WHERE f.strategy_id = $1
+             AND f.created_at >= $2 - interval '30 minutes' AND f.created_at <= $2 - interval '1 second'
+             AND (t.markout_1s_bps IS NULL OR t.markout_5s_bps IS NULL
+                  OR t.markout_30s_bps IS NULL OR t.markout_60s_bps IS NULL)
+           ORDER BY f.created_at DESC LIMIT 300"#,
+    )
+    .bind(strategy_id)
+    .bind(now)
+    .fetch_all(pool)
+    .await?;
+    for r in rows {
+        let trade_id: String = r.get("trade_id");
+        let symbol: String = r.get("symbol");
+        let side: String = r.get("side");
+        let mid0: f64 = r.get("mid_at_fill");
+        let created: DateTime<Utc> = r.get("created_at");
+        let mut vals: [Option<f64>; 4] = [
+            r.get("markout_1s_bps"),
+            r.get("markout_5s_bps"),
+            r.get("markout_30s_bps"),
+            r.get("markout_60s_bps"),
+        ];
+        let mut changed = false;
+        for (i, h) in [1i64, 5, 30, 60].into_iter().enumerate() {
+            if vals[i].is_some() || now < created + chrono::Duration::seconds(h) {
+                continue;
+            }
+            if let Some(mid) = tick_mid_after(pool, &symbol, created + chrono::Duration::seconds(h), 15).await? {
+                vals[i] = Some(markout_bps(&side, mid, mid0));
+                changed = true;
+            }
+        }
+        if changed {
+            sqlx::query(
+                r#"UPDATE tca_fills SET markout_1s_bps = $3, markout_5s_bps = $4,
+                          markout_30s_bps = $5, markout_60s_bps = $6
+                   WHERE strategy_id = $1 AND trade_id = $2"#,
+            )
+            .bind(strategy_id)
+            .bind(&trade_id)
+            .bind(vals[0])
+            .bind(vals[1])
+            .bind(vals[2])
+            .bind(vals[3])
+            .execute(pool)
+            .await?;
+        }
+    }
+    Ok(())
+}
+
+/// Latest ticks for a symbol since `from` (for price overlays), oldest first.
+pub async fn list_ticks(pool: &PgPool, symbol: &str, from: DateTime<Utc>, limit: i64) -> sqlx::Result<Vec<Value>> {
+    let rows = sqlx::query(
+        r#"SELECT ts, mark, bid, ask, last, spot FROM ticks
+           WHERE symbol = $1 AND ts >= $2 ORDER BY ts ASC LIMIT $3"#,
+    )
+    .bind(symbol)
+    .bind(from)
+    .bind(limit.clamp(1, 5000))
+    .fetch_all(pool)
+    .await?;
+    Ok(rows
+        .into_iter()
+        .map(|r| {
+            serde_json::json!({
+                "ts": r.get::<DateTime<Utc>, _>("ts"),
+                "mark": r.get::<f64, _>("mark"),
+                "bid": r.get::<Option<f64>, _>("bid"),
+                "ask": r.get::<Option<f64>, _>("ask"),
+                "last": r.get::<Option<f64>, _>("last"),
+                "spot": r.get::<Option<f64>, _>("spot"),
+            })
+        })
+        .collect())
+}
+
+/// First equity snapshot at or after `ts` (day-start equity for day PnL).
+pub async fn equity_at_or_after(pool: &PgPool, strategy_id: &str, ts: DateTime<Utc>) -> sqlx::Result<Option<(DateTime<Utc>, f64)>> {
+    let row = sqlx::query(
+        r#"SELECT ts, equity FROM balances WHERE strategy_id = $1 AND ts >= $2 ORDER BY ts ASC LIMIT 1"#,
+    )
+    .bind(strategy_id)
+    .bind(ts)
+    .fetch_optional(pool)
+    .await?;
+    Ok(row.map(|r| (r.get("ts"), r.get("equity"))))
+}
+
+// ---------------------------------------------------------------- performance
+
+/// One fill as the performance aggregator sees it.
+#[derive(Debug, Clone)]
+pub struct PerfFill {
+    pub day: String,
+    pub symbol: String,
+    pub maker: bool,
+    pub notional: f64,
+    pub fee: f64,
+    pub capture_bps: f64,
+    pub markouts: [Option<f64>; 4],
+}
+
+#[derive(Default, Debug, Clone)]
+struct PerfAgg {
+    fills: u64,
+    maker_fills: u64,
+    volume: f64,
+    maker_volume: f64,
+    fees: f64,
+    maker_fees: f64,
+    taker_fees: f64,
+    capture_w: f64,
+    // Net = capture + markout - fee at each horizon: (notional-weighted sum, weight, count)
+    net: [(f64, f64, u64); 5],
+    maker_net: [(f64, f64, u64); 5],
+}
+
+pub const PERF_HORIZONS: [u32; 5] = [0, 1, 5, 30, 60];
+
+impl PerfAgg {
+    fn add(&mut self, f: &PerfFill) {
+        self.fills += 1;
+        self.volume += f.notional;
+        self.fees += f.fee;
+        let fee_bps = if f.notional > 0.0 { f.fee / f.notional * 1e4 } else { 0.0 };
+        self.capture_w += f.capture_bps * f.notional;
+        if f.maker {
+            self.maker_fills += 1;
+            self.maker_volume += f.notional;
+            self.maker_fees += f.fee;
+        } else {
+            self.taker_fees += f.fee;
+        }
+        for (i, _) in PERF_HORIZONS.iter().enumerate() {
+            let mo = if i == 0 { Some(0.0) } else { f.markouts[i - 1] };
+            if let Some(m) = mo {
+                let net = f.capture_bps + m - fee_bps;
+                let slot = &mut self.net[i];
+                slot.0 += net * f.notional;
+                slot.1 += f.notional;
+                slot.2 += 1;
+                if f.maker {
+                    let ms = &mut self.maker_net[i];
+                    ms.0 += net * f.notional;
+                    ms.1 += f.notional;
+                    ms.2 += 1;
+                }
+            }
+        }
+    }
+
+    fn json(&self) -> Value {
+        let curve = |slots: &[(f64, f64, u64); 5]| -> Vec<Value> {
+            PERF_HORIZONS
+                .iter()
+                .zip(slots.iter())
+                .map(|(h, (s, w, n))| {
+                    serde_json::json!({ "h": h, "net_bps": if *w > 0.0 { Some(s / w) } else { None }, "n": n })
+                })
+                .collect()
+        };
+        serde_json::json!({
+            "fills": self.fills,
+            "maker_fills": self.maker_fills,
+            "maker_share": if self.fills > 0 { self.maker_fills as f64 / self.fills as f64 } else { 0.0 },
+            "volume": self.volume,
+            "maker_volume": self.maker_volume,
+            "fees": self.fees,
+            "maker_fees": self.maker_fees,
+            "taker_fees": self.taker_fees,
+            "fee_bps": if self.volume > 0.0 { Some(self.fees / self.volume * 1e4) } else { None },
+            "capture_bps": if self.volume > 0.0 { Some(self.capture_w / self.volume) } else { None },
+            "net_curve": curve(&self.net),
+            "maker_net_curve": curve(&self.maker_net),
+        })
+    }
+}
+
+/// Aggregate fills into totals, per-day and per-symbol stats (pure; unit-tested).
+pub fn aggregate_performance(fills: &[PerfFill]) -> (Value, Vec<(String, Value)>, Vec<(String, Value)>) {
+    let mut total = PerfAgg::default();
+    let mut days: BTreeMap<String, PerfAgg> = BTreeMap::new();
+    let mut syms: BTreeMap<String, PerfAgg> = BTreeMap::new();
+    for f in fills {
+        total.add(f);
+        days.entry(f.day.clone()).or_default().add(f);
+        syms.entry(f.symbol.clone()).or_default().add(f);
+    }
+    (
+        total.json(),
+        days.into_iter().map(|(k, v)| (k, v.json())).collect(),
+        syms.into_iter().map(|(k, v)| (k, v.json())).collect(),
+    )
+}
+
+pub async fn performance(
+    pool: &PgPool,
+    strategy_id: &str,
+    from: DateTime<Utc>,
+    to: DateTime<Utc>,
+    tz_offset_min: i32,
+) -> sqlx::Result<Value> {
+    let rows = sqlx::query(
+        r#"SELECT to_char(f.created_at + make_interval(mins => $4), 'YYYY-MM-DD') AS day,
+                  f.symbol, f.side, f.role, f.price, f.qty, f.fee, f.mid_at_fill,
+                  t.markout_1s_bps, t.markout_5s_bps, t.markout_30s_bps, t.markout_60s_bps
+           FROM fills f
+           LEFT JOIN tca_fills t ON t.strategy_id = f.strategy_id AND t.trade_id = f.trade_id
+           WHERE f.strategy_id = $1 AND f.created_at >= $2 AND f.created_at <= $3
+           ORDER BY f.created_at ASC"#,
+    )
+    .bind(strategy_id)
+    .bind(from)
+    .bind(to)
+    .bind(tz_offset_min)
+    .fetch_all(pool)
+    .await?;
+    let fills: Vec<PerfFill> = rows
+        .iter()
+        .map(|r| {
+            let side: String = r.get("side");
+            let price: f64 = r.get("price");
+            let qty: f64 = r.get("qty");
+            PerfFill {
+                day: r.get("day"),
+                symbol: r.get("symbol"),
+                maker: r.get::<Option<String>, _>("role").as_deref() != Some("taker"),
+                notional: price * qty,
+                fee: r.get("fee"),
+                capture_bps: capture_bps(&side, price, r.get("mid_at_fill")).unwrap_or(0.0),
+                markouts: [
+                    r.get("markout_1s_bps"),
+                    r.get("markout_5s_bps"),
+                    r.get("markout_30s_bps"),
+                    r.get("markout_60s_bps"),
+                ],
+            }
+        })
+        .collect();
+    let (totals, by_day, by_symbol) = aggregate_performance(&fills);
+
+    let eq_rows = sqlx::query(
+        r#"SELECT day,
+                  (array_agg(equity ORDER BY ts ASC))[1] AS first,
+                  (array_agg(equity ORDER BY ts DESC))[1] AS last
+           FROM (SELECT to_char(ts + make_interval(mins => $4), 'YYYY-MM-DD') AS day, ts, equity
+                 FROM balances WHERE strategy_id = $1 AND ts >= $2 AND ts <= $3) b
+           GROUP BY day ORDER BY day"#,
+    )
+    .bind(strategy_id)
+    .bind(from)
+    .bind(to)
+    .bind(tz_offset_min)
+    .fetch_all(pool)
+    .await?;
+    let mut equity: BTreeMap<String, (f64, f64)> = BTreeMap::new();
+    for r in eq_rows {
+        equity.insert(r.get("day"), (r.get("first"), r.get("last")));
+    }
+    let mut day_keys: std::collections::BTreeSet<String> = equity.keys().cloned().collect();
+    day_keys.extend(by_day.iter().map(|(d, _)| d.clone()));
+    let by_day_map: BTreeMap<String, Value> = by_day.into_iter().collect();
+    let daily: Vec<Value> = day_keys
+        .into_iter()
+        .map(|d| {
+            let (first, last) = equity.get(&d).copied().map(|(a, b)| (Some(a), Some(b))).unwrap_or((None, None));
+            let mut v = by_day_map.get(&d).cloned().unwrap_or_else(|| PerfAgg::default().json());
+            v["day"] = serde_json::json!(d);
+            v["equity_start"] = serde_json::json!(first);
+            v["equity_end"] = serde_json::json!(last);
+            v["equity_change"] = serde_json::json!(match (first, last) {
+                (Some(a), Some(b)) => Some(b - a),
+                _ => None,
+            });
+            v
+        })
+        .collect();
+    let (eq_first, eq_last) = (
+        equity.values().next().map(|(a, _)| *a),
+        equity.values().last().map(|(_, b)| *b),
+    );
+    Ok(serde_json::json!({
+        "from": from,
+        "to": to,
+        "tz_offset_min": tz_offset_min,
+        "totals": totals,
+        "equity_change": match (eq_first, eq_last) { (Some(a), Some(b)) => Some(b - a), _ => None },
+        "daily": daily,
+        "by_symbol": by_symbol.into_iter().map(|(s, mut v)| { v["symbol"] = serde_json::json!(s); v }).collect::<Vec<_>>(),
+    }))
+}
+
+#[cfg(test)]
+mod perf_tests {
+    use super::*;
+
+    fn fill(day: &str, maker: bool, notional: f64, fee: f64, capture: f64, m60: Option<f64>) -> PerfFill {
+        PerfFill {
+            day: day.into(),
+            symbol: "ETHUSDT".into(),
+            maker,
+            notional,
+            fee,
+            capture_bps: capture,
+            markouts: [None, None, None, m60],
+        }
+    }
+
+    #[test]
+    fn capture_sign_matches_side() {
+        assert!((capture_bps("buy", 99.0, 100.0).unwrap() - 100.0).abs() < 1e-9);
+        assert!((capture_bps("sell", 101.0, 100.0).unwrap() - 100.0).abs() < 1e-9);
+        assert!(capture_bps("sell", 99.0, 100.0).unwrap() < 0.0);
+        assert!(capture_bps("buy", 99.0, 0.0).is_none());
+    }
+
+    #[test]
+    fn net_curve_is_capture_plus_markout_minus_fee() {
+        // $100 notional, fee $0.0212 = 2.12 bps, capture 3 bps, 60 s markout -1 bp → net -0.12 bps.
+        let fills = vec![fill("2026-09-29", true, 100.0, 0.0212, 3.0, Some(-1.0))];
+        let (tot, days, syms) = aggregate_performance(&fills);
+        let at_fill = tot["net_curve"][0]["net_bps"].as_f64().unwrap();
+        let at_60 = tot["net_curve"][4]["net_bps"].as_f64().unwrap();
+        assert!((at_fill - 0.88).abs() < 1e-9, "{at_fill}");
+        assert!((at_60 + 0.12).abs() < 1e-9, "{at_60}");
+        assert_eq!(tot["net_curve"][1]["n"], 0);
+        assert_eq!(days.len(), 1);
+        assert_eq!(syms[0].0, "ETHUSDT");
+    }
+
+    #[test]
+    fn maker_share_and_fee_split() {
+        let fills = vec![
+            fill("2026-09-28", true, 100.0, 0.02, 1.0, None),
+            fill("2026-09-29", false, 100.0, 0.05, -0.5, None),
+        ];
+        let (tot, days, _) = aggregate_performance(&fills);
+        assert_eq!(tot["fills"], 2);
+        assert!((tot["maker_share"].as_f64().unwrap() - 0.5).abs() < 1e-12);
+        assert!((tot["taker_fees"].as_f64().unwrap() - 0.05).abs() < 1e-12);
+        assert_eq!(days.len(), 2);
+    }
 }
