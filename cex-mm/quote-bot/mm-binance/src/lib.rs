@@ -24,9 +24,20 @@ struct BookTickerMsg {
     ask: String,
 }
 
+/// `MM_BINANCE_WS_BASE` overrides the stream host, e.g. `wss://data-stream.binance.vision/ws`
+/// (Binance's public spot market-data mirror) where `fstream.binance.com` does not resolve.
 pub fn symbol_stream(symbol: &str) -> String {
+    let base = std::env::var("MM_BINANCE_WS_BASE")
+        .ok()
+        .map(|b| b.trim().trim_end_matches('/').to_string())
+        .filter(|b| !b.is_empty())
+        .unwrap_or_else(|| FSTREAM_BOOK_TICKER.to_string());
+    stream_url(&base, symbol)
+}
+
+fn stream_url(base: &str, symbol: &str) -> String {
     let s = symbol.replace('-', "").to_lowercase();
-    format!("{FSTREAM_BOOK_TICKER}/{s}@bookTicker")
+    format!("{base}/{s}@bookTicker")
 }
 
 pub async fn run_book_ticker(symbol: &str, tx: watch::Sender<BinanceBbo>) -> Result<()> {
@@ -61,5 +72,22 @@ pub async fn run_book_ticker(symbol: &str, tx: watch::Sender<BinanceBbo>) -> Res
                 tokio::time::sleep(std::time::Duration::from_secs(3)).await;
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn stream_url_uses_given_base() {
+        assert_eq!(
+            stream_url(FSTREAM_BOOK_TICKER, "ADA-USDT"),
+            "wss://fstream.binance.com/ws/adausdt@bookTicker"
+        );
+        assert_eq!(
+            stream_url("wss://data-stream.binance.vision/ws", "NEARUSDT"),
+            "wss://data-stream.binance.vision/ws/nearusdt@bookTicker"
+        );
     }
 }

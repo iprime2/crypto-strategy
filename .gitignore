@@ -22,3 +22,6 @@ resource/godark-mm-bot/mms/artifacts/
 **/*.pyc
 .DS_Store
 *.swp
+
+# Shadow-test recordings (large; regenerate with cex-mm/scripts/shadow.sh)
+cex-mm/artifacts/shadow/

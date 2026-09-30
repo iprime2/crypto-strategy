@@ -117,4 +117,11 @@ pub struct MmMetrics {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub lead_skew_bps: Option<f64>,
     pub rolling_adverse_bps: f64,
+    /// Wall-clock time of this sample (Unix ms), for joining with recorded trades.
+    pub ts_ms: i64,
+    /// Venue top of book the quote was computed from (`venue_mid` is the quote mid).
+    pub book_bid: f64,
+    pub book_ask: f64,
+    pub book_bid_qty: f64,
+    pub book_ask_qty: f64,
 }

@@ -3,6 +3,7 @@ mod markout;
 mod oems;
 mod oms;
 mod record;
+mod record_delta;
 mod runner;
 mod risk;
 mod symbols;
@@ -23,6 +24,8 @@ struct Cli {
 enum Commands {
     /// Record public WS feeds with local timestamps (Slice 1).
     Record(record::RecordArgs),
+    /// Record Delta public trades and L1 (raw websocket, local timestamps) for the shadow test.
+    RecordDelta(record_delta::RecordDeltaArgs),
     /// Compute quotes on live book without placing orders.
     DryRun(runner::RunArgs),
     /// Run MM on Bybit testnet/mainnet (requires API keys).
@@ -57,6 +60,7 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
     match cli.command {
         Commands::Record(args) => record::run(args).await,
+        Commands::RecordDelta(args) => record_delta::run(args).await,
         Commands::DryRun(args) => runner::run(args, true).await,
         Commands::Run(args) => runner::run(args, false).await,
         Commands::Universe(args) => {
