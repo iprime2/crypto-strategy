@@ -193,6 +193,11 @@ pub async fn run_delta(args: RunArgs, dry_run: bool) -> Result<()> {
         let args = args.clone();
         let rest = rest.clone();
         let exec_map = exec_map.clone();
+        // Public catalog: dry-run has no REST client but still needs the real tick.
+        let instrument = products
+            .get(&symbol)
+            .ok()
+            .map(|m| (m.tick_size, m.contract_value, m.contract_value));
         tasks.spawn(async move {
             run_symbol_loop(
                 symbol,
@@ -201,6 +206,7 @@ pub async fn run_delta(args: RunArgs, dry_run: bool) -> Result<()> {
                 rest,
                 exec_map,
                 BookFeedKind::Delta(delta_env),
+                instrument,
             )
             .await
         });
@@ -408,7 +414,15 @@ pub async fn run(args: RunArgs, dry_run: bool) -> Result<()> {
         let rest = rest.clone();
         let exec_map = exec_map.clone();
         tasks.spawn(async move {
-            run_symbol_loop(symbol, args, dry_run, rest, exec_map, BookFeedKind::Bybit(bybit_env))
+            run_symbol_loop(
+                symbol,
+                args,
+                dry_run,
+                rest,
+                exec_map,
+                BookFeedKind::Bybit(bybit_env),
+                None,
+            )
                 .await
         });
     }
@@ -426,6 +440,7 @@ async fn run_symbol_loop(
     rest: Option<QuotingRest>,
     exec_map: Arc<Mutex<HashMap<String, SymbolExecCtx>>>,
     book_kind: BookFeedKind,
+    instrument: Option<(f64, f64, f64)>,
 ) -> Result<()> {
     let cfg = StrategyConfig::from_env_for_symbol(&symbol, env_f64_global);
 
@@ -438,11 +453,13 @@ async fn run_symbol_loop(
         let _ = mm_binance::run_book_ticker(&sym, bbo_tx).await;
     });
 
+    let fallback_instrument = instrument.unwrap_or((0.01, 0.001, 0.001));
     let (tick, _step, min_qty) = if let Some(r) = &rest {
-        r.get_instrument(&symbol).await.unwrap_or((0.01, 0.001, 0.001))
+        r.get_instrument(&symbol).await.unwrap_or(fallback_instrument)
     } else {
-        (0.01, 0.001, 0.001)
+        fallback_instrument
     };
+    tracing::info!(%symbol, tick, min_qty, "instrument");
 
     let max_inv = env_f64_for_symbol(&symbol, "MM_MAX_INVENTORY", 0.01);
     let base_qty = env_f64_for_symbol(&symbol, "MM_ORDER_QTY", min_qty.max(0.001));
@@ -810,6 +827,11 @@ async fn run_symbol_loop(
             venue_mid,
             lead_skew_bps,
             rolling_adverse_bps: rolling_adverse,
+            ts_ms: Utc::now().timestamp_millis(),
+            book_bid: top.best_bid,
+            book_ask: top.best_ask,
+            book_bid_qty: top.bid_qty,
+            book_ask_qty: top.ask_qty,
         };
         tracing::info!(target: "MM_METRICS", "{}", serde_json::to_string(&metrics)?);
 

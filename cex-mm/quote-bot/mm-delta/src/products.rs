@@ -42,7 +42,16 @@ pub struct ProductMeta {
 struct ProductsResponse {
     success: Option<bool>,
     result: Option<Vec<ProductRow>>,
+    meta: Option<PageMeta>,
 }
+
+#[derive(Debug, Deserialize)]
+struct PageMeta {
+    after: Option<String>,
+}
+
+/// Mainnet lists 220+ perpetuals; one page of 200 misses alts such as ADAUSD.
+const MAX_PRODUCT_PAGES: usize = 20;
 
 #[derive(Debug, Deserialize)]
 struct ProductRow {
@@ -62,19 +71,38 @@ pub struct ProductCatalog {
 
 impl ProductCatalog {
     pub async fn load(client: &reqwest::Client, base_url: &str) -> Result<Self> {
-        let url = format!(
-            "{base_url}/v2/products?contract_types=perpetual_futures&page_size=200"
-        );
-        let resp: ProductsResponse = client
-            .get(&url)
-            .header("User-Agent", "mm-delta/0.1")
-            .send()
-            .await
-            .context("products request")?
-            .json()
-            .await
-            .context("products json")?;
-        let rows = resp.result.unwrap_or_default();
+        let mut rows = Vec::new();
+        let mut after: Option<String> = None;
+        for _ in 0..MAX_PRODUCT_PAGES {
+            let mut query = vec![
+                ("contract_types", "perpetual_futures".to_string()),
+                ("page_size", "200".to_string()),
+            ];
+            if let Some(cursor) = &after {
+                query.push(("after", cursor.clone()));
+            }
+            let resp: ProductsResponse = client
+                .get(format!("{base_url}/v2/products"))
+                .query(&query)
+                .header("User-Agent", "mm-delta/0.1")
+                .send()
+                .await
+                .context("products request")?
+                .json()
+                .await
+                .context("products json")?;
+            let page = resp.result.unwrap_or_default();
+            let page_len = page.len();
+            rows.extend(page);
+            after = resp.meta.and_then(|m| m.after);
+            if after.is_none() || page_len == 0 {
+                break;
+            }
+        }
+        Ok(Self::from_rows(rows))
+    }
+
+    fn from_rows(rows: Vec<ProductRow>) -> Self {
         let mut by_mm_symbol = HashMap::new();
         let mut by_delta_symbol = HashMap::new();
         for row in rows {
@@ -98,10 +126,10 @@ impl ProductCatalog {
                 by_mm_symbol.insert(alias, meta.clone());
             }
         }
-        Ok(Self {
+        Self {
             by_mm_symbol,
             by_delta_symbol,
-        })
+        }
     }
 
     pub fn get(&self, mm_or_delta_symbol: &str) -> Result<&ProductMeta> {
@@ -143,5 +171,50 @@ fn mm_aliases_for_delta(delta_symbol: &str) -> Vec<String> {
         "ETHUSD" => vec!["ETHUSD".into(), "ETHUSDT".into()],
         "SOLUSD" => vec!["SOLUSD".into(), "SOLUSDT".into()],
         other => vec![other.to_string()],
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn row(id: u64, symbol: &str, tick: &str, cv: &str, state: &str) -> ProductRow {
+        ProductRow {
+            id,
+            symbol: symbol.into(),
+            tick_size: tick.into(),
+            contract_value: cv.into(),
+            contract_type: Some("perpetual_futures".into()),
+            state: Some(state.into()),
+        }
+    }
+
+    #[test]
+    fn alt_perp_resolves_from_mm_symbol() {
+        let cat = ProductCatalog::from_rows(vec![
+            row(1, "ETHUSD", "0.05", "0.01", "live"),
+            row(2, "ADAUSD", "0.00001", "10", "live"),
+        ]);
+        let ada = cat.get("ADAUSDT").expect("ADAUSDT resolves");
+        assert_eq!(ada.symbol, "ADAUSD");
+        assert_eq!(ada.tick_size, 0.00001);
+        assert_eq!(ada.contract_value, 10.0);
+        assert_eq!(cat.get("ETHUSDT").unwrap().product_id, 1);
+    }
+
+    #[test]
+    fn non_live_products_are_skipped() {
+        let cat = ProductCatalog::from_rows(vec![row(3, "NEARUSD", "0.001", "1", "expired")]);
+        assert!(cat.get("NEARUSDT").is_err());
+    }
+
+    #[test]
+    fn page_cursor_is_read_from_meta() {
+        let body = r#"{"success":true,"result":[],"meta":{"after":"abc+/=","limit":200}}"#;
+        let resp: ProductsResponse = serde_json::from_str(body).unwrap();
+        assert_eq!(resp.meta.and_then(|m| m.after).as_deref(), Some("abc+/="));
+        let last = r#"{"success":true,"result":[],"meta":{"after":null}}"#;
+        let resp: ProductsResponse = serde_json::from_str(last).unwrap();
+        assert!(resp.meta.and_then(|m| m.after).is_none());
     }
 }
