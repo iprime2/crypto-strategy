@@ -17,7 +17,7 @@ use mm_core::{
 use crate::exchange::QuotingRest;
 use crate::markout::MarkoutRuntime;
 use crate::oms::OmsState;
-use crate::risk::counts_toward_reject_kill;
+use crate::risk::{counts_toward_reject_kill, BookAge, BookWatch};
 use crate::symbols::{env_f64_for_symbol, normalize_symbol, resolve_symbols_from_env};
 use crate::universe::{UniverseOptions, resolve_universe};
 use std::collections::{HashMap, VecDeque};
@@ -96,7 +96,13 @@ fn spawn_book_feed(symbol: String, kind: BookFeedKind, book_tx: watch::Sender<Bo
             });
         }
         BookFeedKind::Delta(env) => {
-            let maint = mm_delta::OrderbookMaintainer { env, symbol };
+            let raw = std::env::var("MM_DELTA_BOOK_FEED").unwrap_or_default();
+            let feed = mm_delta::BookFeed::from_flag(&raw).unwrap_or_else(|| {
+                tracing::warn!(value = %raw, "unknown MM_DELTA_BOOK_FEED; using rest");
+                mm_delta::BookFeed::Rest
+            });
+            tracing::info!(%symbol, ?feed, "delta book feed");
+            let maint = mm_delta::OrderbookMaintainer { env, symbol, feed };
             tokio::spawn(async move {
                 let _ = maint.run(book_tx).await;
             });
@@ -444,7 +450,7 @@ async fn run_symbol_loop(
 ) -> Result<()> {
     let cfg = StrategyConfig::from_env_for_symbol(&symbol, env_f64_global);
 
-    let (book_tx, book_rx) = watch::channel(BookTop::default());
+    let (book_tx, mut book_rx) = watch::channel(BookTop::default());
     spawn_book_feed(symbol.clone(), book_kind, book_tx);
 
     let (bbo_tx, bbo_rx) = watch::channel(mm_binance::BinanceBbo::default());
@@ -472,6 +478,10 @@ async fn run_symbol_loop(
     let loop_interval = Duration::from_millis(args.loop_ms.max(100));
     let mut interval = tokio::time::interval(loop_interval);
     let mut risk = crate::risk::RiskState::default();
+    let book_stale_after =
+        Duration::from_millis(env_f64_for_symbol(&symbol, "MM_BOOK_STALE_MS", 2000.0).max(100.0) as u64);
+    let mut book_watch = BookWatch::new(book_stale_after, Instant::now());
+    let mut stale_cancel_pending = false;
     let mut oms = OmsState::default();
     let mut last_fair: Option<f64> = None;
     let mut last_binance_mid: f64 = 0.0;
@@ -570,8 +580,38 @@ async fn run_symbol_loop(
 
     loop {
         interval.tick().await;
-        let top = book_rx.borrow().clone();
-        risk.last_book_ts = Instant::now();
+        // A dropped feed task counts as no update, so the book goes stale.
+        let updated = book_rx.has_changed().unwrap_or(false);
+        let top = book_rx.borrow_and_update().clone();
+        match book_watch.check(updated, Instant::now()) {
+            BookAge::Fresh => {}
+            BookAge::Recovered(outage) => {
+                tracing::info!(%symbol, outage_ms = outage.as_millis() as u64, "book fresh again");
+            }
+            age @ (BookAge::WentStale | BookAge::Stale) => {
+                if age == BookAge::WentStale {
+                    tracing::warn!(
+                        %symbol,
+                        age_ms = book_watch.age_ms(Instant::now()),
+                        limit_ms = book_stale_after.as_millis() as u64,
+                        "stale book — cancel all"
+                    );
+                    oms.live.clear();
+                    stale_cancel_pending = rest.is_some();
+                }
+                // A dead feed often means a dead network, so the first cancel can fail too:
+                // keep trying every loop until the venue confirms.
+                if stale_cancel_pending {
+                    if let Some(r) = &rest {
+                        match r.cancel_all(&symbol).await {
+                            Ok(()) => stale_cancel_pending = false,
+                            Err(e) => tracing::warn!(%symbol, error = %e, "stale-book cancel-all failed; retrying"),
+                        }
+                    }
+                }
+                continue;
+            }
+        }
         if top.best_bid <= 0.0 || top.best_ask <= top.best_bid {
             continue;
         }
@@ -700,9 +740,6 @@ async fn run_symbol_loop(
             regime_spread_mult: regime_mult,
         };
 
-        // Book age is the time since this loop read the book, not REST latency
-        // inside the same iteration (funding/reconcile often exceed 500ms).
-        risk.last_book_ts = Instant::now();
         // Update before kill/L3 continue so the next loop measures a fresh jump.
         last_fair = Some(fair_native);
 
@@ -832,6 +869,7 @@ async fn run_symbol_loop(
             book_ask: top.best_ask,
             book_bid_qty: top.bid_qty,
             book_ask_qty: top.ask_qty,
+            book_age_ms: book_watch.age_ms(Instant::now()),
         };
         tracing::info!(target: "MM_METRICS", "{}", serde_json::to_string(&metrics)?);
 

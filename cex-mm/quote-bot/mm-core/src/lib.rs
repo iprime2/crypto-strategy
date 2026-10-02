@@ -124,4 +124,6 @@ pub struct MmMetrics {
     pub book_ask: f64,
     pub book_bid_qty: f64,
     pub book_ask_qty: f64,
+    /// Time since the venue book feed last delivered (ms, loop resolution).
+    pub book_age_ms: u64,
 }
