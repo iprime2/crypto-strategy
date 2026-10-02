@@ -30,6 +30,8 @@ SHADOW_ENV=(
   MM_REGIME_L3_DEPTH_RATIO=0
   # fstream.binance.com does not resolve from this network; use the public market-data mirror.
   MM_BINANCE_WS_BASE=wss://data-stream.binance.vision/ws
+  # Delta top of book from the public ob_l1 websocket (~100 ms) instead of 250 ms REST polling.
+  MM_DELTA_BOOK_FEED=ws
   RUST_LOG=warn,mm_bot=info,MM_METRICS=info
   NO_COLOR=1
 )

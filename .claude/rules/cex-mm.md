@@ -33,4 +33,4 @@ paths:
 - `KappaEstimator` in `runner.rs` is never fed; κ is always `MM_AS_KAPPA`.
 - `FillEconomics::on_fill` does not realize PnL when a long closes to flat or on partial reduces; Delta fees are passed as 0.
 - `RiskState::daily_pnl_usd` is never updated, so the daily loss halt cannot fire.
-- The Delta book is polled over REST every 250 ms, and funding is fetched over REST on every loop.
+- The Delta book is polled over REST every 250 ms unless `MM_DELTA_BOOK_FEED=ws` (public `ob_l1` websocket; the shadow test uses it). Funding is fetched over REST on every loop. A book with no feed update for `MM_BOOK_STALE_MS` (default 2000) cancels quotes once and pauses quoting until fresh (`BookWatch` in `mm-bot/src/risk.rs`).
