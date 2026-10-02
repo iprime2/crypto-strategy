@@ -406,10 +406,12 @@ function drawPrice(d) {
     const dpath = tr.side === "buy" ? `M${px},${py - 5}L${px + 4.5},${py + 3}L${px - 4.5},${py + 3}Z` : `M${px},${py + 5}L${px + 4.5},${py - 3}L${px - 4.5},${py - 3}Z`;
     g.appendChild(svg("path", { d: dpath, fill: cssVar("--text-muted"), opacity: 0.85 }));
   }
+  // Many fills (the All window) would bury the price lines: draw them smaller.
+  const fr = d.fills_window.length > 150 ? 4 : 7;
   for (const fl of d.fills_window) {
     if (fl.t < t0 || fl.t > t1) continue;
     const px = x(fl.t), py = y(fl.p);
-    g.appendChild(svg("path", { d: `M${px},${py - 7}L${px + 7},${py}L${px},${py + 7}L${px - 7},${py}Z`, fill: cssVar("--text-primary"), stroke: cssVar("--surface-1"), "stroke-width": 2 }));
+    g.appendChild(svg("path", { d: `M${px},${py - fr}L${px + fr},${py}L${px},${py + fr}L${px - fr},${py}Z`, fill: cssVar("--text-primary"), stroke: cssVar("--surface-1"), "stroke-width": fr > 4 ? 2 : 1 }));
   }
   f.root.appendChild(g);
   // direct labels at the right edge for the reference lines
@@ -714,7 +716,7 @@ function renderControls(d) {
     }
   }
   seg.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.symbol === d.symbol)));
-  document.querySelectorAll("#windowSeg button").forEach(b => b.setAttribute("aria-pressed", String(Number(b.dataset.window) === state.window)));
+  document.querySelectorAll("#windowSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.window === String(state.window))));
   const cfg = d.run.config;
   document.getElementById("runInfo").textContent = `Run ${d.run.id} · started ${cfg.started_utc ? fmtDateTime(Date.parse(cfg.started_utc)) : "?"} · Delta India mainnet data, no orders`;
 }
@@ -754,8 +756,8 @@ async function refresh() {
 
 (function init() {
   const ws = document.getElementById("windowSeg");
-  for (const m of [5, 15, 60]) {
-    const b = el("button", { type: "button", "data-window": m }, `${m} min`);
+  for (const m of [5, 15, 60, "all"]) {
+    const b = el("button", { type: "button", "data-window": m }, m === "all" ? "All" : `${m} min`);
     b.addEventListener("click", () => { state.window = m; refresh(); });
     ws.appendChild(b);
   }

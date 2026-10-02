@@ -32,6 +32,7 @@ CURRENT = CEX_MM / "artifacts" / "shadow" / "current"
 PAGE = ROOT / "static" / "shadow.html"
 RECENT_MS = 60 * 60 * 1000  # full-resolution window kept for the live chart
 MAX_POINTS = 900
+MAX_POINTS_ALL = 1500  # "All" window: whole run, thinned for the chart
 READ_CHUNK = 32 * 1024 * 1024
 SWEEP = [3.0, 4.0, 5.0, 6.0, 8.0]
 PRIMARY = "bot quotes 300ms"
@@ -293,15 +294,16 @@ def pid_alive(path: Path) -> bool:
         return False
 
 
-def downsample(samples: list[sim.Sample]) -> list[sim.Sample]:
-    step = max(1, len(samples) // MAX_POINTS)
+def downsample(samples: list, max_points: int = MAX_POINTS) -> list:
+    step = max(1, len(samples) // max_points)
     out = samples[::step]
     if samples and out[-1] is not samples[-1]:
         out.append(samples[-1])
     return out
 
 
-def build_payload(symbol: str | None, window_min: float) -> dict:
+def build_payload(symbol: str | None, window_min: float | None) -> dict:
+    """`window_min=None` means the whole run (compact samples kept for the simulator)."""
     with LOCK:
         state = STATE
         if state is None:
@@ -310,6 +312,7 @@ def build_payload(symbol: str | None, window_min: float) -> dict:
         symbol = symbol if symbol in state.symbols else (syms[0] if syms else None)
         st = state.symbols.get(symbol) if symbol else None
         recent = list(st.recent) if st else []
+        whole = list(st.sim_samples) if st and window_min is None else []
         dsym = sim.delta_symbol(symbol) if symbol else ""
         tape_all = state.trades.get(dsym, [])
         sim_res = state.sim.get(symbol) if symbol else None
@@ -334,11 +337,17 @@ def build_payload(symbol: str | None, window_min: float) -> dict:
                 config[k] = v
     now_ms = time.time() * 1000
     last = recent[-1] if recent else None
-    cutoff = (last.ts if last else now_ms) - window_min * 60_000
-    win = [s for s in recent if s.ts >= cutoff]
+    if window_min is None:
+        win = whole
+        cutoff = win[0].ts if win else now_ms
+        max_points = MAX_POINTS_ALL
+    else:
+        cutoff = (last.ts if last else now_ms) - window_min * 60_000
+        win = [s for s in recent if s.ts >= cutoff]
+        max_points = MAX_POINTS
     ratios = [((s.book_bid + s.book_ask) / 2) / s.binance_mid for s in win if s.binance_mid > 0]
     basis = statistics.median(ratios) if ratios else None
-    pts = downsample(win)
+    pts = downsample(win, max_points)
     series = {
         "t": [s.ts for s in pts],
         "book_bid": [s.book_bid for s in pts],
@@ -349,7 +358,10 @@ def build_payload(symbol: str | None, window_min: float) -> dict:
         "binance": [round(s.binance_mid * basis, 8) if basis and s.binance_mid > 0 else None for s in pts],
     }
     i0 = bisect.bisect_left([t.ts for t in tape_all], cutoff) if tape_all else 0
-    tape = [{"t": t.ts, "p": t.price, "side": "buy" if t.aggressor > 0 else "sell", "size": t.size} for t in tape_all[i0:]][-500:]
+    in_window = tape_all[i0:]
+    # Short windows show the latest 500 trades; "All" thins the whole tape evenly.
+    shown = downsample(in_window, max_points) if window_min is None else in_window[-500:]
+    tape = [{"t": t.ts, "p": t.price, "side": "buy" if t.aggressor > 0 else "sell", "size": t.size} for t in shown]
     fills_win = []
     if sim_res:
         fills_win = [{"t": t, "p": p, "side": "buy" if s > 0 else "sell"} for t, p, s in sim_res["fill_ts"] if t >= cutoff]
@@ -418,10 +430,15 @@ class Handler(BaseHTTPRequestHandler):
             self.send_body(200, PAGE.read_bytes(), "text/html; charset=utf-8")
         elif url.path == "/api/shadow":
             q = parse_qs(url.query)
-            try:
-                window = max(1.0, min(60.0, float(q.get("window", ["15"])[0])))
-            except ValueError:
-                window = 15.0
+            raw = q.get("window", ["15"])[0]
+            window: float | None
+            if raw == "all":
+                window = None
+            else:
+                try:
+                    window = max(1.0, min(60.0, float(raw)))
+                except ValueError:
+                    window = 15.0
             payload = build_payload(q.get("symbol", [None])[0], window)
             self.send_body(200, json.dumps(payload, allow_nan=False, default=str).encode(), "application/json")
         else:
