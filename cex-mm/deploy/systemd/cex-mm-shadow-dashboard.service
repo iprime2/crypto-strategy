@@ -1,0 +1,11 @@
+[Unit]
+Description=cex-mm shadow dashboard on http://127.0.0.1:8788/
+
+[Service]
+WorkingDirectory=/home/iprime2/projects/crypto-strategy/cex-mm
+ExecStart=/usr/bin/python3 /home/iprime2/projects/crypto-strategy/cex-mm/dashboard/shadow_server.py --port 8788
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

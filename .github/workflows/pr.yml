@@ -65,4 +65,5 @@ jobs:
         working-directory: cex-mm/web
         run: |
           npm ci
-          npm audit --audit-level=high
+          # Only packages that ship in the browser bundle; build tooling (shadcn CLI) is a devDependency.
+          npm audit --omit=dev --audit-level=high
