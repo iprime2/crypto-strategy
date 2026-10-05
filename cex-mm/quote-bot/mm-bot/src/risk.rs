@@ -1,6 +1,8 @@
 use std::time::{Duration, Instant};
 
+use chrono::NaiveDate;
 use mm_core::regime::RegimeEngine;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone)]
 pub struct RiskState {
@@ -23,18 +25,19 @@ pub enum BookAge {
     Stale,
 }
 
-/// Tracks when the book feed last delivered, at loop resolution.
+/// Tracks when the book feed last delivered, at loop resolution. Arms on the first book: before
+/// that the loop has nothing to quote, and a slow websocket connect is not an outage.
 #[derive(Debug, Clone)]
 pub struct BookWatch {
-    last_update: Instant,
+    last_update: Option<Instant>,
     stale_after: Duration,
     stale_since: Option<Instant>,
 }
 
 impl BookWatch {
-    pub fn new(stale_after: Duration, now: Instant) -> Self {
+    pub fn new(stale_after: Duration) -> Self {
         Self {
-            last_update: now,
+            last_update: None,
             stale_after,
             stale_since: None,
         }
@@ -43,9 +46,12 @@ impl BookWatch {
     /// `updated`: the feed delivered a book since the previous check.
     pub fn check(&mut self, updated: bool, now: Instant) -> BookAge {
         if updated {
-            self.last_update = now;
+            self.last_update = Some(now);
         }
-        let stale = now.saturating_duration_since(self.last_update) > self.stale_after;
+        let Some(last) = self.last_update else {
+            return BookAge::Fresh;
+        };
+        let stale = now.saturating_duration_since(last) > self.stale_after;
         match (stale, self.stale_since) {
             (true, None) => {
                 self.stale_since = Some(now);
@@ -61,7 +67,9 @@ impl BookWatch {
     }
 
     pub fn age_ms(&self, now: Instant) -> u64 {
-        now.saturating_duration_since(self.last_update).as_millis() as u64
+        self.last_update
+            .map(|t| now.saturating_duration_since(t).as_millis() as u64)
+            .unwrap_or(0)
     }
 }
 
@@ -81,6 +89,61 @@ impl Default for RiskState {
                 .unwrap_or(20),
         }
     }
+}
+
+/// One UTC day of the daily loss stop, persisted so a restart keeps the baseline and the halt.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct DailyLossState {
+    pub day: NaiveDate,
+    pub baseline_equity: f64,
+    pub halted: bool,
+}
+
+/// Account-wide daily loss stop on venue equity (realized + unrealized, after fees). PnL is equity
+/// minus the first equity read of the UTC day. Once breached it stays halted until the next day.
+/// Deposits and withdrawals move equity too: a withdrawal can halt early, a deposit hides losses.
+#[derive(Debug, Clone)]
+pub struct DailyLossGuard {
+    limit_usd: f64,
+    state: Option<DailyLossState>,
+}
+
+impl DailyLossGuard {
+    /// `limit_usd <= 0` disables the stop.
+    pub fn new(limit_usd: f64, saved: Option<DailyLossState>) -> Self {
+        Self { limit_usd, state: saved }
+    }
+
+    /// Records an equity reading and returns today's PnL.
+    pub fn observe(&mut self, equity: f64, today: NaiveDate) -> f64 {
+        let st = match self.state {
+            Some(s) if s.day == today => s,
+            _ => DailyLossState { day: today, baseline_equity: equity, halted: false },
+        };
+        let pnl = equity - st.baseline_equity;
+        let halted = st.halted || (self.limit_usd > 0.0 && pnl <= -self.limit_usd);
+        self.state = Some(DailyLossState { halted, ..st });
+        pnl
+    }
+
+    pub fn breached(&self) -> bool {
+        self.state.is_some_and(|s| s.halted)
+    }
+
+    /// A saved halt from `today` blocks a fresh start.
+    pub fn halted_on(&self, today: NaiveDate) -> bool {
+        self.state.is_some_and(|s| s.halted && s.day == today)
+    }
+
+    pub fn state(&self) -> Option<DailyLossState> {
+        self.state
+    }
+}
+
+/// Quotes are post-only, so a taker fill means something placed an order that took liquidity.
+/// The bot's own reduce-only exit (sent within `grace_ms` of the fill) is the one expected case.
+pub fn taker_fill_unexpected(taker: bool, fill_ms: i64, last_reduce_only_ms: Option<i64>, grace_ms: i64) -> bool {
+    taker && !last_reduce_only_ms.is_some_and(|sent| (fill_ms - sent).abs() <= grace_ms)
 }
 
 /// Whether a place error should increment `reject_count` toward the kill switch.
@@ -119,7 +182,7 @@ mod tests {
     #[test]
     fn book_updates_keep_the_book_fresh() {
         let t0 = Instant::now();
-        let mut w = BookWatch::new(ms(2000), t0);
+        let mut w = BookWatch::new(ms(2000));
         assert_eq!(w.check(true, t0 + ms(400)), BookAge::Fresh);
         assert_eq!(w.check(true, t0 + ms(2800)), BookAge::Fresh);
         assert_eq!(w.age_ms(t0 + ms(3000)), 200);
@@ -128,17 +191,84 @@ mod tests {
     #[test]
     fn silent_feed_goes_stale_once_then_stays_stale() {
         let t0 = Instant::now();
-        let mut w = BookWatch::new(ms(2000), t0);
+        let mut w = BookWatch::new(ms(2000));
+        assert_eq!(w.check(true, t0), BookAge::Fresh);
         assert_eq!(w.check(false, t0 + ms(2000)), BookAge::Fresh, "at the limit is still fresh");
         assert_eq!(w.check(false, t0 + ms(2100)), BookAge::WentStale);
         assert_eq!(w.check(false, t0 + ms(2500)), BookAge::Stale);
         assert_eq!(w.check(false, t0 + ms(9000)), BookAge::Stale);
     }
 
+    fn day(d: u32) -> chrono::NaiveDate {
+        chrono::NaiveDate::from_ymd_opt(2026, 10, d).unwrap()
+    }
+
+    #[test]
+    fn daily_pnl_is_equity_minus_the_days_first_reading() {
+        let mut g = DailyLossGuard::new(15.0, None);
+        assert_eq!(g.observe(135.0, day(5)), 0.0);
+        assert_eq!(g.observe(129.0, day(5)), -6.0);
+        assert!(!g.breached());
+        assert_eq!(g.observe(120.0, day(5)), -15.0);
+        assert!(g.breached(), "at the limit halts");
+    }
+
+    #[test]
+    fn a_halt_sticks_for_the_rest_of_the_day_then_resets() {
+        let mut g = DailyLossGuard::new(15.0, None);
+        g.observe(135.0, day(5));
+        g.observe(119.0, day(5));
+        assert!(g.breached());
+        g.observe(140.0, day(5));
+        assert!(g.breached(), "a bounce does not un-halt");
+        assert_eq!(g.observe(140.0, day(6)), 0.0, "new UTC day, new baseline");
+        assert!(!g.breached());
+    }
+
+    #[test]
+    fn a_restart_keeps_the_days_baseline_and_halt() {
+        let saved = DailyLossState { day: day(5), baseline_equity: 135.0, halted: false };
+        let mut g = DailyLossGuard::new(15.0, Some(saved));
+        assert_eq!(g.observe(125.0, day(5)), -10.0, "baseline survives the restart");
+        let halted = DailyLossState { day: day(5), baseline_equity: 135.0, halted: true };
+        assert!(DailyLossGuard::new(15.0, Some(halted)).halted_on(day(5)));
+        assert!(!DailyLossGuard::new(15.0, Some(halted)).halted_on(day(6)));
+        assert!(!DailyLossGuard::new(15.0, None).halted_on(day(5)));
+    }
+
+    #[test]
+    fn zero_limit_disables_the_daily_stop() {
+        let mut g = DailyLossGuard::new(0.0, None);
+        g.observe(135.0, day(5));
+        g.observe(1.0, day(5));
+        assert!(!g.breached());
+    }
+
+    #[test]
+    fn only_taker_fills_without_our_own_reduce_only_are_unexpected() {
+        // Fill at t=100_000 ms. Reduce-only sent at 95_000 explains it; one sent at 10_000 does not.
+        assert!(!taker_fill_unexpected(false, 100_000, None, 60_000), "maker fills are fine");
+        assert!(taker_fill_unexpected(true, 100_000, None, 60_000));
+        assert!(!taker_fill_unexpected(true, 100_000, Some(95_000), 60_000));
+        assert!(taker_fill_unexpected(true, 100_000, Some(10_000), 60_000));
+    }
+
+    #[test]
+    fn a_slow_start_is_not_stale_before_the_first_book() {
+        // Without a book the loop cannot quote anyway; only a feed that stops after it started
+        // should cancel.
+        let t0 = Instant::now();
+        let mut w = BookWatch::new(ms(2000));
+        assert_eq!(w.check(false, t0 + ms(4000)), BookAge::Fresh);
+        assert_eq!(w.check(true, t0 + ms(4400)), BookAge::Fresh);
+        assert_eq!(w.check(false, t0 + ms(6500)), BookAge::WentStale);
+    }
+
     #[test]
     fn first_update_after_an_outage_reports_how_long_it_lasted() {
         let t0 = Instant::now();
-        let mut w = BookWatch::new(ms(2000), t0);
+        let mut w = BookWatch::new(ms(2000));
+        assert_eq!(w.check(true, t0), BookAge::Fresh);
         assert_eq!(w.check(false, t0 + ms(2100)), BookAge::WentStale);
         assert_eq!(w.check(true, t0 + ms(5000)), BookAge::Recovered(ms(2900)));
         assert_eq!(w.check(false, t0 + ms(5400)), BookAge::Fresh);

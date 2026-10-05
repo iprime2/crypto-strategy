@@ -16,22 +16,11 @@ SHADOW="$ROOT/artifacts/shadow"
 CURRENT="$SHADOW/current"
 BIN="$ROOT/target/release/mm-bot"
 
-# Quote settings under test (see artifacts/research/2026-09-29-quant-review-edge-decomposition.md).
+# Quote settings under test: the DISM profile, the same file a live run uses.
+PROFILE="$ROOT/config/dism.env"
+mapfile -t PROFILE_ENV < <(grep -E '^[A-Z0-9_]+=' "$PROFILE")
 SHADOW_ENV=(
-  MM_VENUE=delta
-  MM_MIN_HALF_SPREAD_BPS=4
-  MM_MAX_HALF_SPREAD_BPS=6
-  MM_HALF_SPREAD_BPS=4
-  MM_MAKER_FEE_BPS=2.12
-  MM_ADVERSE_BUFFER_BPS=0
-  MM_OFI_BETA=0.01
-  MM_WARMUP_SAMPLES=32
-  # L1 size imbalance is not a crash signal (same as the live demo config).
-  MM_REGIME_L3_DEPTH_RATIO=0
-  # fstream.binance.com does not resolve from this network; use the public market-data mirror.
-  MM_BINANCE_WS_BASE=wss://data-stream.binance.vision/ws
-  # Delta top of book from the public ob_l1 websocket (~100 ms) instead of 250 ms REST polling.
-  MM_DELTA_BOOK_FEED=ws
+  "${PROFILE_ENV[@]}"
   RUST_LOG=warn,mm_bot=info,MM_METRICS=info
   NO_COLOR=1
 )

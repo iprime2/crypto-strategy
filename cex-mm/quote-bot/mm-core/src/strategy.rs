@@ -395,6 +395,9 @@ pub struct StrategyConfig {
     pub markout_rolling_window: usize,
     /// Weight on tape κ when available (P1); rest from fill-distance estimator.
     pub kappa_tape_blend: f64,
+    /// DISM: quote fair ± this many bps (× regime multiplier) instead of the AS spread path.
+    /// 0 = off. Mirrors the shadow test's `fair +/- N bps` rule.
+    pub fixed_half_spread_bps: f64,
 }
 
 impl StrategyConfig {
@@ -430,6 +433,7 @@ impl StrategyConfig {
             markout_min_buffer_bps: env_f64("MM_MARKOUT_MIN_BUFFER_BPS", 2.0).max(0.0),
             markout_rolling_window: env_f64("MM_MARKOUT_ROLLING_WINDOW", 24.0).max(4.0) as usize,
             kappa_tape_blend: env_f64("MM_KAPPA_TAPE_BLEND", 0.65).clamp(0.0, 1.0),
+            fixed_half_spread_bps: env_f64("MM_FIXED_HALF_SPREAD_BPS", 0.0).max(0.0),
         }
     }
 
@@ -511,6 +515,40 @@ pub fn round_to_tick(price: f64, tick: f64) -> f64 {
     }
     let steps = (price / tick).round();
     (steps * tick * 1e10).round() / 1e10
+}
+
+fn floor_to_tick(price: f64, tick: f64) -> f64 {
+    if tick <= 0.0 {
+        return price;
+    }
+    ((price / tick + 1e-9).floor() * tick * 1e10).round() / 1e10
+}
+
+fn ceil_to_tick(price: f64, tick: f64) -> f64 {
+    if tick <= 0.0 {
+        return price;
+    }
+    ((price / tick - 1e-9).ceil() * tick * 1e10).round() / 1e10
+}
+
+/// DISM quote rule, identical to the shadow test's `fair +/- N bps`: fair ± `half_bps` × the
+/// regime multiplier (never below 1), rounded away from fair to the tick, and kept one tick
+/// inside the book it was computed from so a post-only order cannot cross.
+pub fn fixed_spread_quotes(
+    fair: f64,
+    tick: f64,
+    half_bps: f64,
+    regime_mult: f64,
+    book: Option<BookTop>,
+) -> (f64, f64) {
+    let h = half_bps * regime_mult.max(1.0) / 10_000.0;
+    let mut bid = floor_to_tick(fair * (1.0 - h), tick);
+    let mut ask = ceil_to_tick(fair * (1.0 + h), tick);
+    if let Some(b) = book.filter(|b| b.best_bid > 0.0 && b.best_ask > b.best_bid) {
+        bid = bid.min(round_to_tick(b.best_ask - tick, tick));
+        ask = ask.max(round_to_tick(b.best_bid + tick, tick));
+    }
+    (bid, ask)
 }
 
 pub fn quote_side_flags(inventory: f64, max_inv: f64, one_sided_ratio: f64) -> (bool, bool) {
@@ -818,7 +856,39 @@ mod tests {
             markout_min_buffer_bps: 2.0,
             markout_rolling_window: 24,
             kappa_tape_blend: 0.0,
+            fixed_half_spread_bps: 0.0,
         }
+    }
+
+    fn book(bid: f64, ask: f64) -> BookTop {
+        BookTop { best_bid: bid, best_ask: ask, bid_qty: 1000.0, ask_qty: 1000.0 }
+    }
+
+    #[test]
+    fn fixed_quotes_are_fair_plus_minus_half_rounded_away_from_fair() {
+        // 0.25 * (1 -/+ 5 bps) = 0.249875 / 0.250125 -> floor / ceil to the 1e-5 tick.
+        assert_eq!(fixed_spread_quotes(0.25, 1e-5, 5.0, 1.0, None), (0.24987, 0.25013));
+    }
+
+    #[test]
+    fn fixed_quotes_widen_with_the_regime_multiplier() {
+        // L1 (x1.5): 7.5 bps -> 0.2498125 / 0.2501875.
+        assert_eq!(fixed_spread_quotes(0.25, 1e-5, 5.0, 1.5, None), (0.24981, 0.25019));
+        // A multiplier below 1 never tightens the quote.
+        assert_eq!(fixed_spread_quotes(0.25, 1e-5, 5.0, 0.0, None), (0.24987, 0.25013));
+    }
+
+    #[test]
+    fn fixed_quotes_never_cross_the_book_they_were_computed_from() {
+        // Fair led far above the book: the bid would cross the ask, so it sits one tick below it.
+        let (bid, ask) = fixed_spread_quotes(0.2510, 1e-5, 5.0, 1.0, Some(book(0.2499, 0.2500)));
+        assert_eq!((bid, ask), (0.24999, 0.25113));
+        // Fair led far below: the ask sits one tick above the bid.
+        let (bid, ask) = fixed_spread_quotes(0.2490, 1e-5, 5.0, 1.0, Some(book(0.2499, 0.2500)));
+        assert_eq!((bid, ask), (0.24887, 0.24991));
+        // Inside a wide book nothing is clamped.
+        let wide = fixed_spread_quotes(0.25, 1e-5, 5.0, 1.0, Some(book(0.2497, 0.2503)));
+        assert_eq!(wide, (0.24987, 0.25013));
     }
 
     #[test]
