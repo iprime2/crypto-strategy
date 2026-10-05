@@ -17,7 +17,8 @@ use mm_core::{
 use crate::exchange::QuotingRest;
 use crate::markout::MarkoutRuntime;
 use crate::oms::OmsState;
-use crate::risk::{counts_toward_reject_kill, BookAge, BookWatch};
+use crate::account::{AccountConfig, AccountFlags};
+use crate::risk::{counts_toward_reject_kill, BookAge, BookWatch, DailyLossGuard};
 use crate::symbols::{env_f64_for_symbol, normalize_symbol, resolve_symbols_from_env};
 use crate::universe::{UniverseOptions, resolve_universe};
 use std::collections::{HashMap, VecDeque};
@@ -125,18 +126,19 @@ pub async fn run_delta(args: RunArgs, dry_run: bool) -> Result<()> {
     let creds = if dry_run {
         None
     } else {
-        Some(
-            mm_delta::DeltaCredentials::from_env()
-                .context("DELTA_API_KEY/SECRET for live run")?,
-        )
+        Some(delta_credentials(delta_env)?)
     };
-    let rest = creds.as_ref().map(|c| {
-        QuotingRest::Delta(mm_delta::DeltaRest::new(
-            delta_env,
-            c.clone(),
-            products.clone(),
-        ))
-    });
+    let delta_rest = creds
+        .as_ref()
+        .map(|c| mm_delta::DeltaRest::new(delta_env, c.clone(), products.clone()));
+    let rest = delta_rest.clone().map(QuotingRest::Delta);
+    let (account, heartbeat) = match &delta_rest {
+        Some(r) => {
+            let (flags, hb) = start_account_guards(r.clone(), &symbols, delta_env).await?;
+            (Some(flags), hb)
+        }
+        None => (None, None),
+    };
 
     let exec_map: Arc<Mutex<HashMap<String, SymbolExecCtx>>> = Arc::new(Mutex::new(HashMap::new()));
     let products_fill = products.clone();
@@ -199,6 +201,7 @@ pub async fn run_delta(args: RunArgs, dry_run: bool) -> Result<()> {
         let args = args.clone();
         let rest = rest.clone();
         let exec_map = exec_map.clone();
+        let account = account.clone();
         // Public catalog: dry-run has no REST client but still needs the real tick.
         let instrument = products
             .get(&symbol)
@@ -213,6 +216,7 @@ pub async fn run_delta(args: RunArgs, dry_run: bool) -> Result<()> {
                 exec_map,
                 BookFeedKind::Delta(delta_env),
                 instrument,
+                account,
             )
             .await
         });
@@ -221,7 +225,58 @@ pub async fn run_delta(args: RunArgs, dry_run: bool) -> Result<()> {
     while let Some(res) = tasks.join_next().await {
         res.context("symbol task join")??;
     }
+    if let (Some(r), Some(id)) = (&delta_rest, &heartbeat) {
+        crate::account::disarm_dead_mans_switch(r, id).await;
+    }
+    if account.is_some_and(|a| a.halted()) {
+        anyhow::bail!("stopped by an account guard (see the error above); orders were cancelled");
+    }
     Ok(())
+}
+
+fn delta_credentials(env: mm_delta::DeltaEnvironment) -> Result<mm_delta::DeltaCredentials> {
+    let vars = match env {
+        mm_delta::DeltaEnvironment::IndiaMainnet => "DELTA_MAINNET_API_KEY/SECRET",
+        mm_delta::DeltaEnvironment::DemoIndia => "DELTA_API_KEY/SECRET",
+    };
+    mm_delta::DeltaCredentials::from_env_for(env).with_context(|| format!("{vars} for a live run"))
+}
+
+/// Daily loss stop, taker-fill guard and dead man's switch for a live run. Refuses to start when
+/// today's loss limit was already hit, or when the dead man's switch is configured but cannot arm.
+async fn start_account_guards(
+    rest: mm_delta::DeltaRest,
+    symbols: &[String],
+    env: mm_delta::DeltaEnvironment,
+) -> Result<(Arc<AccountFlags>, Option<String>)> {
+    let cfg = AccountConfig {
+        daily_loss_limit_usd: env_f64_global("MM_DAILY_LOSS_LIMIT_USD", 500.0),
+        poll: Duration::from_secs_f64(env_f64_global("MM_ACCOUNT_POLL_SEC", 30.0).max(5.0)),
+        dms_ttl_ms: env_f64_global("MM_DMS_TTL_MS", 0.0).max(0.0) as u64,
+    };
+    let label = if env == mm_delta::DeltaEnvironment::IndiaMainnet { "mainnet" } else { "demo" };
+    let path = crate::account::daily_loss_path(label);
+    let guard = DailyLossGuard::new(cfg.daily_loss_limit_usd, crate::account::load_daily_loss(&path));
+    if guard.halted_on(Utc::now().date_naive()) {
+        anyhow::bail!(
+            "daily loss limit already hit today ({}); quoting stays off until 00:00 UTC. \
+             Delete that file only after reviewing the account.",
+            path.display()
+        );
+    }
+    let heartbeat = if cfg.dms_ttl_ms > 0 {
+        Some(
+            crate::account::arm_dead_mans_switch(&rest, symbols, cfg.dms_ttl_ms)
+                .await
+                .context("MM_DMS_TTL_MS is set but the dead man's switch could not be armed")?,
+        )
+    } else {
+        None
+    };
+    tracing::info!(limit_usd = cfg.daily_loss_limit_usd, poll_sec = cfg.poll.as_secs(), dms_ttl_ms = cfg.dms_ttl_ms, "account guards on");
+    let flags = Arc::new(AccountFlags::default());
+    crate::account::spawn_monitor(rest, symbols.to_vec(), cfg, flags.clone(), guard, path);
+    Ok((flags, heartbeat))
 }
 
 fn resolve_universe_delta(opts: UniverseOptions) -> Result<Vec<String>> {
@@ -234,8 +289,8 @@ fn resolve_universe_delta(opts: UniverseOptions) -> Result<Vec<String>> {
 pub async fn cancel_all(symbol: &str, env: &str, venue: &str) -> Result<()> {
     let sym = normalize_symbol(symbol);
     if venue.eq_ignore_ascii_case("delta") {
-        let creds = mm_delta::DeltaCredentials::from_env().context("DELTA_API_KEY/SECRET")?;
         let delta_env = mm_delta::DeltaEnvironment::from_env_flag(env);
+        let creds = delta_credentials(delta_env)?;
         let client = reqwest::Client::new();
         let products = std::sync::Arc::new(
             mm_delta::ProductCatalog::load(&client, delta_env.rest_base())
@@ -428,6 +483,7 @@ pub async fn run(args: RunArgs, dry_run: bool) -> Result<()> {
                 exec_map,
                 BookFeedKind::Bybit(bybit_env),
                 None,
+                None,
             )
                 .await
         });
@@ -447,6 +503,7 @@ async fn run_symbol_loop(
     exec_map: Arc<Mutex<HashMap<String, SymbolExecCtx>>>,
     book_kind: BookFeedKind,
     instrument: Option<(f64, f64, f64)>,
+    account: Option<Arc<AccountFlags>>,
 ) -> Result<()> {
     let cfg = StrategyConfig::from_env_for_symbol(&symbol, env_f64_global);
 
@@ -480,7 +537,7 @@ async fn run_symbol_loop(
     let mut risk = crate::risk::RiskState::default();
     let book_stale_after =
         Duration::from_millis(env_f64_for_symbol(&symbol, "MM_BOOK_STALE_MS", 2000.0).max(100.0) as u64);
-    let mut book_watch = BookWatch::new(book_stale_after, Instant::now());
+    let mut book_watch = BookWatch::new(book_stale_after);
     let mut stale_cancel_pending = false;
     let mut oms = OmsState::default();
     let mut last_fair: Option<f64> = None;
@@ -580,6 +637,22 @@ async fn run_symbol_loop(
 
     loop {
         interval.tick().await;
+        if let Some(a) = &account {
+            risk.daily_pnl_usd = a.daily_pnl_usd();
+            if a.halted() {
+                if let Some(r) = &rest {
+                    for attempt in 1..=3 {
+                        match r.cancel_all(&symbol).await {
+                            Ok(()) => break,
+                            Err(e) => tracing::warn!(%symbol, attempt, error = %e, "halt cancel-all failed"),
+                        }
+                    }
+                }
+                oms.live.clear();
+                tracing::error!(%symbol, daily_pnl_usd = risk.daily_pnl_usd, "account halt — orders cancelled, quoting stopped");
+                break;
+            }
+        }
         // A dropped feed task counts as no update, so the book goes stale.
         let updated = book_rx.has_changed().unwrap_or(false);
         let top = book_rx.borrow_and_update().clone();
@@ -891,6 +964,9 @@ async fn run_symbol_loop(
                     };
                     if price > 0.0 {
                         last_reduce_only = Instant::now();
+                        if let Some(a) = &account {
+                            a.note_reduce_only();
+                        }
                         tracing::warn!(
                             %symbol,
                             side = clip.side,

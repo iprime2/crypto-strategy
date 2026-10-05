@@ -7,7 +7,7 @@ mod ws;
 pub use auth::DeltaCredentials;
 pub use book::{BookFeed, DeltaBook, OrderbookMaintainer};
 pub use products::{delta_product_symbol, mm_symbol_from_delta, ProductCatalog};
-pub use rest::DeltaRest;
+pub use rest::{DeltaRest, FillRole};
 pub use ws::DeltaPrivateWs;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

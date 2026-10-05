@@ -35,6 +35,77 @@ struct PositionRow {
     product_symbol: Option<String>,
 }
 
+/// One account fill, reduced to what the taker-fill guard needs.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct FillRole {
+    pub id: u64,
+    pub taker: bool,
+    /// Exchange time, Unix ms.
+    pub created_ms: i64,
+}
+
+/// `GET /v2/wallet/balances` -> `meta.net_equity` (USD, unrealized PnL included). A missing value
+/// is an error, never $0, which would read as a huge loss.
+fn parse_net_equity(text: &str) -> Result<f64> {
+    let v: serde_json::Value = serde_json::from_str(text).context("wallet json")?;
+    if v.get("success").and_then(|s| s.as_bool()) == Some(false) {
+        anyhow::bail!("wallet: {}", v.get("error").map(|e| e.to_string()).unwrap_or_default());
+    }
+    match v.get("meta").and_then(|m| m.get("net_equity")) {
+        Some(serde_json::Value::String(s)) => s.parse().context("wallet: net_equity"),
+        Some(serde_json::Value::Number(n)) => n.as_f64().context("wallet: net_equity"),
+        _ => anyhow::bail!("wallet: no meta.net_equity"),
+    }
+}
+
+/// `GET /v2/fills` rows -> id, maker/taker, time. Rows without an id or a parsable time are skipped.
+fn parse_fill_roles(text: &str) -> Result<Vec<FillRole>> {
+    let v: serde_json::Value = serde_json::from_str(text).context("fills json")?;
+    if v.get("success").and_then(|s| s.as_bool()) == Some(false) {
+        anyhow::bail!("fills: {}", v.get("error").map(|e| e.to_string()).unwrap_or_default());
+    }
+    let rows = v.get("result").and_then(|r| r.as_array()).cloned().unwrap_or_default();
+    Ok(rows
+        .iter()
+        .filter_map(|row| {
+            let id = row.get("id")?.as_u64()?;
+            let created = chrono::DateTime::parse_from_rfc3339(row.get("created_at")?.as_str()?).ok()?;
+            Some(FillRole {
+                id,
+                taker: row.get("role").and_then(|r| r.as_str()) == Some("taker"),
+                created_ms: created.timestamp_millis(),
+            })
+        })
+        .collect())
+}
+
+/// `GET /v2/orders/{id}` -> (`state`, `unfilled_size` in contracts).
+fn parse_order_state(text: &str) -> Result<(String, i64)> {
+    let v: serde_json::Value = serde_json::from_str(text).context("order json")?;
+    if v.get("success").and_then(|s| s.as_bool()) == Some(false) {
+        anyhow::bail!("order: {}", v.get("error").map(|e| e.to_string()).unwrap_or_default());
+    }
+    let r = v.get("result").context("order: no result")?;
+    let state = r.get("state").and_then(|s| s.as_str()).context("order: no state")?;
+    let unfilled = r.get("unfilled_size").and_then(|u| u.as_i64()).unwrap_or(0);
+    Ok((state.to_string(), unfilled))
+}
+
+/// Dead man's switch: cancel all orders on these products when a heartbeat is missed. Schema from
+/// Delta's "Deadman Switch" guide (https://docs.delta.exchange/#deadman-switch), not the swagger.
+fn heartbeat_create_body(heartbeat_id: &str, delta_symbols: &[String]) -> serde_json::Value {
+    json!({
+        "heartbeat_id": heartbeat_id,
+        "impact": "products",
+        "product_symbols": delta_symbols,
+        "config": [{ "action": "cancel_orders", "unhealthy_count": 1 }],
+    })
+}
+
+fn heartbeat_ack_body(heartbeat_id: &str, ttl_ms: u64) -> serde_json::Value {
+    json!({ "heartbeat_id": heartbeat_id, "ttl": ttl_ms })
+}
+
 #[derive(Debug, Deserialize)]
 struct TickerRow {
     symbol: Option<String>,
@@ -326,8 +397,113 @@ impl DeltaRest {
             .and_then(|v| v.as_u64()))
     }
 
+    pub async fn get_net_equity_usd(&self) -> Result<f64> {
+        let resp = self
+            .signed_request(reqwest::Method::GET, "/v2/wallet/balances", "", "")
+            .await?;
+        parse_net_equity(&resp.text().await?)
+    }
+
+    /// Most recent fills on one product, newest first.
+    pub async fn recent_fill_roles(&self, mm_symbol: &str, page_size: u32) -> Result<Vec<FillRole>> {
+        let meta = self.products.get(mm_symbol)?;
+        let query = format!("product_ids={}&page_size={page_size}", meta.product_id);
+        let resp = self
+            .signed_request(reqwest::Method::GET, "/v2/fills", &query, "")
+            .await?;
+        parse_fill_roles(&resp.text().await?)
+    }
+
+    /// Order state (`open`, `pending`, `closed`, `cancelled`) and unfilled contracts.
+    pub async fn order_state(&self, order_id: u64) -> Result<(String, i64)> {
+        let path = format!("/v2/orders/{order_id}");
+        let resp = self.signed_request(reqwest::Method::GET, &path, "", "").await?;
+        parse_order_state(&resp.text().await?)
+    }
+
+    pub async fn heartbeat_create(&self, heartbeat_id: &str, delta_symbols: &[String]) -> Result<()> {
+        let body = heartbeat_create_body(heartbeat_id, delta_symbols).to_string();
+        let resp = self
+            .signed_request(reqwest::Method::POST, "/v2/heartbeat/create", "", &body)
+            .await?;
+        Self::expect_success("heartbeat create", resp).await
+    }
+
+    /// Re-arms the dead man's switch: Delta cancels the orders if no ack arrives within `ttl_ms`.
+    /// `ttl_ms = 0` disables the heartbeat.
+    pub async fn heartbeat_ack(&self, heartbeat_id: &str, ttl_ms: u64) -> Result<()> {
+        let body = heartbeat_ack_body(heartbeat_id, ttl_ms).to_string();
+        let resp = self
+            .signed_request(reqwest::Method::POST, "/v2/heartbeat", "", &body)
+            .await?;
+        Self::expect_success("heartbeat ack", resp).await
+    }
+
+    async fn expect_success(what: &str, resp: reqwest::Response) -> Result<()> {
+        let text = resp.text().await?;
+        let parsed: ApiEnvelope<serde_json::Value> =
+            serde_json::from_str(&text).with_context(|| format!("{what} json"))?;
+        if parsed.success == Some(false) {
+            let msg = parsed.error.and_then(|e| e.message.or(e.code)).unwrap_or(text);
+            anyhow::bail!("{what}: {msg}");
+        }
+        Ok(())
+    }
+
     /// Delta accumulates resting orders if we only place; cancel before replace.
     pub async fn cancel_before_requote(&self, mm_symbol: &str) -> Result<()> {
         self.cancel_all(mm_symbol).await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn net_equity_comes_from_meta_and_is_never_guessed() {
+        let ok = r#"{"success":true,"meta":{"net_equity":"135.0512"},"result":[]}"#;
+        assert_eq!(parse_net_equity(ok).unwrap(), 135.0512);
+        let num = r#"{"success":true,"meta":{"net_equity":98.5},"result":[]}"#;
+        assert_eq!(parse_net_equity(num).unwrap(), 98.5);
+        // Missing or failed reads must error, not read as $0 (which would look like a huge loss).
+        assert!(parse_net_equity(r#"{"success":true,"meta":{},"result":[]}"#).is_err());
+        assert!(parse_net_equity(r#"{"success":false,"error":{"code":"expired_signature"}}"#).is_err());
+        assert!(parse_net_equity("<html>502</html>").is_err());
+    }
+
+    #[test]
+    fn fill_roles_keep_role_and_time() {
+        let text = r#"{"success":true,"result":[
+            {"id":1,"role":"maker","created_at":"2026-10-05T10:00:00.250Z","product_symbol":"ADAUSD"},
+            {"id":2,"role":"taker","created_at":"2026-10-05T10:00:01Z","product_symbol":"ADAUSD"},
+            {"id":3,"created_at":"garbage"}
+        ]}"#;
+        let rows = parse_fill_roles(text).unwrap();
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0], FillRole { id: 1, taker: false, created_ms: 1_791_194_400_250 });
+        assert_eq!(rows[1], FillRole { id: 2, taker: true, created_ms: 1_791_194_401_000 });
+    }
+
+    #[test]
+    fn order_state_reads_state_and_unfilled_size() {
+        let text = r#"{"success":true,"result":{"id":7,"state":"cancelled","unfilled_size":1,"size":1}}"#;
+        assert_eq!(parse_order_state(text).unwrap(), ("cancelled".to_string(), 1));
+        assert!(parse_order_state(r#"{"success":false,"error":{"code":"not_found"}}"#).is_err());
+    }
+
+    #[test]
+    fn heartbeat_bodies_match_the_dead_mans_switch_api() {
+        let create = heartbeat_create_body("dism-1", &["ADAUSD".to_string()]);
+        assert_eq!(create["heartbeat_id"], "dism-1");
+        // Delta's guide: impact is "products" (with product_symbols) or "contracts"; the swagger's
+        // low/medium/high is rejected as bad_schema.
+        assert_eq!(create["impact"], "products");
+        assert_eq!(create["product_symbols"][0], "ADAUSD");
+        assert_eq!(create["config"][0]["action"], "cancel_orders");
+        assert_eq!(create["config"][0]["unhealthy_count"], 1);
+        let ack = heartbeat_ack_body("dism-1", 15_000);
+        assert_eq!(ack["heartbeat_id"], "dism-1");
+        assert_eq!(ack["ttl"], 15_000);
     }
 }

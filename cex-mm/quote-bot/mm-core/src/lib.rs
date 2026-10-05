@@ -62,6 +62,20 @@ pub fn compute_quote_cex(
         last_fair,
         book,
     )?;
+    if cfg.fixed_half_spread_bps > 0.0 {
+        // DISM: the shadow-tested rule replaces the AS spread, skew and regime/alpha widening.
+        // Side flags (inventory cap, fair-jump defence) and size still come from `compute_quote`.
+        let (bid, ask) =
+            fixed_spread_quotes(plan.fair, tick, cfg.fixed_half_spread_bps, ext.regime_spread_mult, book);
+        if bid <= 0.0 || ask <= bid {
+            return Err(format!("invalid fixed quotes fair={} bid={bid} ask={ask}", plan.fair));
+        }
+        plan.bid = bid;
+        plan.ask = ask;
+        plan.reservation = plan.fair;
+        plan.spread_bps = (ask - bid) / plan.fair * 10_000.0;
+        return Ok(plan);
+    }
     if ext.regime_spread_mult > 1.0 {
         let mult = ext.regime_spread_mult;
         let mid = (plan.bid + plan.ask) / 2.0;
@@ -126,4 +140,51 @@ pub struct MmMetrics {
     pub book_ask_qty: f64,
     /// Time since the venue book feed last delivered (ms, loop resolution).
     pub book_age_ms: u64,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn fixed_cfg() -> StrategyConfig {
+        let mut cfg = StrategyConfig::from_env(|_, default| default);
+        cfg.fixed_half_spread_bps = 5.0;
+        cfg.inv_one_sided_ratio = 0.0;
+        cfg
+    }
+
+    fn ada_book() -> Option<BookTop> {
+        Some(BookTop { best_bid: 0.2497, best_ask: 0.2503, bid_qty: 1000.0, ask_qty: 1000.0 })
+    }
+
+    #[test]
+    fn fixed_mode_quotes_fair_plus_minus_half_and_ignores_inventory_skew() {
+        // Long 400 of 600: the AS path would skew and widen; fixed mode quotes around fair.
+        let plan = compute_quote_cex(
+            &fixed_cfg(), 0.25, 1e-5, 400.0, 600.0, 200.0, 30.0, 1.5, 3.0, 3.0, 4.0, None,
+            ada_book(), QuoteExtensions { regime_spread_mult: 1.0, ..Default::default() },
+        )
+        .unwrap();
+        let (bid, ask) = fixed_spread_quotes(plan.fair, 1e-5, 5.0, 1.0, ada_book());
+        assert_eq!((plan.bid, plan.ask), (bid, ask));
+        assert_eq!(plan.reservation, plan.fair);
+        assert!((plan.spread_bps - (ask - bid) / plan.fair * 1e4).abs() < 1e-9);
+        assert!(plan.place_bid && plan.place_ask);
+    }
+
+    #[test]
+    fn fixed_mode_stops_adding_at_the_inventory_cap() {
+        let ext = QuoteExtensions { regime_spread_mult: 1.0, ..Default::default() };
+        let long = compute_quote_cex(&fixed_cfg(), 0.25, 1e-5, 600.0, 600.0, 200.0, 5.0, 1.5, 0.0, 0.0, 0.0, None, ada_book(), ext).unwrap();
+        assert!(!long.place_bid && long.place_ask);
+        let short = compute_quote_cex(&fixed_cfg(), 0.25, 1e-5, -600.0, 600.0, 200.0, 5.0, 1.5, 0.0, 0.0, 0.0, None, ada_book(), ext).unwrap();
+        assert!(short.place_bid && !short.place_ask);
+    }
+
+    #[test]
+    fn fixed_mode_applies_the_regime_multiplier() {
+        let ext = QuoteExtensions { regime_spread_mult: 1.5, ..Default::default() };
+        let plan = compute_quote_cex(&fixed_cfg(), 0.25, 1e-5, 0.0, 600.0, 200.0, 5.0, 1.5, 0.0, 0.0, 0.0, None, ada_book(), ext).unwrap();
+        assert_eq!((plan.bid, plan.ask), fixed_spread_quotes(plan.fair, 1e-5, 5.0, 1.5, ada_book()));
+    }
 }
