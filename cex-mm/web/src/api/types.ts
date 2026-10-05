@@ -5,11 +5,17 @@ export type ApiErrorBody = {
 
 export type StrategyStatus = 'running' | 'stopped'
 
+export type VenueEnv = 'demo' | 'mainnet'
+
 export type Strategy = {
   id: string
   name: string
   desired_state: StrategyStatus
   last_pid?: number | null
+  /** Delta environment the strategy trades on; `mainnet` is real money. */
+  env?: VenueEnv
+  /** Settings file under cex-mm/ (e.g. config/dism.env) that replaces the env file's MM_* lines. */
+  profile?: string | null
 }
 
 export type StreamHealth = {
@@ -46,6 +52,10 @@ export type BotCounters = {
   rejects: number
   regime_pauses: number
   risk_kills: number
+  /** Stale-book cancels (feed silent past MM_BOOK_STALE_MS). */
+  stale_books: number
+  /** Account guard halts (daily loss limit, unexpected taker fill). */
+  halts: number
   warnings: number
   errors: number
 }
@@ -58,7 +68,7 @@ export type Overview = {
     adopted: boolean
     last_exit: { pid: number; code: number | null; at: string } | null
   }
-  venue_env: 'demo' | 'mainnet'
+  venue_env: VenueEnv
   balance: Balance | null
   positions: Position[] | null
   unrealized: number
@@ -228,7 +238,7 @@ export type BotTelemetry = {
   events: BotEvent[]
 }
 
-export type ConfigValue = { value: string; source: 'env_file' | 'override' }
+export type ConfigValue = { value: string; source: 'env_file' | 'profile' | 'override' }
 
 export type EffectiveConfig = {
   strategy_id: string
@@ -236,6 +246,9 @@ export type EffectiveConfig = {
   overrides: Record<string, unknown> | null
   values: Record<string, ConfigValue>
   env_file: string | null
+  env?: VenueEnv
+  /** Profile file name when the strategy has one. */
+  profile?: string | null
 }
 
 export type NetPoint = { h: number; net_bps: number | null; n: number }

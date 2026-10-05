@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { Bot, ChartCandlestick, ChartLine, List, Moon, OctagonX, ShieldAlert, Sun } from 'lucide-react'
+import { Bot, ChartCandlestick, ChartLine, List, Moon, OctagonX, ShieldAlert, Sun, TriangleAlert } from 'lucide-react'
 import { stopStrategy } from '@/api/oems'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { ErrorBoundary, StatusPill } from '@/components/kit'
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Toaster } from '@/components/ui/toaster'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useApp } from '@/context/AppContext'
@@ -39,8 +40,31 @@ function Metric({ label, value, tone, title }: { label: string; value: string; t
   )
 }
 
+/** Pick the strategy every page shows; real-money ones are labelled in words, not just colour. */
+function StrategySwitcher() {
+  const { strategyId, setStrategyId, strategies } = useApp()
+  const list = strategies.length ? strategies : [{ id: strategyId, name: strategyId, env: undefined }]
+  return (
+    <Select value={strategyId} onValueChange={setStrategyId}>
+      <SelectTrigger size="sm" aria-label="Strategy" className="h-7 min-w-36 text-[13px] font-semibold">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {list.map((s) => (
+          <SelectItem key={s.id} value={s.id}>
+            <span className="font-semibold">{s.id}</span>
+            <span className={cn('text-[11px]', s.env === 'mainnet' ? 'font-semibold text-down' : 'text-muted-foreground')}>
+              {s.env === 'mainnet' ? 'real money' : s.env === 'demo' ? 'demo' : ''}
+            </span>
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+}
+
 function TopBar() {
-  const { overview: o, overviewError, overviewUpdatedAt, strategyId, refreshOverview, theme, toggleTheme } = useApp()
+  const { overview: o, overviewError, overviewUpdatedAt, strategyId, isReal, refreshOverview, theme, toggleTheme } = useApp()
   const [killOpen, setKillOpen] = useState(false)
   const now = useNow()
   const running = o?.strategy.desired_state === 'running'
@@ -50,7 +74,7 @@ function TopBar() {
   const venueLevel = worst(venue.map((c) => c.level))
   const bot = botCheck(o, now)
   const api = apiCheck(overviewError, overviewUpdatedAt, now)
-  const isLive = o?.venue_env === 'mainnet'
+  const isLive = isReal
 
   return (
     <header className="sticky top-0 z-20 flex h-14 items-stretch border-b bg-background/95 backdrop-blur">
@@ -63,7 +87,7 @@ function TopBar() {
           )}
           title={isLive ? 'Delta India mainnet: real money' : 'Delta India demo account'}
         >
-          {o ? (isLive ? 'LIVE' : 'DEMO') : '…'}
+          {o || isLive ? (isLive ? 'REAL MONEY' : 'DEMO') : '…'}
         </span>
       </div>
 
@@ -72,9 +96,10 @@ function TopBar() {
           className={cn('size-2.5 rounded-full', running ? 'bg-ok' : 'bg-muted-foreground/50')}
           aria-hidden
         />
-        <div className="flex flex-col leading-tight">
-          <span className="text-[13px] font-semibold">
-            {strategyId} · {running ? 'Running' : 'Stopped'}
+        <div className="flex flex-col gap-0.5 leading-tight">
+          <span className="flex items-center gap-1.5 text-[13px] font-semibold">
+            <StrategySwitcher />
+            {running ? 'Running' : 'Stopped'}
           </span>
           <span className="num text-[11px] text-muted-foreground">
             {running
@@ -184,6 +209,20 @@ function NavRail() {
   )
 }
 
+function RealMoneyBanner() {
+  const { isReal, strategyId } = useApp()
+  if (!isReal) return null
+  return (
+    <div role="note" className="flex items-center gap-2 border-b border-down/40 bg-down/10 px-4 py-1.5 text-xs font-medium text-down">
+      <TriangleAlert className="size-3.5 shrink-0" aria-hidden />
+      <span>
+        Real money: <span className="font-semibold">{strategyId}</span> trades on Delta India mainnet. Start, stop,
+        cancel and close act on real funds.
+      </span>
+    </div>
+  )
+}
+
 function StaleBackendBanner() {
   const { overviewError, overview } = useApp()
   if (overview || !overviewError) return null
@@ -202,6 +241,7 @@ export function AppShell() {
     <TooltipProvider delayDuration={200}>
       <div className="flex min-h-svh flex-col">
         <TopBar />
+        <RealMoneyBanner />
         <StaleBackendBanner />
         <div className="flex min-h-0 flex-1">
           <NavRail />

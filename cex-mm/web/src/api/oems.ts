@@ -9,6 +9,7 @@ import type {
   Overview,
   Performance,
   PnlSnapshot,
+  Strategy,
   TcaRow,
   Ticker,
   VenueOrders,
@@ -24,10 +25,13 @@ export function localDayStart(now = new Date()): string {
 export const fetchOverview = (strategyId: string, signal?: AbortSignal) =>
   apiGet<Overview>(`/api/overview${query({ strategy_id: strategyId, day_start: localDayStart() })}`, signal)
 
-export const fetchVenueOrders = (signal?: AbortSignal) => apiGet<VenueOrders>('/api/venue/orders', signal)
+export const fetchStrategies = (signal?: AbortSignal) => apiGet<Strategy[]>('/api/strategies', signal)
 
-export const fetchTelemetry = (events = 150, signal?: AbortSignal) =>
-  apiGet<BotTelemetry>(`/api/bot/telemetry${query({ events })}`, signal)
+export const fetchVenueOrders = (strategyId: string, signal?: AbortSignal) =>
+  apiGet<VenueOrders>(`/api/venue/orders${query({ strategy_id: strategyId })}`, signal)
+
+export const fetchTelemetry = (strategyId: string, events = 150, signal?: AbortSignal) =>
+  apiGet<BotTelemetry>(`/api/bot/telemetry${query({ strategy_id: strategyId, events })}`, signal)
 
 export const fetchFills = (strategyId: string, limit = 200, signal?: AbortSignal) =>
   apiGet<Fill[]>(`/api/fills${query({ strategy_id: strategyId, limit })}`, signal)
@@ -52,19 +56,32 @@ export const fetchPerformance = (strategyId: string, from: string, to: string, s
 export const fetchEffectiveConfig = (strategyId: string, signal?: AbortSignal) =>
   apiGet<EffectiveConfig>(`/api/strategies/${enc(strategyId)}/effective-config`, signal)
 
-export const fetchTicker = (symbol: string, signal?: AbortSignal) =>
-  apiGet<Ticker>(`/api/market/${enc(symbol)}/ticker`, signal)
+/** Market data comes from the strategy's environment: demo and mainnet prices differ. */
+export const fetchTicker = (strategyId: string, symbol: string, signal?: AbortSignal) =>
+  apiGet<Ticker>(`/api/market/${enc(symbol)}/ticker${query({ strategy_id: strategyId })}`, signal)
 
-export const fetchBook = (symbol: string, depth = 20, signal?: AbortSignal) =>
-  apiGet<Book>(`/api/market/${enc(symbol)}/book${query({ depth })}`, signal)
+export const fetchBook = (strategyId: string, symbol: string, depth = 20, signal?: AbortSignal) =>
+  apiGet<Book>(`/api/market/${enc(symbol)}/book${query({ strategy_id: strategyId, depth })}`, signal)
 
-export const fetchTrades = (symbol: string, signal?: AbortSignal) =>
-  apiGet<MarketTrade[]>(`/api/market/${enc(symbol)}/trades`, signal)
+export const fetchTrades = (strategyId: string, symbol: string, signal?: AbortSignal) =>
+  apiGet<MarketTrade[]>(`/api/market/${enc(symbol)}/trades${query({ strategy_id: strategyId })}`, signal)
 
-export const fetchCandles = (symbol: string, resolution: string, from: number, to: number, signal?: AbortSignal) =>
-  apiGet<Candle[]>(`/api/market/${enc(symbol)}/candles${query({ resolution, from, to })}`, signal)
+export const fetchCandles = (
+  strategyId: string,
+  symbol: string,
+  resolution: string,
+  from: number,
+  to: number,
+  signal?: AbortSignal,
+) =>
+  apiGet<Candle[]>(
+    `/api/market/${enc(symbol)}/candles${query({ strategy_id: strategyId, resolution, from, to })}`,
+    signal,
+  )
 
-export const startStrategy = (id: string) => apiPost<{ pid: number }>(`/api/strategies/${enc(id)}/start`)
+/** A real-money (mainnet) strategy needs `confirm` = MAINNET_CONFIRM; the OEMS refuses it otherwise. */
+export const startStrategy = (id: string, confirm?: string) =>
+  apiPost<{ pid: number }>(`/api/strategies/${enc(id)}/start`, confirm ? { confirm } : undefined)
 
 export const stopStrategy = (id: string) =>
   apiPost<{ signaled: boolean; cancel: unknown }>(`/api/strategies/${enc(id)}/stop`)
@@ -78,7 +95,7 @@ export const closePosition = (symbol: string, strategyId: string) =>
   })
 
 export const saveOverrides = (id: string, body: Record<string, string | number>) =>
-  apiPost<{ version: number; restarted: { ok: boolean; error?: string } | null }>(
+  apiPost<{ version: number; restarted: { ok: boolean; error?: string } | null; restart_required?: boolean }>(
     `/api/strategies/${enc(id)}/config`,
     body,
   )

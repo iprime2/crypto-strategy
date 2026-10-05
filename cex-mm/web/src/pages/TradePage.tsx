@@ -14,9 +14,9 @@ type Tab = 'orders' | 'fills' | 'events'
 export function TradePage() {
   const { symbol, strategyId, overview } = useApp()
   const ticker = useTicker(symbol)
-  const orders = usePoll((s) => fetchVenueOrders(s), 2000, [])
+  const orders = usePoll((s) => fetchVenueOrders(strategyId, s), 2000, [strategyId])
   const fills = usePoll((s) => fetchFills(strategyId, 200, s), 5000, [strategyId])
-  const telemetry = usePoll((s) => fetchTelemetry(80, s), 2000, [])
+  const telemetry = usePoll((s) => fetchTelemetry(strategyId, 80, s), 2000, [strategyId])
   const [tab, setTab] = useState<Tab>('orders')
 
   const tick = ticker.data?.tick_size ?? 0

@@ -35,6 +35,10 @@ pub struct Counters {
     pub rejects: u64,
     pub regime_pauses: u64,
     pub risk_kills: u64,
+    /// Stale-book cancels (the feed went quiet past `MM_BOOK_STALE_MS`).
+    pub stale_books: u64,
+    /// Account guard halts: daily loss limit, unexpected taker fill.
+    pub halts: u64,
     pub warnings: u64,
     pub errors: u64,
 }
@@ -138,9 +142,21 @@ pub fn parse_line(raw: &str) -> Parsed {
         ("risk_kill", body)
     } else if line.contains("inventory hard cap") {
         ("hard_cap", body)
+    } else if line.contains("stale book") {
+        ("stale_book", body)
+    } else if line.contains("book fresh again") {
+        ("book_fresh", body)
+    } else if line.contains("dead man's switch") || line.contains("heartbeat") {
+        ("dead_mans_switch", body)
+    } else if line.contains("account halt") || line.contains("daily loss limit") || line.contains("unexpected taker fill") {
+        ("account_halt", body)
     } else if level != "info" {
         ("log", body)
-    } else if line.contains("startup") || line.contains("mm universe") || line.contains("instrument") {
+    } else if line.contains("startup")
+        || line.contains("mm universe")
+        || line.contains("instrument")
+        || line.contains("account guards on")
+    {
         ("lifecycle", body)
     } else {
         return Parsed::Ignore;
@@ -180,6 +196,8 @@ impl TelemetryState {
                     "reject" => self.counters.rejects += 1,
                     "regime_pause" => self.counters.regime_pauses += 1,
                     "risk_kill" => self.counters.risk_kills += 1,
+                    "stale_book" => self.counters.stale_books += 1,
+                    "account_halt" => self.counters.halts += 1,
                     _ => {}
                 }
                 match level {
@@ -277,6 +295,30 @@ mod tests {
         let pause = "2026-09-29T11:53:50Z  WARN mm_bot::runner: regime L3 pause — cancel all symbol=ADAUSDT regime.level=L3Crash depth_ratio=0.0005 jump_bps=0.0";
         assert!(matches!(parse_line(pause), Parsed::Event { kind: "regime_pause", .. }));
         assert_eq!(parse_line("2026-09-29T11:53:50Z  INFO mm_bot::runner: something routine"), Parsed::Ignore);
+    }
+
+    #[test]
+    fn guard_lines_become_their_own_events() {
+        let cases = [
+            ("2026-10-05T23:48:26Z  WARN mm_bot::runner: stale book — cancel all symbol=ADAUSDT age_ms=2400 limit_ms=2000", "warn", "stale_book"),
+            ("2026-10-05T23:48:29Z  INFO mm_bot::runner: book fresh again symbol=ADAUSDT outage_ms=3200", "info", "book_fresh"),
+            ("2026-10-05T23:40:00Z  INFO mm_bot::account: dead man's switch armed heartbeat_id=mm-bot-adausd ttl_ms=15000", "info", "dead_mans_switch"),
+            ("2026-10-05T23:41:00Z  WARN mm_bot::account: heartbeat ack failed; Delta cancels our orders if this lasts past the TTL heartbeat_id=mm-bot-adausd", "warn", "dead_mans_switch"),
+            ("2026-10-05T23:42:00Z ERROR mm_bot::account: daily loss limit hit pnl_usd=-15.2 limit_usd=15", "error", "account_halt"),
+            ("2026-10-05T23:42:00Z ERROR mm_bot::account: unexpected taker fill on a post-only quote symbol=ADAUSDT fill_id=9", "error", "account_halt"),
+            ("2026-10-05T23:42:00Z ERROR mm_bot::runner: account halt — orders cancelled, quoting stopped symbol=ADAUSDT", "error", "account_halt"),
+            ("2026-10-05T23:39:00Z  INFO mm_bot::runner: account guards on limit_usd=15 poll_sec=30 dms_ttl_ms=15000", "info", "lifecycle"),
+        ];
+        for (line, want_level, want_kind) in cases {
+            match parse_line(line) {
+                Parsed::Event { level, kind, .. } => assert_eq!((level, kind), (want_level, want_kind), "{line}"),
+                other => panic!("{line}: {other:?}"),
+            }
+        }
+        let mut st = TelemetryState::default();
+        st.ingest(cases[0].0, Utc::now());
+        st.ingest(cases[4].0, Utc::now());
+        assert_eq!((st.counters.stale_books, st.counters.halts), (1, 1));
     }
 
     #[test]

@@ -86,7 +86,7 @@ export function CandleChart({
   fair: number | null
   priceDigits: number
 }) {
-  const { theme } = useApp()
+  const { theme, strategyId } = useApp()
   const [res, setRes] = useState<Resolution>('1m')
   const [showOrders, setShowOrders] = useState(true)
   const [showFills, setShowFills] = useState(true)
@@ -102,10 +102,10 @@ export function CandleChart({
   const data = usePoll(
     (signal) => {
       const to = Math.floor(Date.now() / 1000)
-      return fetchCandles(symbol, res, to - spec.window, to, signal)
+      return fetchCandles(strategyId, symbol, res, to - spec.window, to, signal)
     },
     res === '1m' ? 4000 : 15000,
-    [symbol, res],
+    [strategyId, symbol, res],
   )
 
   // Create the chart once per mount; theme changes only restyle it.
@@ -182,7 +182,7 @@ export function CandleChart({
 
   useEffect(() => {
     fitted.current = false
-  }, [symbol, res])
+  }, [strategyId, symbol, res])
 
   useEffect(() => {
     const rows = data.data

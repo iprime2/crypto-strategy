@@ -36,10 +36,10 @@ export function BlotterPage() {
   const [side, setSide] = useState<'all' | 'buy' | 'sell'>('all')
   const [role, setRole] = useState<'all' | 'maker' | 'taker'>('all')
 
-  const orders = usePoll((s) => fetchVenueOrders(s), 2000, [])
+  const orders = usePoll((s) => fetchVenueOrders(strategyId, s), 2000, [strategyId])
   const fills = usePoll((s) => fetchFills(strategyId, 500, s), tab === 'fills' ? 5000 : 30_000, [strategyId, tab === 'fills'])
   const tca = usePoll((s) => fetchTca(strategyId, 300, s), tab === 'tca' ? 5000 : 0, [strategyId, tab === 'tca'])
-  const telemetry = usePoll((s) => fetchTelemetry(400, s), tab === 'events' ? 2000 : 0, [tab === 'events'])
+  const telemetry = usePoll((s) => fetchTelemetry(strategyId, 400, s), tab === 'events' ? 2000 : 0, [strategyId, tab === 'events'])
 
   const symbols = useMemo(() => [...new Set((fills.data ?? []).map((f) => f.symbol))].sort(), [fills.data])
   const filtered = useMemo(

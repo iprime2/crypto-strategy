@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { fetchBook, fetchTrades } from '@/api/oems'
 import type { BookLevel, VenueOrder } from '@/api/types'
 import { Empty, ErrorNote } from '@/components/kit'
+import { useApp } from '@/context/AppContext'
 import { usePoll } from '@/hooks/usePoll'
 import { fmtNum, fmtPrice, fmtQty, fmtTime } from '@/lib/format'
 import { cn } from '@/lib/utils'
@@ -50,7 +51,8 @@ export function OrderBook({
   digits: number
   depth?: number
 }) {
-  const book = usePoll((s) => fetchBook(symbol, depth, s), 1000, [symbol, depth])
+  const { strategyId } = useApp()
+  const book = usePoll((s) => fetchBook(strategyId, symbol, depth, s), 1000, [strategyId, symbol, depth])
   const ours = useMemo(() => {
     const bids = new Map<number, number>()
     const asks = new Map<number, number>()
@@ -100,7 +102,8 @@ export function OrderBook({
 }
 
 export function TradesTape({ symbol, digits }: { symbol: string; digits: number }) {
-  const trades = usePoll((s) => fetchTrades(symbol, s), 2000, [symbol])
+  const { strategyId } = useApp()
+  const trades = usePoll((s) => fetchTrades(strategyId, symbol, s), 2000, [strategyId, symbol])
   const rows = trades.data?.slice(0, 40) ?? []
   if (!trades.data) return trades.error ? <ErrorNote message={trades.error} onRetry={trades.refresh} /> : <Empty>Loading trades…</Empty>
   if (!rows.length) return <Empty>No recent trades</Empty>

@@ -21,7 +21,8 @@ import { toastSuccess } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 
 export function useTicker(symbol: string) {
-  return usePoll((s) => fetchTicker(symbol, s), 1500, [symbol])
+  const { strategyId } = useApp()
+  return usePoll((s) => fetchTicker(strategyId, symbol, s), 1500, [strategyId, symbol])
 }
 
 export function SymbolBar({ ticker, error }: { ticker: Ticker | undefined; error: string | null }) {
@@ -79,13 +80,16 @@ function Row({ label, children, tone }: { label: string; children: React.ReactNo
 }
 
 export function QuotePanel({ q, digits, telemetryAttached }: { q: QuoteState | undefined; digits: number; telemetryAttached: boolean }) {
-  const { config, symbol } = useApp()
+  const { config, symbol, overview } = useApp()
   if (!q) {
+    const running = overview?.strategy.desired_state === 'running'
     return (
       <Empty>
-        {telemetryAttached
-          ? `No quote state for ${symbol} from the bot yet.`
-          : 'No bot telemetry. The bot was started before the OEMS captured its output; restart it from the Strategy page to see live quote state.'}
+        {!running
+          ? 'The bot is not running. Start it from the Strategy page to see live quote state.'
+          : telemetryAttached
+            ? `No quote state for ${symbol} from the bot yet.`
+            : 'No bot telemetry. The bot was started before the OEMS captured its output; restart it from the Strategy page to see live quote state.'}
       </Empty>
     )
   }
