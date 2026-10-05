@@ -16,12 +16,17 @@ use std::time::{Duration, Instant};
 use chrono::{DateTime, Utc};
 use serde_json::Value;
 
+use crate::delta::VenueEnv;
+
 #[derive(Debug, Clone)]
 pub struct StartRequest {
     pub strategy_id: String,
     pub cex_mm_root: PathBuf,
     pub quote_bot_env: PathBuf,
     pub config_body: Option<Value>,
+    pub env: VenueEnv,
+    /// Settings file relative to `cex_mm_root` (e.g. `config/dism.env`); see `bot_env_pairs`.
+    pub profile: Option<PathBuf>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -30,6 +35,10 @@ pub enum SupervisorError {
     MissingEnv(String),
     #[error("strategy {0} already has a live process (pid {1})")]
     AlreadyAlive(String, u32),
+    #[error("{0} missing from quote-bot/.env; refuse to start")]
+    MissingKeys(String),
+    #[error("strategy profile {0} is missing; refuse to start")]
+    MissingProfile(String),
     #[error("mm-bot binary not found at {0}")]
     MissingBinary(String),
     #[error("spawn failed: {0}")]
@@ -151,6 +160,23 @@ impl Supervisor {
             }
             self.clear_spawned(&req.strategy_id);
         }
+        let profile_pairs = match &req.profile {
+            Some(rel) => {
+                let path = req.cex_mm_root.join(rel);
+                if !path.is_file() {
+                    return Err(SupervisorError::MissingProfile(path.display().to_string()));
+                }
+                Some(load_env_file(&path))
+            }
+            None => None,
+        };
+        let env_pairs = load_env_file(&req.quote_bot_env);
+        let (key_name, secret_name) = req.env.key_names();
+        if req.env == VenueEnv::Mainnet
+            && !(env_map_has_key(&env_pairs, key_name) && env_map_has_key(&env_pairs, secret_name))
+        {
+            return Err(SupervisorError::MissingKeys(format!("{key_name}/{secret_name}")));
+        }
 
         let bin = req.cex_mm_root.join("target/debug/mm-bot");
         if !bin.is_file() {
@@ -171,9 +197,9 @@ impl Supervisor {
             .map_err(|e| SupervisorError::Spawn(e.to_string()))?;
         let log_err = log.try_clone().map_err(|e| SupervisorError::Spawn(e.to_string()))?;
 
-        let env_pairs = load_env_file(&req.quote_bot_env);
+        let pairs = bot_env_pairs(req.env, &env_pairs, profile_pairs.as_deref(), req.config_body.as_ref());
         let mut cmd = std::process::Command::new(&bin);
-        cmd.args(["run", "--venue", "delta", "--env", "testnet", "--loop-ms", "400"])
+        cmd.args(["run", "--venue", "delta", "--env", req.env.bot_flag(), "--loop-ms", "400"])
             .current_dir(&req.cex_mm_root)
             .stdin(Stdio::null())
             .stdout(Stdio::from(log))
@@ -182,18 +208,13 @@ impl Supervisor {
         if let Ok(path) = std::env::var("PATH") {
             cmd.env("PATH", path);
         }
-        for (k, v) in &env_pairs {
+        for (k, v) in &pairs {
             cmd.env(k, v);
         }
-        if !env_map_has_key(&env_pairs, "RUST_LOG") {
+        if !env_map_has_key(&pairs, "RUST_LOG") {
             cmd.env("RUST_LOG", BOT_RUST_LOG);
         }
         cmd.env("NO_COLOR", "1");
-        if let Some(body) = &req.config_body {
-            for (k, v) in config_env_pairs(body) {
-                cmd.env(k, v);
-            }
-        }
 
         let mut child = cmd.spawn().map_err(|e| SupervisorError::Spawn(e.to_string()))?;
         let pid = child.id();
@@ -406,13 +427,80 @@ fn is_secret_name(name: &str) -> bool {
     ["KEY", "SECRET", "TOKEN", "PASS"].iter().any(|s| upper.contains(s))
 }
 
-/// What the bot will run with: `MM_*` / `RUST_LOG` from the env file overlaid with
-/// config overrides. Values are tagged with their source. Secrets never appear.
-pub fn effective_env(file_pairs: &[(String, String)], body: Option<&Value>) -> BTreeMap<String, (String, &'static str)> {
+/// Env for the bot process, later pairs winning:
+/// - no profile (the demo `mm` strategy): quote-bot/.env minus the other environment's keys,
+///   then config overrides;
+/// - with a profile (e.g. DISM): only this environment's keys and `RUST_LOG` from quote-bot/.env,
+///   then the profile, then config overrides. The demo bot's `MM_*` lines never leak in, so a
+///   live run uses exactly the settings the shadow test scored.
+pub fn bot_env_pairs(
+    env: VenueEnv,
+    file_pairs: &[(String, String)],
+    profile_pairs: Option<&[(String, String)]>,
+    body: Option<&Value>,
+) -> Vec<(String, String)> {
+    let (key, secret) = env.key_names();
+    let (other_key, other_secret) = env.other().key_names();
+    let mut out: Vec<(String, String)> = match profile_pairs {
+        None => file_pairs
+            .iter()
+            .filter(|(k, _)| k != other_key && k != other_secret)
+            .cloned()
+            .collect(),
+        Some(profile) => file_pairs
+            .iter()
+            .filter(|(k, _)| k == key || k == secret || k == "RUST_LOG")
+            .chain(profile.iter())
+            .cloned()
+            .collect(),
+    };
+    if let Some(b) = body {
+        out.extend(config_env_pairs(b));
+    }
+    out
+}
+
+/// Typed confirmation a real-money start must carry.
+pub const MAINNET_CONFIRM: &str = "START REAL";
+
+/// A mainnet start needs the OEMS started with `OEMS_ALLOW_MAINNET=1` and the typed confirmation.
+/// Err is `(code, message)` for the API error body.
+pub fn mainnet_start_check(env: VenueEnv, allow_mainnet: bool, confirm: Option<&str>) -> Result<(), (&'static str, String)> {
+    if env != VenueEnv::Mainnet {
+        return Ok(());
+    }
+    if !allow_mainnet {
+        return Err((
+            "mainnet_disabled",
+            "real-money strategies are disabled; restart the OEMS with OEMS_ALLOW_MAINNET=1".into(),
+        ));
+    }
+    if confirm != Some(MAINNET_CONFIRM) {
+        return Err(("confirm_required", format!("type \"{MAINNET_CONFIRM}\" to start a real-money strategy")));
+    }
+    Ok(())
+}
+
+/// What the bot will run with (see `bot_env_pairs`), tagged `env_file`, `profile` or `override`.
+/// Secrets never appear.
+pub fn effective_env_for(
+    file_pairs: &[(String, String)],
+    profile_pairs: Option<&[(String, String)]>,
+    body: Option<&Value>,
+) -> BTreeMap<String, (String, &'static str)> {
     let mut out = BTreeMap::new();
     for (k, v) in file_pairs {
-        if (k.starts_with("MM_") || k == "RUST_LOG") && !is_secret_name(k) {
+        let inherited = match profile_pairs {
+            None => k.starts_with("MM_") || k == "RUST_LOG",
+            Some(_) => k == "RUST_LOG",
+        };
+        if inherited && !is_secret_name(k) {
             out.insert(k.clone(), (v.clone(), "env_file"));
+        }
+    }
+    for (k, v) in profile_pairs.unwrap_or_default() {
+        if !is_secret_name(k) {
+            out.insert(k.clone(), (v.clone(), "profile"));
         }
     }
     if let Some(b) = body {
@@ -425,11 +513,99 @@ pub fn effective_env(file_pairs: &[(String, String)], body: Option<&Value>) -> B
     out
 }
 
+/// `effective_env_for` without a profile (the demo `mm` strategy).
+pub fn effective_env(file_pairs: &[(String, String)], body: Option<&Value>) -> BTreeMap<String, (String, &'static str)> {
+    effective_env_for(file_pairs, None, body)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use serde_json::json;
     use std::sync::Arc;
+
+    fn kv(list: &[(&str, &str)]) -> Vec<(String, String)> {
+        list.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect()
+    }
+
+    fn file() -> Vec<(String, String)> {
+        kv(&[
+            ("DELTA_API_KEY", "dk"),
+            ("DELTA_API_SECRET", "ds"),
+            ("DELTA_MAINNET_API_KEY", "mk"),
+            ("DELTA_MAINNET_API_SECRET", "ms"),
+            ("MM_SYMBOLS", "ETHUSDT"),
+            ("MM_ORDER_QTY", "0.01"),
+            ("RUST_LOG", "debug"),
+        ])
+    }
+
+    fn get<'a>(pairs: &'a [(String, String)], key: &str) -> Option<&'a str> {
+        pairs.iter().rev().find(|(k, _)| k == key).map(|(_, v)| v.as_str())
+    }
+
+    #[test]
+    fn profile_strategy_takes_only_its_keys_from_the_env_file() {
+        let profile = kv(&[("MM_SYMBOLS", "ADAUSDT"), ("MM_FIXED_HALF_SPREAD_BPS", "5")]);
+        let env = bot_env_pairs(VenueEnv::Mainnet, &file(), Some(&profile), Some(&json!({"MM_ACCOUNT_POLL_SEC": 20})));
+        assert_eq!(get(&env, "DELTA_MAINNET_API_KEY"), Some("mk"));
+        assert_eq!(get(&env, "DELTA_API_KEY"), None, "demo keys never reach a real-money bot");
+        assert_eq!(get(&env, "MM_SYMBOLS"), Some("ADAUSDT"));
+        assert_eq!(get(&env, "MM_ORDER_QTY"), None, "the demo bot's MM_* lines do not leak in");
+        assert_eq!(get(&env, "MM_FIXED_HALF_SPREAD_BPS"), Some("5"));
+        assert_eq!(get(&env, "MM_ACCOUNT_POLL_SEC"), Some("20"), "UI overrides beat the profile");
+        assert_eq!(get(&env, "RUST_LOG"), Some("debug"));
+    }
+
+    #[test]
+    fn legacy_demo_strategy_keeps_the_env_file_but_not_mainnet_keys() {
+        let env = bot_env_pairs(VenueEnv::Demo, &file(), None, Some(&json!({"symbols": "BTCUSDT"})));
+        assert_eq!(get(&env, "DELTA_API_KEY"), Some("dk"));
+        assert_eq!(get(&env, "DELTA_MAINNET_API_KEY"), None);
+        assert_eq!(get(&env, "MM_ORDER_QTY"), Some("0.01"));
+        assert_eq!(get(&env, "MM_SYMBOLS"), Some("BTCUSDT"));
+    }
+
+    #[test]
+    fn effective_env_tags_file_profile_and_override_and_hides_keys() {
+        let profile = kv(&[("MM_SYMBOLS", "ADAUSDT")]);
+        let eff = effective_env_for(&file(), Some(&profile), Some(&json!({"MM_DMS_TTL_MS": 15000})));
+        assert_eq!(eff.get("MM_SYMBOLS"), Some(&("ADAUSDT".to_string(), "profile")));
+        assert_eq!(eff.get("MM_DMS_TTL_MS"), Some(&("15000".to_string(), "override")));
+        assert_eq!(eff.get("RUST_LOG"), Some(&("debug".to_string(), "env_file")));
+        assert!(eff.keys().all(|k| !k.contains("KEY") && !k.contains("SECRET")));
+        assert!(!eff.contains_key("MM_ORDER_QTY"));
+    }
+
+    #[test]
+    fn mainnet_start_needs_the_server_switch_and_typed_confirmation() {
+        assert!(mainnet_start_check(VenueEnv::Demo, false, None).is_ok(), "demo needs neither");
+        assert_eq!(mainnet_start_check(VenueEnv::Mainnet, false, Some(MAINNET_CONFIRM)).unwrap_err().0, "mainnet_disabled");
+        assert_eq!(mainnet_start_check(VenueEnv::Mainnet, true, None).unwrap_err().0, "confirm_required");
+        assert_eq!(mainnet_start_check(VenueEnv::Mainnet, true, Some("start real")).unwrap_err().0, "confirm_required");
+        assert!(mainnet_start_check(VenueEnv::Mainnet, true, Some(MAINNET_CONFIRM)).is_ok());
+    }
+
+    #[test]
+    fn mainnet_start_refuses_without_mainnet_keys() {
+        let dir = std::env::temp_dir().join(format!("oems-sup-{}", std::process::id()));
+        std::fs::create_dir_all(dir.join("config")).unwrap();
+        let env_file = dir.join("quote-bot.env");
+        std::fs::write(&env_file, "DELTA_API_KEY=dk\nDELTA_API_SECRET=ds\n").unwrap();
+        std::fs::write(dir.join("config/dism.env"), "MM_SYMBOLS=ADAUSDT\n").unwrap();
+        let err = Supervisor::new()
+            .start(StartRequest {
+                strategy_id: "dism".into(),
+                cex_mm_root: dir.clone(),
+                quote_bot_env: env_file,
+                config_body: None,
+                env: VenueEnv::Mainnet,
+                profile: Some("config/dism.env".into()),
+            })
+            .unwrap_err();
+        assert!(matches!(err, SupervisorError::MissingKeys(_)), "{err}");
+        std::fs::remove_dir_all(dir).ok();
+    }
 
     #[test]
     fn dead_process_displays_stopped() {
@@ -465,6 +641,8 @@ mod tests {
                 cex_mm_root: PathBuf::from("/tmp"),
                 quote_bot_env: tmp.join("no-such.env"),
                 config_body: None,
+                env: VenueEnv::Demo,
+                profile: None,
             })
             .unwrap_err();
         match err {

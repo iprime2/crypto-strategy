@@ -15,9 +15,10 @@ use serde::Serialize;
 use tokio::sync::RwLock;
 
 use crate::db::{self, Db};
-use crate::delta::{parse_fill, parse_open_orders, DeltaClient, VenueOrder};
+use crate::delta::{parse_fill, parse_open_orders, DeltaClient, VenueEnv, VenueOrder};
 use crate::market::Market;
-use crate::supervisor::{effective_env, load_env_file};
+use crate::runtime::StrategyRuntime;
+use crate::supervisor::{effective_env_for, load_env_file};
 
 #[derive(Default, Serialize, Clone)]
 pub struct StreamHealth {
@@ -70,13 +71,15 @@ fn describe_error(raw: &str) -> String {
 }
 
 /// Symbols worth tracking: configured ones plus anything with an open order.
-async fn active_symbols(db: &Db, env_path: &PathBuf, strategy_id: &str, venue: &SharedVenue) -> Vec<String> {
+async fn active_symbols(db: &Db, env_path: &PathBuf, rt: &StrategyRuntime) -> Vec<String> {
+    let strategy_id = rt.id.as_str();
+    let venue = &rt.venue;
     let body = db::latest_config(&db.pool, strategy_id)
         .await
         .ok()
         .flatten()
         .and_then(|c| c.get("body").cloned());
-    let eff = effective_env(&load_env_file(env_path), body.as_ref());
+    let eff = effective_env_for(&load_env_file(env_path), rt.profile_pairs().as_deref(), body.as_ref());
     let mut set: BTreeSet<String> = eff
         .get("MM_SYMBOLS")
         .map(|(v, _)| v.split(',').map(|s| s.trim().to_uppercase()).filter(|s| !s.is_empty()).collect())
@@ -90,8 +93,8 @@ async fn active_symbols(db: &Db, env_path: &PathBuf, strategy_id: &str, venue: &
     set.into_iter().collect()
 }
 
-fn client(env_path: &PathBuf) -> Option<DeltaClient> {
-    DeltaClient::from_env_pairs(&load_env_file(env_path))
+fn client(env_path: &PathBuf, env: VenueEnv) -> Option<DeltaClient> {
+    DeltaClient::from_env_pairs_for(&load_env_file(env_path), env)
 }
 
 fn api_error(v: &serde_json::Value) -> Option<String> {
@@ -106,8 +109,8 @@ fn api_error(v: &serde_json::Value) -> Option<String> {
     None
 }
 
-async fn sync_orders(env_path: &PathBuf, venue: &SharedVenue) {
-    let Some(c) = client(env_path) else { return };
+async fn sync_orders(env_path: &PathBuf, env: VenueEnv, venue: &SharedVenue) {
+    let Some(c) = client(env_path, env) else { return };
     let started = Instant::now();
     match c.open_orders().await {
         Ok(v) => {
@@ -127,8 +130,8 @@ async fn sync_orders(env_path: &PathBuf, venue: &SharedVenue) {
 
 /// Mid to price a fill against: nearest tick at or before the fill, else the mark
 /// Delta stamped on the fill, else the fill price.
-async fn mid_for_fill(db: &Db, symbol: &str, at: DateTime<Utc>, mark: f64, price: f64) -> f64 {
-    if let Ok(Some(mid)) = db::tick_mid_before(&db.pool, symbol, at, 10).await {
+async fn mid_for_fill(db: &Db, env: VenueEnv, symbol: &str, at: DateTime<Utc>, mark: f64, price: f64) -> f64 {
+    if let Ok(Some(mid)) = db::tick_mid_before(&db.pool, env.label(), symbol, at, 10).await {
         return mid;
     }
     if mark > 0.0 {
@@ -138,8 +141,8 @@ async fn mid_for_fill(db: &Db, symbol: &str, at: DateTime<Utc>, mark: f64, price
     }
 }
 
-async fn sync_fills(db: &Db, env_path: &PathBuf, strategy_id: &str, venue: &SharedVenue) {
-    let Some(c) = client(env_path) else { return };
+async fn sync_fills(db: &Db, env_path: &PathBuf, env: VenueEnv, strategy_id: &str, venue: &SharedVenue) {
+    let Some(c) = client(env_path, env) else { return };
     let backfill = !venue.read().await.fills_backfilled;
     let max_pages = if backfill { 200 } else { 5 };
     let mut after: Option<String> = None;
@@ -161,7 +164,7 @@ async fn sync_fills(db: &Db, env_path: &PathBuf, strategy_id: &str, venue: &Shar
         let mut inserted_page = 0;
         for row in &rows {
             let Some(f) = parse_fill(row) else { continue };
-            let mid = mid_for_fill(db, &f.symbol, f.created_at, f.mark, f.price).await;
+            let mid = mid_for_fill(db, env, &f.symbol, f.created_at, f.mark, f.price).await;
             match db::insert_venue_fill(&db.pool, strategy_id, &f, mid).await {
                 Ok(true) => inserted_page += 1,
                 Ok(false) => {}
@@ -188,7 +191,7 @@ async fn sync_fills(db: &Db, env_path: &PathBuf, strategy_id: &str, venue: &Shar
     g.ok("fills", started);
 }
 
-async fn sync_ticks(db: &Db, market: &Market, symbols: &[String], venue: &SharedVenue) {
+async fn sync_ticks(db: &Db, env: VenueEnv, market: &Market, symbols: &[String], venue: &SharedVenue) {
     let started = Instant::now();
     let mut any_ok = false;
     for sym in symbols {
@@ -201,6 +204,7 @@ async fn sync_ticks(db: &Db, market: &Market, symbols: &[String], venue: &Shared
                 let f = |k: &str| t.get(k).and_then(|v| v.as_f64()).filter(|x| *x > 0.0);
                 if let Err(e) = db::insert_tick(
                     &db.pool,
+                    env.label(),
                     sym,
                     Utc::now(),
                     mark,
@@ -224,36 +228,33 @@ async fn sync_ticks(db: &Db, market: &Market, symbols: &[String], venue: &Shared
     }
 }
 
-pub async fn run_sync_loop(
-    db: Option<Db>,
-    env_path: PathBuf,
-    strategy_id: String,
-    market: Market,
-    venue: SharedVenue,
-) {
+/// Venue sync for one strategy, against its own environment with that environment's keys.
+/// Without keys only public ticks are recorded.
+pub async fn run_sync_loop(db: Option<Db>, env_path: PathBuf, rt: StrategyRuntime) {
     let Some(db) = db else {
-        tracing::warn!("venue sync idle: no database");
+        tracing::warn!(strategy = %rt.id, "venue sync idle: no database");
         return;
     };
+    let (strategy_id, env, market, venue) = (rt.id.clone(), rt.env, rt.market.clone(), rt.venue.clone());
     let mut tick = tokio::time::interval(Duration::from_secs(1));
     tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     let mut n: u64 = 0;
     loop {
         tick.tick().await;
         if n % 10 == 0 {
-            let syms = active_symbols(&db, &env_path, &strategy_id, &venue).await;
+            let syms = active_symbols(&db, &env_path, &rt).await;
             venue.write().await.active_symbols = syms;
         }
         if n % 2 == 0 {
             let syms = venue.read().await.active_symbols.clone();
-            sync_ticks(&db, &market, &syms, &venue).await;
+            sync_ticks(&db, env, &market, &syms, &venue).await;
         }
         if n % 3 == 0 {
-            sync_orders(&env_path, &venue).await;
+            sync_orders(&env_path, env, &venue).await;
         }
         if n % 5 == 0 {
-            sync_fills(&db, &env_path, &strategy_id, &venue).await;
-            if let Err(e) = db::backfill_markouts_from_ticks(&db.pool, &strategy_id, Utc::now()).await {
+            sync_fills(&db, &env_path, env, &strategy_id, &venue).await;
+            if let Err(e) = db::backfill_markouts_from_ticks(&db.pool, env.label(), &strategy_id, Utc::now()).await {
                 tracing::warn!(error = %e, "markout backfill failed");
             }
         }

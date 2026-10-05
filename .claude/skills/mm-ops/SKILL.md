@@ -44,6 +44,17 @@ curl -s -X POST localhost:8791/api/strategies/mm/start    # cancels open orders,
 
 Restart after a code change only after `cargo build -p mm-bot` (the OEMS runs `target/debug/mm-bot`). Confirm afterwards: the pid is alive, and open orders on Delta look as intended. Never signal a process the OEMS did not start.
 
+## Real-money DISM pilot (ask first, every time)
+
+Strategy `dism` (mainnet, settings `config/dism.env`, ADA only). Needs `DELTA_MAINNET_API_KEY/SECRET` in `quote-bot/.env`, the OEMS started with `OEMS_ALLOW_MAINNET=1`, and the typed confirmation:
+
+```bash
+curl -s -X POST -H 'X-OEMS-Client: cli' -H 'Content-Type: application/json' -d '{"confirm":"START REAL"}' localhost:8791/api/strategies/dism/start
+curl -s -X POST -H 'X-OEMS-Client: cli' localhost:8791/api/strategies/dism/stop
+```
+
+The bot itself arms Delta's dead man's switch, a $15 daily loss stop and the taker-fill guard (`mm-bot/src/account.rs`). Never start it without the user's explicit go-ahead in this conversation.
+
 ## Read-only venue checks
 
 ```bash

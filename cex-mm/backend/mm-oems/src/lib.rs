@@ -4,6 +4,7 @@ pub mod config_guard;
 pub mod db;
 pub mod delta;
 pub mod market;
+pub mod runtime;
 pub mod snapshot;
 pub mod supervisor;
 pub mod sync;

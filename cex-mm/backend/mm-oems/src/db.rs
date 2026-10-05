@@ -37,7 +37,7 @@ impl Db {
 
 pub async fn list_strategies(pool: &PgPool) -> sqlx::Result<Vec<Value>> {
     let rows = sqlx::query(
-        "SELECT id, name, desired_state, last_pid FROM strategies ORDER BY id",
+        "SELECT id, name, desired_state, last_pid, env, profile FROM strategies ORDER BY id",
     )
     .fetch_all(pool)
     .await?;
@@ -49,6 +49,8 @@ pub async fn list_strategies(pool: &PgPool) -> sqlx::Result<Vec<Value>> {
                 "name": r.get::<String, _>("name"),
                 "desired_state": r.get::<String, _>("desired_state"),
                 "last_pid": r.get::<Option<i64>, _>("last_pid"),
+                "env": r.get::<String, _>("env"),
+                "profile": r.get::<Option<String>, _>("profile"),
             })
         })
         .collect())
@@ -56,7 +58,7 @@ pub async fn list_strategies(pool: &PgPool) -> sqlx::Result<Vec<Value>> {
 
 pub async fn get_strategy(pool: &PgPool, id: &str) -> sqlx::Result<Option<Value>> {
     let row = sqlx::query(
-        "SELECT id, name, desired_state, last_pid FROM strategies WHERE id = $1",
+        "SELECT id, name, desired_state, last_pid, env, profile FROM strategies WHERE id = $1",
     )
     .bind(id)
     .fetch_optional(pool)
@@ -67,6 +69,8 @@ pub async fn get_strategy(pool: &PgPool, id: &str) -> sqlx::Result<Option<Value>
             "name": r.get::<String, _>("name"),
             "desired_state": r.get::<String, _>("desired_state"),
             "last_pid": r.get::<Option<i64>, _>("last_pid"),
+            "env": r.get::<String, _>("env"),
+            "profile": r.get::<Option<String>, _>("profile"),
         })
     }))
 }
@@ -871,6 +875,7 @@ pub async fn insert_venue_fill(
 #[allow(clippy::too_many_arguments)]
 pub async fn insert_tick(
     pool: &PgPool,
+    env: &str,
     symbol: &str,
     ts: DateTime<Utc>,
     mark: f64,
@@ -880,9 +885,10 @@ pub async fn insert_tick(
     spot: Option<f64>,
 ) -> sqlx::Result<()> {
     sqlx::query(
-        r#"INSERT INTO ticks (symbol, ts, mark, bid, ask, last, spot)
-           VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (symbol, ts) DO NOTHING"#,
+        r#"INSERT INTO ticks (env, symbol, ts, mark, bid, ask, last, spot)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT (env, symbol, ts) DO NOTHING"#,
     )
+    .bind(env)
     .bind(symbol)
     .bind(ts)
     .bind(mark)
@@ -903,38 +909,41 @@ fn tick_mid(r: &sqlx::postgres::PgRow) -> f64 {
 }
 
 /// Book mid from the latest tick at or before `at`, no older than `max_age_secs`.
-pub async fn tick_mid_before(pool: &PgPool, symbol: &str, at: DateTime<Utc>, max_age_secs: i64) -> sqlx::Result<Option<f64>> {
+pub async fn tick_mid_before(pool: &PgPool, env: &str, symbol: &str, at: DateTime<Utc>, max_age_secs: i64) -> sqlx::Result<Option<f64>> {
     let row = sqlx::query(
         r#"SELECT mark, bid, ask FROM ticks
-           WHERE symbol = $1 AND ts <= $2 AND ts >= $2 - make_interval(secs => $3)
+           WHERE env = $4 AND symbol = $1 AND ts <= $2 AND ts >= $2 - make_interval(secs => $3)
            ORDER BY ts DESC LIMIT 1"#,
     )
     .bind(symbol)
     .bind(at)
     .bind(max_age_secs as f64)
+    .bind(env)
     .fetch_optional(pool)
     .await?;
     Ok(row.as_ref().map(tick_mid))
 }
 
 /// Book mid from the first tick at or after `at`, within `max_after_secs`.
-pub async fn tick_mid_after(pool: &PgPool, symbol: &str, at: DateTime<Utc>, max_after_secs: i64) -> sqlx::Result<Option<f64>> {
+pub async fn tick_mid_after(pool: &PgPool, env: &str, symbol: &str, at: DateTime<Utc>, max_after_secs: i64) -> sqlx::Result<Option<f64>> {
     let row = sqlx::query(
         r#"SELECT mark, bid, ask FROM ticks
-           WHERE symbol = $1 AND ts >= $2 AND ts <= $2 + make_interval(secs => $3)
+           WHERE env = $4 AND symbol = $1 AND ts >= $2 AND ts <= $2 + make_interval(secs => $3)
            ORDER BY ts ASC LIMIT 1"#,
     )
     .bind(symbol)
     .bind(at)
     .bind(max_after_secs as f64)
+    .bind(env)
     .fetch_optional(pool)
     .await?;
     Ok(row.as_ref().map(tick_mid))
 }
 
-/// Fill markouts at 1 s / 5 s / 30 s / 60 s from each fill's own symbol's ticks.
-/// Only fills from the last 30 minutes are attempted; older ones without ticks stay null.
-pub async fn backfill_markouts_from_ticks(pool: &PgPool, strategy_id: &str, now: DateTime<Utc>) -> sqlx::Result<()> {
+/// Fill markouts at 1 s / 5 s / 30 s / 60 s from each fill's own symbol's ticks in the
+/// strategy's environment. Only fills from the last 30 minutes are attempted; older ones without
+/// ticks stay null.
+pub async fn backfill_markouts_from_ticks(pool: &PgPool, env: &str, strategy_id: &str, now: DateTime<Utc>) -> sqlx::Result<()> {
     let rows = sqlx::query(
         r#"SELECT f.trade_id, f.symbol, f.side, f.mid_at_fill, f.created_at,
                   t.markout_1s_bps, t.markout_5s_bps, t.markout_30s_bps, t.markout_60s_bps
@@ -967,7 +976,7 @@ pub async fn backfill_markouts_from_ticks(pool: &PgPool, strategy_id: &str, now:
             if vals[i].is_some() || now < created + chrono::Duration::seconds(h) {
                 continue;
             }
-            if let Some(mid) = tick_mid_after(pool, &symbol, created + chrono::Duration::seconds(h), 15).await? {
+            if let Some(mid) = tick_mid_after(pool, env, &symbol, created + chrono::Duration::seconds(h), 15).await? {
                 vals[i] = Some(markout_bps(&side, mid, mid0));
                 changed = true;
             }
@@ -991,15 +1000,16 @@ pub async fn backfill_markouts_from_ticks(pool: &PgPool, strategy_id: &str, now:
     Ok(())
 }
 
-/// Latest ticks for a symbol since `from` (for price overlays), oldest first.
-pub async fn list_ticks(pool: &PgPool, symbol: &str, from: DateTime<Utc>, limit: i64) -> sqlx::Result<Vec<Value>> {
+/// Latest ticks for a symbol in one environment since `from` (for price overlays), oldest first.
+pub async fn list_ticks(pool: &PgPool, env: &str, symbol: &str, from: DateTime<Utc>, limit: i64) -> sqlx::Result<Vec<Value>> {
     let rows = sqlx::query(
         r#"SELECT ts, mark, bid, ask, last, spot FROM ticks
-           WHERE symbol = $1 AND ts >= $2 ORDER BY ts ASC LIMIT $3"#,
+           WHERE env = $4 AND symbol = $1 AND ts >= $2 ORDER BY ts ASC LIMIT $3"#,
     )
     .bind(symbol)
     .bind(from)
     .bind(limit.clamp(1, 5000))
+    .bind(env)
     .fetch_all(pool)
     .await?;
     Ok(rows

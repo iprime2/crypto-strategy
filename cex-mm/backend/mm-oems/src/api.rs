@@ -20,12 +20,12 @@ use tower_http::trace::TraceLayer;
 use crate::analytics::{choose_bucket, validate_analytics_range};
 use crate::config_guard::find_forbidden_secret_key;
 use crate::db::{self, Db};
-use crate::delta::DeltaClient;
-use crate::market::Market;
+use crate::delta::{DeltaClient, VenueEnv};
+use crate::runtime::{Runtimes, StrategyRuntime};
 use crate::snapshot::{apply_fill_to_bot_qty, BotQtyMap, SnapshotEventTx};
-use crate::supervisor::{effective_env, load_env_file, StartRequest, Supervisor, SupervisorError};
-use crate::sync::SharedVenue;
-use crate::telemetry::Telemetry;
+use crate::supervisor::{
+    effective_env_for, load_env_file, mainnet_start_check, StartRequest, Supervisor, SupervisorError,
+};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -36,11 +36,10 @@ pub struct AppState {
     pub bot_qty: BotQtyMap,
     pub db_ok: bool,
     pub snapshot_tx: SnapshotEventTx,
-    pub market: Market,
-    pub venue: SharedVenue,
-    pub telemetry: Telemetry,
-    /// `demo` or `mainnet` — which Delta environment the OEMS and bot talk to.
-    pub venue_env: &'static str,
+    /// Per strategy: Delta environment, profile, market proxy, venue state, telemetry.
+    pub runtimes: Runtimes,
+    /// `OEMS_ALLOW_MAINNET=1`: real-money strategies may be started.
+    pub allow_mainnet: bool,
 }
 
 /// Header the web client sends on every control request. A cross-site page cannot
@@ -77,6 +76,18 @@ pub struct StrategyQuery {
 
 fn sid(q: &StrategyQuery) -> String {
     q.strategy_id.clone().unwrap_or_else(|| "mm".into())
+}
+
+/// The strategy's runtime (environment, market, venue state, telemetry), or 404.
+fn runtime<'a>(st: &'a AppState, strategy_id: &str) -> Result<&'a StrategyRuntime, Response> {
+    st.runtimes
+        .get(strategy_id)
+        .ok_or_else(|| err_json(StatusCode::NOT_FOUND, "not_found", format!("strategy {strategy_id}")))
+}
+
+#[derive(Deserialize, Default)]
+struct StartBody {
+    confirm: Option<String>,
 }
 
 pub fn router(state: AppState) -> Router {
@@ -254,7 +265,16 @@ async fn post_config(
                 .and_then(|s| s.get("desired_state").and_then(|v| v.as_str()).map(|s| s == "running"))
                 .unwrap_or(false);
             let mut restarted = None;
-            if running {
+            let rt = st.runtimes.get(&id).cloned();
+            let real_money = rt.as_ref().is_some_and(|r| r.env == VenueEnv::Mainnet);
+            if running && real_money {
+                // A real-money bot is only (re)started by an operator with the typed confirmation.
+                let mut out = row;
+                out["restarted"] = Value::Null;
+                out["restart_required"] = json!(true);
+                return (StatusCode::CREATED, Json(out)).into_response();
+            }
+            if let (true, Some(rt)) = (running, rt) {
                 stop_blocking(&st, &id).await;
                 let _ = db::set_desired_state_and_pid(&db.pool, &id, "stopped", None).await;
                 let _ = cancel_delta_orders(&st, &id).await;
@@ -263,6 +283,8 @@ async fn post_config(
                     cex_mm_root: st.cex_mm_root.clone(),
                     quote_bot_env: st.quote_bot_env.clone(),
                     config_body: Some(body),
+                    env: rt.env,
+                    profile: rt.profile.clone(),
                 }) {
                     Ok(pid) => {
                         let _ =
@@ -293,9 +315,30 @@ async fn stop_blocking(st: &AppState, id: &str) -> bool {
         .unwrap_or(false)
 }
 
-async fn start_strategy(State(st): State<AppState>, headers: HeaderMap, Path(id): Path<String>) -> Response {
+async fn start_strategy(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+    body: axum::body::Bytes,
+) -> Response {
     if let Err(r) = require_client(&headers) {
         return r;
+    }
+    let rt = match runtime(&st, &id) {
+        Ok(r) => r.clone(),
+        Err(r) => return r,
+    };
+    let start_body: StartBody = if body.is_empty() {
+        StartBody::default()
+    } else {
+        match serde_json::from_slice(&body) {
+            Ok(b) => b,
+            Err(e) => return err_json(StatusCode::BAD_REQUEST, "invalid_body", e.to_string()),
+        }
+    };
+    if let Err((code, msg)) = mainnet_start_check(rt.env, st.allow_mainnet, start_body.confirm.as_deref()) {
+        let status = if code == "mainnet_disabled" { StatusCode::FORBIDDEN } else { StatusCode::BAD_REQUEST };
+        return err_json(status, code, msg);
     }
     let db = match db_required(&st) {
         Ok(d) => d,
@@ -327,11 +370,23 @@ async fn start_strategy(State(st): State<AppState>, headers: HeaderMap, Path(id)
         cex_mm_root: st.cex_mm_root.clone(),
         quote_bot_env: st.quote_bot_env.clone(),
         config_body,
+        env: rt.env,
+        profile: rt.profile.clone(),
     }) {
         Ok(pid) => {
             let _ = db::set_desired_state_and_pid(&db.pool, &id, "running", Some(pid as i64)).await;
-            Json(json!({"ok": true, "pid": pid, "strategy_id": id})).into_response()
+            Json(json!({"ok": true, "pid": pid, "strategy_id": id, "env": rt.env.label()})).into_response()
         }
+        Err(SupervisorError::MissingKeys(names)) => err_json(
+            StatusCode::CONFLICT,
+            "missing_keys",
+            format!("{names} missing from quote-bot/.env; refuse to start"),
+        ),
+        Err(SupervisorError::MissingProfile(path)) => err_json(
+            StatusCode::CONFLICT,
+            "missing_profile",
+            format!("strategy profile {path} is missing; refuse to start"),
+        ),
         Err(SupervisorError::MissingEnv(path)) => err_json(
             StatusCode::CONFLICT,
             "missing_env",
@@ -377,7 +432,8 @@ async fn strategy_symbols(st: &AppState, strategy_id: &str) -> Vec<String> {
             .and_then(|c| c.get("body").cloned()),
         None => None,
     };
-    let eff = effective_env(&load_env_file(&st.quote_bot_env), body.as_ref());
+    let profile = st.runtimes.get(strategy_id).and_then(|r| r.profile_pairs());
+    let eff = effective_env_for(&load_env_file(&st.quote_bot_env), profile.as_deref(), body.as_ref());
     let syms: Vec<String> = eff
         .get("MM_SYMBOLS")
         .map(|(v, _)| v.split(',').map(|s| s.trim().to_uppercase()).filter(|s| !s.is_empty()).collect())
@@ -393,13 +449,16 @@ async fn cancel_delta_orders(st: &AppState, strategy_id: &str) -> Value {
     if !st.quote_bot_env.is_file() {
         return json!({"skipped": "no quote-bot/.env"});
     }
+    let Some(rt) = st.runtimes.get(strategy_id) else {
+        return json!({"skipped": format!("unknown strategy {strategy_id}")});
+    };
     let pairs = load_env_file(&st.quote_bot_env);
-    let Some(client) = DeltaClient::from_env_pairs(&pairs) else {
-        return json!({"skipped": "no DELTA_API_KEY"});
+    let Some(client) = DeltaClient::from_env_pairs_for(&pairs, rt.env) else {
+        return json!({"skipped": format!("no {} keys", rt.env.label())});
     };
     let mut results = Vec::new();
     for sym in strategy_symbols(st, strategy_id).await {
-        match st.market.product(&sym).await {
+        match rt.market.product(&sym).await {
             Ok(p) => match client.cancel_all_product(p.product_id).await {
                 Ok(()) => results.push(json!({"symbol": sym, "ok": true})),
                 Err(e) => results.push(json!({"symbol": sym, "ok": false, "error": e.to_string()})),
@@ -446,11 +505,15 @@ async fn post_close_position(
             return err_json(StatusCode::CONFLICT, "bot_running", "stop the strategy before closing a position");
         }
     }
-    let pairs = load_env_file(&st.quote_bot_env);
-    let Some(client) = DeltaClient::from_env_pairs(&pairs) else {
-        return err_json(StatusCode::CONFLICT, "no_keys", "no Delta API key configured");
+    let rt = match runtime(&st, &sid) {
+        Ok(r) => r,
+        Err(r) => return r,
     };
-    let product = match st.market.product(&symbol).await {
+    let pairs = load_env_file(&st.quote_bot_env);
+    let Some(client) = DeltaClient::from_env_pairs_for(&pairs, rt.env) else {
+        return err_json(StatusCode::CONFLICT, "no_keys", format!("no {} Delta API key configured", rt.env.label()));
+    };
+    let product = match rt.market.product(&symbol).await {
         Ok(p) => p,
         Err(e) => return err_json(StatusCode::BAD_REQUEST, "unknown_symbol", e.to_string()),
     };
@@ -808,11 +871,15 @@ async fn get_overview(State(st): State<AppState>, Query(q): Query<OverviewQuery>
         .and_then(|p| p.as_array())
         .map(|ps| ps.iter().filter_map(|p| p.get("unrealized").and_then(|u| u.as_f64())).sum())
         .unwrap_or(0.0);
-    let venue = st.venue.read().await;
-    let tel = st.telemetry.read().await;
+    let rt = match runtime(&st, &sid) {
+        Ok(r) => r,
+        Err(r) => return r,
+    };
+    let venue = rt.venue.read().await;
+    let tel = rt.telemetry.read().await;
     Json(json!({
         "strategy": strategy,
-        "venue_env": st.venue_env,
+        "venue_env": rt.env.label(),
         "balance": snap.get("balance"),
         "positions": snap.get("positions"),
         "unrealized": unrealized,
@@ -849,7 +916,15 @@ async fn get_effective_config(State(st): State<AppState>, Path(id): Path<String>
         },
         None => (None, None),
     };
-    let eff = effective_env(&load_env_file(&st.quote_bot_env), body.as_ref().filter(|b| !b.is_null()));
+    let rt = match runtime(&st, &id) {
+        Ok(r) => r,
+        Err(r) => return r,
+    };
+    let eff = effective_env_for(
+        &load_env_file(&st.quote_bot_env),
+        rt.profile_pairs().as_deref(),
+        body.as_ref().filter(|b| !b.is_null()),
+    );
     let values: serde_json::Map<String, Value> = eff
         .into_iter()
         .map(|(k, (v, src))| (k, json!({"value": v, "source": src})))
@@ -860,12 +935,18 @@ async fn get_effective_config(State(st): State<AppState>, Path(id): Path<String>
         "overrides": body,
         "values": values,
         "env_file": st.quote_bot_env.file_name().map(|f| f.to_string_lossy().to_string()),
+        "env": rt.env.label(),
+        "profile": rt.profile.as_ref().and_then(|p| p.file_name()).map(|f| f.to_string_lossy().to_string()),
     }))
     .into_response()
 }
 
-async fn get_venue_orders(State(st): State<AppState>) -> Response {
-    let g = st.venue.read().await;
+async fn get_venue_orders(State(st): State<AppState>, Query(q): Query<StrategyQuery>) -> Response {
+    let rt = match runtime(&st, &sid(&q)) {
+        Ok(r) => r,
+        Err(r) => return r,
+    };
+    let g = rt.venue.read().await;
     Json(json!({
         "fetched_at": g.orders_at,
         "orders": g.open_orders,
@@ -873,10 +954,14 @@ async fn get_venue_orders(State(st): State<AppState>) -> Response {
     .into_response()
 }
 
-async fn get_venue_status(State(st): State<AppState>) -> Response {
-    let g = st.venue.read().await;
+async fn get_venue_status(State(st): State<AppState>, Query(q): Query<StrategyQuery>) -> Response {
+    let rt = match runtime(&st, &sid(&q)) {
+        Ok(r) => r,
+        Err(r) => return r,
+    };
+    let g = rt.venue.read().await;
     Json(json!({
-        "venue_env": st.venue_env,
+        "venue_env": rt.env.label(),
         "health": g.health,
         "orders_at": g.orders_at,
         "fills_backfilled": g.fills_backfilled,
@@ -888,11 +973,16 @@ async fn get_venue_status(State(st): State<AppState>) -> Response {
 
 #[derive(Deserialize)]
 struct TelemetryQuery {
+    strategy_id: Option<String>,
     events: Option<usize>,
 }
 
 async fn get_bot_telemetry(State(st): State<AppState>, Query(q): Query<TelemetryQuery>) -> Response {
-    let g = st.telemetry.read().await;
+    let rt = match runtime(&st, &sid_or_default(q.strategy_id.clone())) {
+        Ok(r) => r,
+        Err(r) => return r,
+    };
+    let g = rt.telemetry.read().await;
     let now = chrono::Utc::now();
     let n = q.events.unwrap_or(100).min(400);
     let metrics: serde_json::Map<String, Value> = g
@@ -917,6 +1007,7 @@ async fn get_bot_telemetry(State(st): State<AppState>, Query(q): Query<Telemetry
 
 #[derive(Deserialize)]
 struct TicksQuery {
+    strategy_id: Option<String>,
     symbol: String,
     from: Option<String>,
     limit: Option<i64>,
@@ -927,8 +1018,12 @@ async fn get_ticks(State(st): State<AppState>, Query(q): Query<TicksQuery>) -> R
         Ok(d) => d,
         Err(r) => return r,
     };
+    let env = match runtime(&st, &sid_or_default(q.strategy_id.clone())) {
+        Ok(r) => r.env,
+        Err(r) => return r,
+    };
     let from = parse_ts(q.from.as_deref()).unwrap_or_else(|| chrono::Utc::now() - chrono::Duration::hours(1));
-    match db::list_ticks(&db.pool, &q.symbol.to_uppercase(), from, q.limit.unwrap_or(2000)).await {
+    match db::list_ticks(&db.pool, env.label(), &q.symbol.to_uppercase(), from, q.limit.unwrap_or(2000)).await {
         Ok(v) => Json(v).into_response(),
         Err(e) => err_json(StatusCode::INTERNAL_SERVER_ERROR, "db_error", e.to_string()),
     }
@@ -967,8 +1062,22 @@ fn market_err(e: anyhow::Error) -> Response {
     err_json(StatusCode::BAD_GATEWAY, "market_unavailable", e.to_string())
 }
 
-async fn market_ticker(State(st): State<AppState>, Path(symbol): Path<String>) -> Response {
-    match st.market.ticker(&symbol).await {
+#[derive(Deserialize)]
+struct MarketQuery {
+    strategy_id: Option<String>,
+}
+
+/// Market data in the strategy's environment (demo and mainnet prices differ).
+fn market_for(st: &AppState, strategy_id: Option<String>) -> Result<crate::market::Market, Response> {
+    runtime(st, &sid_or_default(strategy_id)).map(|r| r.market.clone())
+}
+
+async fn market_ticker(State(st): State<AppState>, Path(symbol): Path<String>, Query(q): Query<MarketQuery>) -> Response {
+    let market = match market_for(&st, q.strategy_id) {
+        Ok(m) => m,
+        Err(r) => return r,
+    };
+    match market.ticker(&symbol).await {
         Ok(v) => Json(v).into_response(),
         Err(e) => market_err(e),
     }
@@ -976,18 +1085,27 @@ async fn market_ticker(State(st): State<AppState>, Path(symbol): Path<String>) -
 
 #[derive(Deserialize)]
 struct BookQuery {
+    strategy_id: Option<String>,
     depth: Option<u32>,
 }
 
 async fn market_book(State(st): State<AppState>, Path(symbol): Path<String>, Query(q): Query<BookQuery>) -> Response {
-    match st.market.book(&symbol, q.depth.unwrap_or(20)).await {
+    let market = match market_for(&st, q.strategy_id) {
+        Ok(m) => m,
+        Err(r) => return r,
+    };
+    match market.book(&symbol, q.depth.unwrap_or(20)).await {
         Ok(v) => Json(v).into_response(),
         Err(e) => market_err(e),
     }
 }
 
-async fn market_trades(State(st): State<AppState>, Path(symbol): Path<String>) -> Response {
-    match st.market.trades(&symbol).await {
+async fn market_trades(State(st): State<AppState>, Path(symbol): Path<String>, Query(q): Query<MarketQuery>) -> Response {
+    let market = match market_for(&st, q.strategy_id) {
+        Ok(m) => m,
+        Err(r) => return r,
+    };
+    match market.trades(&symbol).await {
         Ok(v) => Json(v).into_response(),
         Err(e) => market_err(e),
     }
@@ -995,6 +1113,7 @@ async fn market_trades(State(st): State<AppState>, Path(symbol): Path<String>) -
 
 #[derive(Deserialize)]
 struct CandleQuery {
+    strategy_id: Option<String>,
     resolution: Option<String>,
     from: Option<i64>,
     to: Option<i64>,
@@ -1007,7 +1126,11 @@ async fn market_candles(State(st): State<AppState>, Path(symbol): Path<String>, 
     if from >= to {
         return err_json(StatusCode::BAD_REQUEST, "invalid_range", "from must be before to");
     }
-    match st.market.candles(&symbol, &res, from, to).await {
+    let market = match market_for(&st, q.strategy_id) {
+        Ok(m) => m,
+        Err(r) => return r,
+    };
+    match market.candles(&symbol, &res, from, to).await {
         Ok(v) => Json(v).into_response(),
         Err(e) => market_err(e),
     }
