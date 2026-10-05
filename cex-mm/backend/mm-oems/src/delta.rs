@@ -8,10 +8,58 @@ type HmacSha256 = Hmac<Sha256>;
 const TESTNET_BASE: &str = "https://cdn-ind.testnet.deltaex.org";
 const MAINNET_BASE: &str = "https://api.india.delta.exchange";
 
-pub fn delta_base(mm_env: Option<&str>) -> &'static str {
-    match mm_env.map(|s| s.to_lowercase()).as_deref() {
-        Some("mainnet" | "prod" | "production") => MAINNET_BASE,
-        _ => TESTNET_BASE,
+/// The Delta environment a strategy runs against (`strategies.env`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum VenueEnv {
+    Demo,
+    Mainnet,
+}
+
+impl VenueEnv {
+    /// `demo` (alias `testnet`) or `mainnet`; anything else is not a strategy environment.
+    pub fn parse(s: &str) -> Option<Self> {
+        match s.trim().to_ascii_lowercase().as_str() {
+            "demo" | "testnet" => Some(Self::Demo),
+            "mainnet" => Some(Self::Mainnet),
+            _ => None,
+        }
+    }
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Demo => "demo",
+            Self::Mainnet => "mainnet",
+        }
+    }
+
+    /// `mm-bot --env` value.
+    pub fn bot_flag(self) -> &'static str {
+        match self {
+            Self::Demo => "testnet",
+            Self::Mainnet => "mainnet",
+        }
+    }
+
+    pub fn base(self) -> &'static str {
+        match self {
+            Self::Demo => TESTNET_BASE,
+            Self::Mainnet => MAINNET_BASE,
+        }
+    }
+
+    /// quote-bot/.env names of this environment's API key and secret.
+    pub fn key_names(self) -> (&'static str, &'static str) {
+        match self {
+            Self::Demo => ("DELTA_API_KEY", "DELTA_API_SECRET"),
+            Self::Mainnet => ("DELTA_MAINNET_API_KEY", "DELTA_MAINNET_API_SECRET"),
+        }
+    }
+
+    pub fn other(self) -> Self {
+        match self {
+            Self::Demo => Self::Mainnet,
+            Self::Mainnet => Self::Demo,
+        }
     }
 }
 
@@ -57,23 +105,18 @@ impl DeltaClient {
         }
     }
 
-    /// Build from quote-bot/.env pairs. Returns None if key missing. Never logs secrets.
-    pub fn from_env_pairs(pairs: &[(String, String)]) -> Option<Self> {
-        let key = pairs
-            .iter()
-            .find(|(k, _)| k == "DELTA_API_KEY")
-            .map(|(_, v)| v.clone())
-            .filter(|v| !v.is_empty())?;
-        let secret = pairs
-            .iter()
-            .find(|(k, _)| k == "DELTA_API_SECRET")
-            .map(|(_, v)| v.clone())
-            .filter(|v| !v.is_empty())?;
-        let mm_env = pairs
-            .iter()
-            .find(|(k, _)| k == "MM_ENV")
-            .map(|(_, v)| v.as_str());
-        Some(Self::new(delta_base(mm_env), key, secret))
+    /// Client for `env` from quote-bot/.env pairs: that environment's keys only, never the
+    /// other's. None if either is missing. Never logs secrets.
+    pub fn from_env_pairs_for(pairs: &[(String, String)], env: VenueEnv) -> Option<Self> {
+        let (key_name, secret_name) = env.key_names();
+        let get = |name: &str| {
+            pairs
+                .iter()
+                .find(|(k, _)| k == name)
+                .map(|(_, v)| v.clone())
+                .filter(|v| !v.is_empty())
+        };
+        Some(Self::new(env.base(), get(key_name)?, get(secret_name)?))
     }
 
     async fn signed(
@@ -457,6 +500,38 @@ pub fn f64_of(v: Option<&serde_json::Value>) -> f64 {
 
 #[cfg(test)]
 mod tests {
+    fn pairs(list: &[(&str, &str)]) -> Vec<(String, String)> {
+        list.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect()
+    }
+
+    #[test]
+    fn venue_env_parses_and_maps_to_bot_flag_and_base() {
+        assert_eq!(VenueEnv::parse("demo"), Some(VenueEnv::Demo));
+        assert_eq!(VenueEnv::parse("testnet"), Some(VenueEnv::Demo));
+        assert_eq!(VenueEnv::parse("MAINNET"), Some(VenueEnv::Mainnet));
+        assert_eq!(VenueEnv::parse("prod"), None, "only the two names the DB allows");
+        assert_eq!(VenueEnv::Demo.bot_flag(), "testnet");
+        assert_eq!(VenueEnv::Mainnet.bot_flag(), "mainnet");
+        assert_eq!(VenueEnv::Mainnet.base(), MAINNET_BASE);
+        assert_eq!(VenueEnv::Demo.label(), "demo");
+    }
+
+    #[test]
+    fn client_keys_follow_the_environment_and_never_cross() {
+        let demo_only = pairs(&[("DELTA_API_KEY", "dk"), ("DELTA_API_SECRET", "ds"), ("MM_ENV", "mainnet")]);
+        let demo = DeltaClient::from_env_pairs_for(&demo_only, VenueEnv::Demo).unwrap();
+        assert_eq!((demo.base.as_str(), demo.api_key.as_str()), (TESTNET_BASE, "dk"));
+        assert!(DeltaClient::from_env_pairs_for(&demo_only, VenueEnv::Mainnet).is_none());
+        let both = pairs(&[
+            ("DELTA_API_KEY", "dk"),
+            ("DELTA_API_SECRET", "ds"),
+            ("DELTA_MAINNET_API_KEY", "mk"),
+            ("DELTA_MAINNET_API_SECRET", "ms"),
+        ]);
+        let real = DeltaClient::from_env_pairs_for(&both, VenueEnv::Mainnet).unwrap();
+        assert_eq!((real.base.as_str(), real.api_key.as_str()), (MAINNET_BASE, "mk"));
+    }
+
     use super::*;
     use serde_json::json;
 

@@ -9,9 +9,10 @@ use chrono::{DateTime, Utc};
 use serde_json::{json, Value};
 use tokio::sync::{broadcast, RwLock};
 
-use crate::delta::{parse_positions, parse_usd_balance, DeltaClient};
+use crate::delta::{parse_positions, parse_usd_balance, DeltaClient, VenueEnv};
 use crate::db::{insert_balance, insert_pnl_if_minute_elapsed, insert_position, open_position_symbols, Db};
 use crate::supervisor::load_env_file;
+use crate::runtime::StrategyRuntime;
 use crate::telemetry::Telemetry;
 
 pub type BotQtyMap = Arc<RwLock<HashMap<(String, String), f64>>>;
@@ -81,22 +82,18 @@ async fn bot_inventory(telemetry: &Telemetry, symbol: &str) -> Option<f64> {
     v.get("inventory").and_then(|x| x.as_f64())
 }
 
-pub async fn run_snapshot_loop(
-    db: Option<Db>,
-    quote_bot_env: PathBuf,
-    telemetry: Telemetry,
-    strategy_id: String,
-    snapshot_tx: SnapshotEventTx,
-) {
+/// Wallet and position snapshots for one strategy, with its environment's keys. Idle (no rows)
+/// when those keys are not in quote-bot/.env.
+pub async fn run_snapshot_loop(db: Option<Db>, quote_bot_env: PathBuf, rt: StrategyRuntime, snapshot_tx: SnapshotEventTx) {
     let Some(db) = db else {
-        tracing::warn!("snapshot loop idle: no database");
+        tracing::warn!(strategy = %rt.id, "snapshot loop idle: no database");
         return;
     };
     let mut ticker = tokio::time::interval(Duration::from_secs(10));
     loop {
         ticker.tick().await;
         if let Err(e) =
-            snapshot_once(&db, &quote_bot_env, &telemetry, &strategy_id, &snapshot_tx).await
+            snapshot_once(&db, &quote_bot_env, &rt.telemetry, rt.env, &rt.id, &snapshot_tx).await
         {
             tracing::warn!(error = %e, "delta snapshot failed");
         }
@@ -107,6 +104,7 @@ async fn snapshot_once(
     db: &Db,
     quote_bot_env: &PathBuf,
     telemetry: &Telemetry,
+    env: VenueEnv,
     strategy_id: &str,
     snapshot_tx: &SnapshotEventTx,
 ) -> anyhow::Result<()> {
@@ -114,8 +112,8 @@ async fn snapshot_once(
         return Ok(());
     }
     let pairs = load_env_file(quote_bot_env);
-    let Some(client) = DeltaClient::from_env_pairs(&pairs) else {
-        // No DELTA_API_KEY — skip quietly (do not log secrets).
+    let Some(client) = DeltaClient::from_env_pairs_for(&pairs, env) else {
+        // No keys for this environment: skip quietly (do not log secrets).
         return Ok(());
     };
 

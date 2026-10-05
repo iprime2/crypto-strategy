@@ -25,15 +25,23 @@ The OEMS is the book of record and the supervisor of the live bot. Quote math ne
 
 ### Routes (`api.rs`)
 
-- Read: `/api/overview` (header strip: status, balance, day PnL, venue/telemetry health), `/api/performance` (daily, by symbol, net-edge curve), `/api/fills`, `/api/tca`, `/api/venue/orders`, `/api/venue/status`, `/api/bot/telemetry`, `/api/ticks`, `/api/market/{symbol}/{ticker|book|trades|candles}`, `/api/strategies/{id}/effective-config`, plus the older `/api/snapshots/latest`, `/api/pnl`, `/api/positions`, `/api/reconcile`, `/api/analytics`.
-- Control (require the `X-OEMS-Client` header; CORS only allows the web origin): `/api/strategies/{id}/start|stop|config|cancel-all`, `/api/positions/{symbol}/close` (body `{confirm: SYMBOL}`, refused while the bot runs).
+- Read: `/api/overview` (header strip: status, balance, day PnL, venue/telemetry health), `/api/performance` (daily, by symbol, net-edge curve), `/api/fills`, `/api/tca`, `/api/venue/orders`, `/api/venue/status`, `/api/bot/telemetry`, `/api/ticks`, `/api/market/{symbol}/{ticker|book|trades|candles}`, `/api/strategies/{id}/effective-config`, plus the older `/api/snapshots/latest`, `/api/pnl`, `/api/positions`, `/api/reconcile`, `/api/analytics`. All take `strategy_id` (default `mm`); venue, market, telemetry and ticks answer from that strategy's environment.
+- Control (require the `X-OEMS-Client` header; CORS only allows the web origin): `/api/strategies/{id}/start|stop|config|cancel-all`, `/api/positions/{symbol}/close` (body `{confirm: SYMBOL, strategy_id}`, refused while the bot runs).
+- Real money: starting a `mainnet` strategy needs the OEMS started with `OEMS_ALLOW_MAINNET=1` (else 403 `mainnet_disabled`) and body `{confirm: "START REAL"}` (else 400 `confirm_required`). A config change to a running real-money strategy is saved with `restart_required: true` and never restarts it.
 - Bot events (`/api/events/orders|fills`) are optional now: fills come from the venue sync.
 
 Contract rules: define the JSON shape first, then the handler, then the TypeScript type in the same change. Errors share one body `{code, message}`. Never rename a response field without updating the client in the same PR.
 
+### Strategies and environments
+
+- `strategies.env` is `demo` or `mainnet`; `strategies.profile` is an optional settings file under `cex-mm/` (migration 004). Seeded: `mm` (demo, no profile) and `dism` (mainnet, `config/dism.env`).
+- `runtime.rs` gives each strategy its own market proxy (one per environment), venue state and telemetry; `main.rs` runs sync, snapshot and log tailing per strategy. `ticks` rows carry `env`.
+- Keys per environment from `quote-bot/.env`: demo `DELTA_API_KEY/SECRET`, mainnet `DELTA_MAINNET_API_KEY/SECRET` (`DeltaClient::from_env_pairs_for`); never the other environment's. Without keys a strategy only records public ticks.
+
 ### Supervisor
 
-- Starts `target/debug/mm-bot run --venue delta --env testnet` with `env_clear()`, env from `cex-mm/quote-bot/.env` plus the latest `strategy_config` row. Config keys map to `MM_*` names (`symbols` → `MM_SYMBOLS`); other keys are ignored.
+- Starts `target/debug/mm-bot run --venue delta --env <testnet|mainnet>` with `env_clear()`. Env (`bot_env_pairs`, later wins): no profile = `quote-bot/.env` minus the other environment's keys, then config overrides; with a profile = only this environment's keys and `RUST_LOG` from `quote-bot/.env`, then the profile, then config overrides (the demo bot's `MM_*` lines never leak into a profile strategy). Config keys map to `MM_*` names (`symbols` → `MM_SYMBOLS`); other keys are ignored.
+- Refuses to start without the environment's keys (`missing_keys`) or a missing profile (`missing_profile`).
 - Bot stdout/stderr go to `artifacts/logs/mm-bot-<strategy>-<utc>.log`; `telemetry.rs` tails it for `MM_METRICS` and events.
 - Each child is reaped by a waiting thread; `pid_alive` treats zombies as dead. On OEMS start, a still-running `mm-bot run` whose pid is in the DB is adopted.
 - Stop = SIGTERM, wait up to 5 s, SIGKILL, then cancel its orders at Delta. Positions are left open.
@@ -44,7 +52,7 @@ Open orders every 3 s, fills every 5 s (full history backfilled on first run, st
 
 ### Delta snapshot
 
-Poll `/v2/wallet/balances` and `/v2/positions/margined` about every 10 s with the `quote-bot/.env` keys. Position base = contracts × `contract_value`; positive size is long. Bot size comes from fresh telemetry (`MM_METRICS.inventory`) and is null when unknown. A position that disappears gets a zero row so the UI does not show stale size. The venue number is what the UI shows as truth. The snapshot loop never places or cancels orders.
+Poll `/v2/wallet/balances` and `/v2/positions/margined` about every 10 s per strategy, with that strategy's environment keys from `quote-bot/.env`. Position base = contracts × `contract_value`; positive size is long. Bot size comes from fresh telemetry (`MM_METRICS.inventory`) and is null when unknown. A position that disappears gets a zero row so the UI does not show stale size. The venue number is what the UI shows as truth. The snapshot loop never places or cancels orders.
 
 ### TCA formulas (computed in Rust when the fill is stored)
 

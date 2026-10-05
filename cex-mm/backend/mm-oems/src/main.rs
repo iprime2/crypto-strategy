@@ -4,12 +4,12 @@ use std::sync::Arc;
 
 use mm_oems::api::{router, AppState};
 use mm_oems::db::{self as oems_db, Db};
-use mm_oems::delta::delta_base;
-use mm_oems::market::Market;
+use mm_oems::delta::DeltaClient;
+use mm_oems::runtime::{build_runtimes, specs_from_rows};
 use mm_oems::snapshot::{new_bot_qty_map, new_snapshot_event_tx, run_snapshot_loop};
 use mm_oems::supervisor::{load_env_file, Supervisor};
-use mm_oems::sync::{new_venue_state, run_sync_loop};
-use mm_oems::telemetry::{new_telemetry, run_tail_loop};
+use mm_oems::sync::run_sync_loop;
+use mm_oems::telemetry::run_tail_loop;
 use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
@@ -58,13 +58,25 @@ async fn main() {
     let bot_qty = new_bot_qty_map();
     let snapshot_tx = new_snapshot_event_tx();
     let supervisor = Arc::new(Supervisor::new());
-    let telemetry = new_telemetry();
-    let venue = new_venue_state();
+    let allow_mainnet = std::env::var("OEMS_ALLOW_MAINNET").is_ok_and(|v| v == "1");
 
+    // One runtime per strategy row: its Delta environment, profile, market, venue state, telemetry.
+    let rows = match &db {
+        Some(db) => oems_db::list_strategies(&db.pool).await.unwrap_or_default(),
+        None => Vec::new(),
+    };
+    let runtimes = build_runtimes(&specs_from_rows(&rows), &cex_mm_root);
     let env_pairs = load_env_file(&quote_bot_env);
-    let mm_env = env_pairs.iter().find(|(k, _)| k == "MM_ENV").map(|(_, v)| v.as_str());
-    let venue_env = if delta_base(mm_env).contains("india.delta") { "mainnet" } else { "demo" };
-    let market = Market::new(delta_base(mm_env));
+    for rt in runtimes.values() {
+        tracing::info!(
+            strategy = %rt.id,
+            env = rt.env.label(),
+            profile = ?rt.profile,
+            keys = DeltaClient::from_env_pairs_for(&env_pairs, rt.env).is_some(),
+            "strategy runtime"
+        );
+    }
+    tracing::info!(allow_mainnet, "real-money starts {}", if allow_mainnet { "enabled" } else { "disabled (OEMS_ALLOW_MAINNET != 1)" });
 
     // Re-attach to a bot left running by a previous OEMS process.
     if let Some(db) = &db {
@@ -80,22 +92,18 @@ async fn main() {
         }
     }
 
-    if let Some(db_clone) = db.clone() {
-        let env_path = quote_bot_env.clone();
-        let tel = telemetry.clone();
-        let tx = snapshot_tx.clone();
-        tokio::spawn(async move {
-            run_snapshot_loop(Some(db_clone), env_path, tel, "mm".into(), tx).await;
-        });
-    }
-    tokio::spawn(run_sync_loop(db.clone(), quote_bot_env.clone(), "mm".into(), market.clone(), venue.clone()));
-    // OEMS_TELEMETRY_LOG pins the tailer to a file (dev / shadow runs); otherwise follow the bot.
-    match std::env::var("OEMS_TELEMETRY_LOG").ok().filter(|s| !s.is_empty()) {
-        Some(path) => {
-            tokio::spawn(mm_oems::telemetry::run_fixed_tail_loop(telemetry.clone(), PathBuf::from(path)));
-        }
-        None => {
-            tokio::spawn(run_tail_loop(telemetry.clone(), supervisor.clone(), "mm".into()));
+    // OEMS_TELEMETRY_LOG pins the demo `mm` tailer to a file (dev / shadow runs).
+    let pinned_log = std::env::var("OEMS_TELEMETRY_LOG").ok().filter(|s| !s.is_empty());
+    for rt in runtimes.values() {
+        tokio::spawn(run_snapshot_loop(db.clone(), quote_bot_env.clone(), rt.clone(), snapshot_tx.clone()));
+        tokio::spawn(run_sync_loop(db.clone(), quote_bot_env.clone(), rt.clone()));
+        match (&pinned_log, rt.id.as_str()) {
+            (Some(path), "mm") => {
+                tokio::spawn(mm_oems::telemetry::run_fixed_tail_loop(rt.telemetry.clone(), PathBuf::from(path)));
+            }
+            _ => {
+                tokio::spawn(run_tail_loop(rt.telemetry.clone(), supervisor.clone(), rt.id.clone()));
+            }
         }
     }
 
@@ -107,10 +115,8 @@ async fn main() {
         bot_qty,
         db_ok,
         snapshot_tx,
-        market,
-        venue,
-        telemetry,
-        venue_env,
+        runtimes,
+        allow_mainnet,
     };
 
     let app = router(state);
