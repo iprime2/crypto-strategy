@@ -1,0 +1,10 @@
+# User unit, rendered by infra/vm/setup.sh.
+[Unit]
+Description=Check the cex-mm shadow test every 2 minutes
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=2min
+
+[Install]
+WantedBy=timers.target

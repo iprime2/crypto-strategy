@@ -1,0 +1,7 @@
+# User unit, rendered by infra/vm/setup.sh. Started by cex-mm-shadow-watchdog.timer.
+[Unit]
+Description=Restart the cex-mm shadow test if its dry-run or recorder died
+
+[Service]
+Type=oneshot
+ExecStart=@CEX_MM@/scripts/shadow-watchdog.sh

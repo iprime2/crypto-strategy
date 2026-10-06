@@ -1,0 +1,21 @@
+# User unit, rendered by infra/vm/setup.sh (@CEX_MM@ = the cex-mm checkout).
+[Unit]
+Description=cex-mm shadow test (dry-run quotes + Delta mainnet trade recorder, no orders)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=@CEX_MM@
+Environment=PATH=%h/.cargo/bin:%h/.local/bin-wrappers:/usr/local/bin:/usr/bin:/bin
+Environment=SHADOW_SYMBOLS=ADAUSDT,KITEUSDT,BERAUSDT,DUSKUSDT
+# The network can come up after the user manager; wait for DNS before building and connecting.
+ExecStartPre=/bin/sh -c 'until getent hosts api.india.delta.exchange >/dev/null; do sleep 2; done'
+ExecStart=@CEX_MM@/scripts/shadow.sh start ${SHADOW_SYMBOLS}
+ExecStop=@CEX_MM@/scripts/shadow.sh stop
+# The first start builds mm-bot in release mode.
+TimeoutStartSec=1800
+
+[Install]
+WantedBy=default.target
