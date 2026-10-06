@@ -1,0 +1,76 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  DISM host in Tokyo (close to Delta Exchange's AWS Tokyo servers): t4g.small Ubuntu 24.04
+  arm64, 30 GB encrypted gp3, fixed Elastic IP for Delta's API-key whitelist, SSH only from
+  the operator's IP. Delete the stack to remove everything.
+
+Parameters:
+  SshCidr:
+    Type: String
+    Description: Operator IP allowed to SSH, as a /32 (e.g. 203.0.113.7/32)
+    AllowedPattern: '^\d{1,3}(\.\d{1,3}){3}/32$'
+  PublicKey:
+    Type: String
+    Description: SSH public key (the private key stays on the operator's machine)
+  ImageId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/canonical/ubuntu/server/24.04/stable/current/arm64/hvm/ebs-gp3/ami-id
+
+Resources:
+  KeyPair:
+    Type: AWS::EC2::KeyPair
+    Properties:
+      KeyName: dism-tokyo
+      PublicKeyMaterial: !Ref PublicKey
+
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: SSH from the operator only; the OEMS UI is reached through an SSH tunnel
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref SshCidr
+          Description: operator ssh
+      Tags:
+        - Key: Name
+          Value: dism-tokyo
+
+  Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t4g.small
+      ImageId: !Ref ImageId
+      KeyName: !Ref KeyPair
+      SecurityGroupIds:
+        - !GetAtt SecurityGroup.GroupId
+      MetadataOptions:
+        HttpTokens: required
+        HttpEndpoint: enabled
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: 30
+            VolumeType: gp3
+            Encrypted: true
+            DeleteOnTermination: true
+      Tags:
+        - Key: Name
+          Value: dism-tokyo
+
+  ElasticIp:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      InstanceId: !Ref Instance
+      Tags:
+        - Key: Name
+          Value: dism-tokyo
+
+Outputs:
+  PublicIp:
+    Description: Fixed IP for SSH and for Delta's API-key whitelist
+    Value: !Ref ElasticIp
+  InstanceId:
+    Value: !Ref Instance

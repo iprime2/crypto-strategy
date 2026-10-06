@@ -32,6 +32,7 @@ Commands run from `cex-mm/` unless stated. Build with `export PATH="$HOME/.local
 | Web UI | 127.0.0.1:5179 | `cd web && npm run dev` |
 | Shadow test | `artifacts/shadow/current/` | `scripts/shadow.sh status` |
 | Shadow dashboard | 127.0.0.1:8788 | `scripts/shadow.sh dashboard` |
+| Tokyo VM (shadow test, later the live pilot) | `ssh -i ~/.ssh/dism-tokyo ubuntu@<elastic-ip>` (stack `dism-tokyo`) | `scripts/shadow.sh status` there; runbook `cex-mm/docs/VM.md` |
 
 The live bot's stdout goes to /dev/null, so there is no `MM_METRICS` log for it. Use venue data and the OEMS instead.
 

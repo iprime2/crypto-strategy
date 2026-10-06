@@ -1,0 +1,12 @@
+# User unit, rendered by infra/vm/setup.sh. Listens on 127.0.0.1 only: reach it through an SSH tunnel.
+[Unit]
+Description=cex-mm shadow dashboard on http://127.0.0.1:8788/
+
+[Service]
+WorkingDirectory=@CEX_MM@
+ExecStart=/usr/bin/python3 @CEX_MM@/dashboard/shadow_server.py --port 8788
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
