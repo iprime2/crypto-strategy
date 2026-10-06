@@ -74,7 +74,8 @@ cd cex-mm && export PATH="$HOME/.local/bin-wrappers:$PATH" && cargo test -p mm-o
 ## Web (`cex-mm/web`)
 
 - Vite + React + Tailwind, dev server 127.0.0.1:5179. Pages: Trade (candles via `lightweight-charts`, order book, tape, quote panel, position, blotter), Performance, Blotter, Risk, Strategy. Shell: `components/AppShell.tsx`; data via `hooks/usePoll.ts` and `context/AppContext.tsx`.
-- Every control action goes through `components/ConfirmDialog.tsx` (typed confirmation for closing a position). Status is never color alone (dot + symbol + words).
+- The strategy switcher in the top bar (`AppContext.strategyId`, persisted as `oems.strategy`) scopes every page; market, venue and telemetry fetches pass `strategy_id`, and every `usePoll` that depends on it lists `strategyId` in its deps. A `mainnet` strategy shows the REAL MONEY badge and banner, and the Strategy page adds the DISM pilot scorecard (gate numbers in `lib/dism.ts`).
+- Every control action goes through `components/ConfirmDialog.tsx` (typed confirmation for closing a position; `START REAL` for starting or restarting a real-money strategy). Status is never color alone (dot + symbol + words).
 - `lightweight-charts` cannot parse `oklch()`; resolve theme colors with `toRgb` in `CandleChart.tsx`.
 - No PnL or TCA math in the browser beyond display; the OEMS computes it.
 - Running `npm install` while the dev server runs can crash it; restart `npm run dev` afterwards.

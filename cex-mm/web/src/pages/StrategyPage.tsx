@@ -1,15 +1,16 @@
 import { useMemo, useState } from 'react'
 import { Play, RotateCcw, Square } from 'lucide-react'
-import { fetchTelemetry, saveOverrides, startStrategy, stopStrategy } from '@/api/oems'
-import type { EffectiveConfig, QuoteState } from '@/api/types'
+import { fetchPerformance, fetchTelemetry, saveOverrides, startStrategy, stopStrategy } from '@/api/oems'
+import type { BotTelemetry, EffectiveConfig, QuoteState } from '@/api/types'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { DataTable, Empty, Panel, Stat, StatusPill, Td, Th } from '@/components/kit'
 import { EventsList } from '@/components/tables'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { useApp } from '@/context/AppContext'
+import { configNumber, useApp } from '@/context/AppContext'
 import { usePoll } from '@/hooks/usePoll'
-import { fmtBps, fmtDateTime, fmtDuration, fmtNum, fmtPrice, fmtQty } from '@/lib/format'
+import { MAINNET_CONFIRM, PILOT, pilotVerdict } from '@/lib/dism'
+import { fmtBps, fmtDateTime, fmtDuration, fmtNum, fmtPct, fmtPrice, fmtQty, fmtSignedUsd, fmtUsd, signTone } from '@/lib/format'
 import { botCheck } from '@/lib/health'
 import { toastSuccess } from '@/lib/toast'
 import { cn } from '@/lib/utils'
@@ -39,7 +40,7 @@ function grouped(cfg: EffectiveConfig): { title: string; keys: string[] }[] {
 }
 
 function ConfigPanel({ cfg, running }: { cfg: EffectiveConfig; running: boolean }) {
-  const { strategyId, refreshConfig, refreshOverview } = useApp()
+  const { strategyId, isReal, refreshConfig, refreshOverview } = useApp()
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState<Record<string, string>>({})
   const [newKey, setNewKey] = useState('')
@@ -74,7 +75,7 @@ function ConfigPanel({ cfg, running }: { cfg: EffectiveConfig; running: boolean 
   return (
     <Panel
       title="Effective config"
-      subtitle={`what the bot runs: ${cfg.env_file ?? 'env file'} + overrides${cfg.version ? ` (v${cfg.version})` : ''}`}
+      subtitle={`what the bot runs: ${cfg.profile ? `keys from ${cfg.env_file ?? 'env file'} + profile ${cfg.profile}` : cfg.env_file ?? 'env file'} + overrides${cfg.version ? ` (v${cfg.version})` : ''}`}
       actions={
         editing ? (
           <>
@@ -113,6 +114,11 @@ function ConfigPanel({ cfg, running }: { cfg: EffectiveConfig; running: boolean 
                       {k.replace(/^MM_/, '')}
                     </dt>
                     <dd className="flex shrink-0 items-center gap-1.5">
+                      {v.source === 'profile' ? (
+                        <span className="rounded bg-muted px-1 text-[9px] font-semibold text-muted-foreground uppercase" title={`From the strategy profile ${cfg.profile ?? ''}`}>
+                          profile
+                        </span>
+                      ) : null}
                       {v.source === 'override' ? (
                         <span className="rounded bg-s1/15 px-1 text-[9px] font-semibold text-s1 uppercase" title="Set in the OEMS config, overrides the env file">
                           override
@@ -156,10 +162,16 @@ function ConfigPanel({ cfg, running }: { cfg: EffectiveConfig; running: boolean 
         open={confirm === 'save'}
         onOpenChange={(v) => !v && setConfirm(null)}
         title="Apply config changes"
-        confirmLabel={running ? 'Save and restart bot' : 'Save'}
+        confirmLabel={running && !isReal ? 'Save and restart bot' : 'Save'}
         description={
           <>
-            <p>{running ? 'The bot restarts with the new settings: it stops, its orders are cancelled, then it starts again.' : 'Saved as a new version; used on the next start.'}</p>
+            <p>
+              {running && isReal
+                ? 'Saved as a new version. A running real-money bot is not restarted: restart it yourself to apply.'
+                : running
+                  ? 'The bot restarts with the new settings: it stops, its orders are cancelled, then it starts again.'
+                  : 'Saved as a new version; used on the next start.'}
+            </p>
             <table className="num w-full text-xs">
               <tbody>
                 {Object.entries(changes).map(([k, v]) => (
@@ -179,7 +191,14 @@ function ConfigPanel({ cfg, running }: { cfg: EffectiveConfig; running: boolean 
           Object.assign(body, changes)
           const r = await saveOverrides(strategyId, body)
           if (r.restarted && !r.restarted.ok) throw new Error(`Saved v${r.version}, but restart failed: ${r.restarted.error ?? 'unknown'}`)
-          toastSuccess(`Config v${r.version} saved`, r.restarted ? 'Bot restarted with the new settings.' : undefined)
+          toastSuccess(
+            `Config v${r.version} saved`,
+            r.restart_required
+              ? 'Real-money bot still runs the old settings: restart it to apply.'
+              : r.restarted
+                ? 'Bot restarted with the new settings.'
+                : undefined,
+          )
           setEditing(false)
           refreshConfig()
           refreshOverview()
@@ -200,6 +219,29 @@ function ConfigPanel({ cfg, running }: { cfg: EffectiveConfig; running: boolean 
         }}
       />
     </Panel>
+  )
+}
+
+/** What a real-money start does, with the limits it runs under, read from the effective config. */
+function RealMoneyStartNote({ restart = false }: { restart?: boolean }) {
+  const { config, symbols } = useApp()
+  const sym = symbols[0]
+  const qty = configNumber(config, 'MM_ORDER_QTY', sym)
+  const cap = configNumber(config, 'MM_MAX_INVENTORY', sym)
+  const loss = configNumber(config, 'MM_DAILY_LOSS_LIMIT_USD')
+  const ttl = configNumber(config, 'MM_DMS_TTL_MS')
+  return (
+    <>
+      <p className="font-medium text-down">
+        {restart ? 'Restarts' : 'Starts'} the bot on Delta India mainnet. It places real orders with real funds.
+      </p>
+      <ul className="list-inside list-disc text-xs">
+        <li>Symbols: {symbols.join(', ')}</li>
+        <li>Quote size {qty ? fmtQty(qty) : 'not set'} · inventory cap ±{cap ? fmtQty(cap) : 'not set'}</li>
+        <li>Daily loss stop {loss ? fmtUsd(loss, 0) : 'not set'} · dead man's switch {ttl ? `${fmtNum(ttl / 1000, 0)} s` : 'off'}</li>
+      </ul>
+      <p className="text-xs">The OEMS also requires OEMS_ALLOW_MAINNET=1 and mainnet API keys; it refuses the start otherwise.</p>
+    </>
   )
 }
 
@@ -242,9 +284,76 @@ function QuoteTable({ metrics }: { metrics: Record<string, QuoteState> }) {
   )
 }
 
+/** Live DISM pilot against the shadow gate: same 60 s net-per-fill rule, judged after 300 fills. */
+function PilotScorecard({ telemetry }: { telemetry: BotTelemetry | undefined }) {
+  const { strategyId, overview: o, config, symbols } = useApp()
+  const [from] = useState(() => new Date(Date.now() - 365 * 86_400_000).toISOString())
+  const perf = usePoll((s) => fetchPerformance(strategyId, from, new Date().toISOString(), s), 30_000, [strategyId, from])
+  const t = perf.data?.totals
+  const maker60 = t?.maker_net_curve.find((p) => p.h === 60)
+  const all60 = t?.net_curve.find((p) => p.h === 60)
+  const scored = maker60?.n ?? 0
+  const verdict = pilotVerdict(scored, maker60?.net_bps)
+
+  const lossLimit = configNumber(config, 'MM_DAILY_LOSS_LIMIT_USD')
+  const dayPnl = o?.day.pnl ?? null
+  const lossUsed = lossLimit && dayPnl !== null && dayPnl < 0 ? -dayPnl / lossLimit : 0
+  const symbol = symbols[0]
+  const cap = configNumber(config, 'MM_MAX_INVENTORY', symbol)
+  const inventory = o?.positions?.find((p) => p.symbol === symbol)?.venue_qty ?? 0
+  const dmsTtl = configNumber(config, 'MM_DMS_TTL_MS')
+  const dmsEvent = telemetry?.events.find((e) => e.kind === 'dead_mans_switch')
+  const counters = telemetry?.counters
+
+  return (
+    <Panel
+      title="DISM pilot scorecard"
+      subtitle={`live ${symbol} vs the shadow gate (+${PILOT.shadowNet60Bps.toFixed(2)} bps per fill at 60 s) · stop if below zero after ${PILOT.gateFills} fills`}
+      actions={<StatusPill level={verdict.level} label={verdict.label} detail={verdict.detail} />}
+    >
+      <div className="grid grid-cols-2 gap-3 p-3 sm:grid-cols-4 xl:grid-cols-8">
+        <Stat
+          label="Net / fill 60 s (maker)"
+          value={maker60?.n ? fmtBps(maker60.net_bps) : '—'}
+          tone={signTone(maker60?.net_bps)}
+          sub={`shadow +${PILOT.shadowNet60Bps.toFixed(2)} bps`}
+        />
+        <Stat label="Fills scored" value={`${scored} / ${PILOT.gateFills}`} sub={all60?.n ? `all fills ${fmtBps(all60.net_bps)}` : undefined} />
+        <Stat label="Maker share" value={t?.fills ? fmtPct(t.maker_share * 100) : '—'} sub={t?.fee_bps !== null && t?.fee_bps !== undefined ? `fees ${fmtBps(t.fee_bps, 2, false)}` : undefined} />
+        <Stat label="Volume" value={t ? fmtUsd(t.volume, 0) : '—'} sub={t ? `${t.fills} fills` : undefined} />
+        <Stat
+          label="Day PnL"
+          value={fmtSignedUsd(dayPnl)}
+          tone={signTone(dayPnl)}
+          sub={lossLimit ? `stop at −${fmtUsd(lossLimit, 0)} · ${fmtPct(lossUsed * 100, 0)} used` : 'no daily stop set'}
+        />
+        <Stat
+          label={`Inventory ${symbol}`}
+          value={fmtQty(inventory)}
+          tone={cap && Math.abs(inventory) >= cap ? 'text-warn' : undefined}
+          sub={cap ? `cap ±${fmtQty(cap)}` : 'no cap set'}
+        />
+        <Stat
+          label="Dead man's switch"
+          value={dmsTtl ? `${fmtNum(dmsTtl / 1000, 0)} s TTL` : 'off'}
+          tone={dmsEvent?.level === 'warn' ? 'text-warn' : undefined}
+          sub={dmsEvent ? `${dmsEvent.level === 'warn' ? '! ' : ''}${dmsEvent.message.slice(0, 40)}` : 'no heartbeat event yet'}
+        />
+        <Stat
+          label="Guards"
+          value={counters ? `${counters.halts} halt${counters.halts === 1 ? '' : 's'}` : '—'}
+          tone={counters?.halts ? 'text-down' : undefined}
+          sub={counters ? `${counters.stale_books} stale-book cancels` : undefined}
+        />
+      </div>
+      {perf.error ? <p className="px-3 pb-2 text-[11px] text-down">Performance unavailable: {perf.error}</p> : null}
+    </Panel>
+  )
+}
+
 export function StrategyPage() {
-  const { overview: o, config, strategyId, refreshOverview } = useApp()
-  const telemetry = usePoll((s) => fetchTelemetry(200, s), 2000, [])
+  const { overview: o, config, strategyId, isReal, refreshOverview } = useApp()
+  const telemetry = usePoll((s) => fetchTelemetry(strategyId, 200, s), 2000, [strategyId])
   const [dialog, setDialog] = useState<'start' | 'stop' | 'restart' | null>(null)
   const running = o?.strategy.desired_state === 'running'
   const bot = botCheck(o)
@@ -294,6 +403,8 @@ export function StrategyPage() {
         </Panel>
       </div>
 
+      {isReal ? <PilotScorecard telemetry={telemetry.data} /> : null}
+
       <Panel title="Live quotes" subtitle="from the bot's MM_METRICS · struck-through side is switched off">
         <QuoteTable metrics={telemetry.data?.metrics ?? {}} />
       </Panel>
@@ -307,11 +418,13 @@ export function StrategyPage() {
       <ConfirmDialog
         open={dialog === 'start'}
         onOpenChange={(v) => !v && setDialog(null)}
-        title={`Start ${strategyId}`}
-        confirmLabel="Start bot"
-        description={<p>Starts mm-bot on Delta {o?.venue_env === 'mainnet' ? 'MAINNET (real money)' : 'demo'} with the effective config. It cancels open orders first, then quotes.</p>}
+        title={isReal ? `Start ${strategyId} with real money` : `Start ${strategyId}`}
+        confirmLabel={isReal ? 'Start real-money bot' : 'Start bot'}
+        destructive={isReal}
+        typeToConfirm={isReal ? MAINNET_CONFIRM : undefined}
+        description={isReal ? <RealMoneyStartNote /> : <p>Starts mm-bot on Delta demo with the effective config. It cancels open orders first, then quotes.</p>}
         onConfirm={async () => {
-          const r = await startStrategy(strategyId)
+          const r = await startStrategy(strategyId, isReal ? MAINNET_CONFIRM : undefined)
           toastSuccess('Bot started', `pid ${r.pid}`)
           refreshOverview()
         }}
@@ -334,10 +447,18 @@ export function StrategyPage() {
         onOpenChange={(v) => !v && setDialog(null)}
         title={`Restart ${strategyId}`}
         confirmLabel="Restart bot"
-        description={<p>Stops the bot, cancels its orders, and starts it again with the current build and config. Quoting pauses for a few seconds.</p>}
+        destructive={isReal}
+        typeToConfirm={isReal ? MAINNET_CONFIRM : undefined}
+        description={
+          isReal ? (
+            <RealMoneyStartNote restart />
+          ) : (
+            <p>Stops the bot, cancels its orders, and starts it again with the current build and config. Quoting pauses for a few seconds.</p>
+          )
+        }
         onConfirm={async () => {
           await stopStrategy(strategyId)
-          const r = await startStrategy(strategyId)
+          const r = await startStrategy(strategyId, isReal ? MAINNET_CONFIRM : undefined)
           toastSuccess('Bot restarted', `pid ${r.pid}`)
           refreshOverview()
         }}

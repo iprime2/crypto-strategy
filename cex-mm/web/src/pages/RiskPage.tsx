@@ -152,8 +152,8 @@ function ExposureTable({ o, caps }: { o: Overview; caps: Record<string, number |
 
 export function RiskPage() {
   const { overview: o, config, symbols, strategyId, refreshOverview, overviewError, overviewUpdatedAt } = useApp()
-  const orders = usePoll((s) => fetchVenueOrders(s), 3000, [])
-  const telemetry = usePoll((s) => fetchTelemetry(1, s), 5000, [])
+  const orders = usePoll((s) => fetchVenueOrders(strategyId, s), 3000, [strategyId])
+  const telemetry = usePoll((s) => fetchTelemetry(strategyId, 1, s), 5000, [strategyId])
   const [dialog, setDialog] = useState<'kill' | 'cancel' | null>(null)
   const lossLimit = configNumber(config, 'MM_DAILY_LOSS_LIMIT_USD')
   const caps = useMemo(() => {
