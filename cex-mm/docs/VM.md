@@ -35,6 +35,7 @@ git clone git@github.com:iprime2/crypto-strategy.git ~/crypto-strategy
 | `cex-mm-shadow.service` | `scripts/shadow.sh start $SHADOW_SYMBOLS` with `config/dism.env` |
 | `cex-mm-shadow-dashboard.service` | dashboard on 127.0.0.1:8788 |
 | `cex-mm-shadow-watchdog.timer` | every 2 min, restarts the test if the dry-run or recorder died |
+| `cex-mm-trend-paper.timer` | hourly `scripts/trend_paper.py`: rebalances the trend paper book once per UTC day (00:05 UTC) |
 
 ## Operate
 
@@ -43,9 +44,25 @@ ssh -i ~/.ssh/dism-tokyo ubuntu@<elastic-ip>
 cd ~/crypto-strategy/cex-mm && scripts/shadow.sh status
 systemctl --user stop cex-mm-shadow      # stop for good (the watchdog leaves a stopped test alone)
 systemctl --user restart cex-mm-shadow   # new run, e.g. after `git pull` (it rebuilds first)
-ssh -i ~/.ssh/dism-tokyo -N -L 8788:127.0.0.1:8788 ubuntu@<elastic-ip>   # dashboard at http://127.0.0.1:8788/
+ssh -i ~/.ssh/dism-tokyo -N -L 8788:127.0.0.1:8788 ubuntu@<elastic-ip>   # dashboard at http://127.0.0.1:8788/ (trend: /trend)
 rsync -az -e 'ssh -i ~/.ssh/dism-tokyo' ubuntu@<elastic-ip>:crypto-strategy/cex-mm/artifacts/shadow/ artifacts/shadow-vm/
 ```
 
 Four symbols write about 0.5 GB a day; the 30 GB disk holds about 50 days. Copy runs off and delete old
 run directories before it fills.
+
+## Trend paper trader
+
+`scripts/trend_paper.py` paper-trades the rule from `scripts/trend_backtest.py` on Delta mainnet public data:
+daily target weights from Delta closes, whole contracts, fills walked through the live L2 book, Delta funding.
+No keys, no orders. State and the daily journal live in `artifacts/trend/paper/` (`state.json`,
+`journal.jsonl`); the dashboard shows them at `/trend`.
+
+```bash
+systemctl --user list-timers cex-mm-trend-paper.timer
+journalctl --user -u cex-mm-trend-paper -n 20        # one line per rebalance, or the error that will be retried
+systemctl --user start cex-mm-trend-paper            # run now (a no-op if today's rebalance is done)
+```
+
+Deleting `artifacts/trend/paper/` starts a new paper book at the next run.
+

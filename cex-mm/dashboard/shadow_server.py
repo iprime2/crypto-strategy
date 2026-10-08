@@ -30,6 +30,13 @@ import shadow_fill_sim as sim  # noqa: E402
 
 CURRENT = CEX_MM / "artifacts" / "shadow" / "current"
 PAGE = ROOT / "static" / "shadow.html"
+# Other pages and shared assets, by URL path.
+STATIC = {
+    "/trend": ("trend.html", "text/html; charset=utf-8"),
+    "/common.css": ("common.css", "text/css; charset=utf-8"),
+    "/charts.js": ("charts.js", "text/javascript; charset=utf-8"),
+}
+TREND_DIR = CEX_MM / "artifacts" / "trend" / "paper"  # written by scripts/trend_paper.py
 RECENT_MS = 60 * 60 * 1000  # full-resolution window kept for the live chart
 MAX_POINTS = 900
 MAX_POINTS_ALL = 1500  # "All" window: whole run, thinned for the chart
@@ -412,6 +419,18 @@ def build_payload(symbol: str | None, window_min: float | None) -> dict:
     }
 
 
+def trend_payload() -> dict:
+    """Paper trader state plus its journal (one line per daily rebalance)."""
+    try:
+        state = json.loads((TREND_DIR / "state.json").read_text())
+        journal = [json.loads(line) for line in (TREND_DIR / "journal.jsonl").read_text().splitlines() if line.strip()]
+    except FileNotFoundError:
+        return {"ok": False, "error": f"No paper trader state in {TREND_DIR}: it has not rebalanced yet"}
+    if not journal:
+        return {"ok": False, "error": "The paper trader has not rebalanced yet"}
+    return {"ok": True, "state": state, "journal": journal, "server_time": int(time.time() * 1000)}
+
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt: str, *args) -> None:  # quiet access log
         return
@@ -441,15 +460,23 @@ class Handler(BaseHTTPRequestHandler):
                     window = 15.0
             payload = build_payload(q.get("symbol", [None])[0], window)
             self.send_body(200, json.dumps(payload, allow_nan=False, default=str).encode(), "application/json")
+        elif url.path in STATIC:
+            name, ctype = STATIC[url.path]
+            self.send_body(200, (ROOT / "static" / name).read_bytes(), ctype)
+        elif url.path == "/api/trend":
+            self.send_body(200, json.dumps(trend_payload()).encode(), "application/json")
         else:
             self.send_body(404, b"not found", "text/plain")
 
 
 def main() -> None:
+    global TREND_DIR
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8788)
     ap.add_argument("--sim-every", type=float, default=120.0, help="seconds between simulator runs")
+    ap.add_argument("--trend-dir", type=Path, default=TREND_DIR, help="trend paper trader state directory")
     args = ap.parse_args()
+    TREND_DIR = args.trend_dir
     threading.Thread(target=tail_loop, daemon=True).start()
     threading.Thread(target=sim_loop, args=(args.sim_every,), daemon=True).start()
     server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)

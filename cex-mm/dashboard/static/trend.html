@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trend Paper Trader</title>
+<link rel="stylesheet" href="/common.css">
+</head>
+<body>
+<main>
+  <header>
+    <h1>Trend paper trader</h1>
+    <span class="sub" id="runInfo">Loading…</span>
+    <span class="spacer"></span>
+    <a href="/">Shadow test</a>
+    <button id="themeBtn" type="button" aria-label="Toggle dark mode">Theme</button>
+  </header>
+
+  <div class="health" id="health" style="margin-top: 16px"></div>
+
+  <section class="tiles" id="tiles"></section>
+
+  <section class="card full">
+    <h2>Equity, paper vs backtest model (USD)</h2>
+    <div class="sub">Paper: orders filled against Delta's live order book at each rebalance, with taker fees and funding. Model: the backtest's arithmetic on the same days' closes. The gap is execution, rounding to whole contracts, and timing.</div>
+    <div class="chart" id="equityChart"></div>
+  </section>
+
+  <div class="grid2">
+    <section class="card">
+      <h2>Positions now</h2>
+      <div class="sub" id="posInfo"></div>
+      <div class="scroll"><table id="posTable"></table></div>
+    </section>
+    <section class="card">
+      <h2>Last rebalance</h2>
+      <div class="sub" id="ordInfo"></div>
+      <div class="scroll"><table id="ordTable"></table></div>
+    </section>
+  </div>
+
+  <section class="card full">
+    <h2>Daily log</h2>
+    <div class="sub">One row per rebalance, newest first. Returns are since the previous rebalance.</div>
+    <div class="scroll"><table id="dayTable"></table></div>
+  </section>
+
+  <p class="foot">Rule (fixed before testing, <code>scripts/trend_backtest.py</code>): long-only, signal = mean sign of the 20, 60 and 120-day returns, each coin sized to 40% target vol over 9 coins, gross exposure capped at 2x, rebalanced once a day after the 00:00 UTC close. Backtest on Delta prices, Aug 2024 to Sep 2026: +19.4% a year, Sharpe 1.15, worst drawdown −14.1%. Paper test passes after 4 weeks if every rebalance runs and costs stay within 2x of the modelled 7.31 bps per unit traded. Public data only: no API keys, no orders.</p>
+</main>
+
+<script src="/charts.js"></script>
+<script>
+"use strict";
+const state = { data: null };
+const DAY = 86400e3;
+
+function fmtPct(v, d = 2) { return v === null || v === undefined ? "–" : fmtSigned(v * 100, d) + "%"; }
+function fmtDate(ms) { return new Date(ms).toLocaleDateString([], { month: "short", day: "numeric" }); }
+
+function points(d) {
+  const j = d.journal;
+  return { t: j.map(r => Date.parse(r.time)), paper: j.map(r => r.equity), model: j.map(r => r.model_equity) };
+}
+
+// One label per rebalance day, thinned so labels stay about 80 px apart.
+function xDateAxis(f, ts, x) {
+  const g = svg("g", { class: "axis" });
+  g.appendChild(svg("line", { x1: f.x0, x2: f.x1, y1: f.y1, y2: f.y1, stroke: cssVar("--axis") }));
+  const k = Math.ceil(ts.length / Math.max(2, Math.floor((f.x1 - f.x0) / 80)));
+  for (let i = 0; i < ts.length; i += k) {
+    const t = svg("text", { x: x(ts[i]), y: f.y1 + 16, "text-anchor": "middle" });
+    t.textContent = fmtDate(ts[i]);
+    g.appendChild(t);
+  }
+  f.root.appendChild(g);
+}
+
+function maxDrawdown(xs) {
+  let peak = -Infinity, mdd = 0;
+  for (const v of xs) { peak = Math.max(peak, v); mdd = Math.min(mdd, v / peak - 1); }
+  return mdd;
+}
+
+function nextRebalance(lastTs) {
+  const day = Math.floor(lastTs * 1000 / DAY) * DAY;
+  return day + DAY + 5 * 60e3;  // 00:05 UTC the next day
+}
+
+function renderHeader(d) {
+  const s = d.state;
+  document.getElementById("runInfo").textContent =
+    `Started ${fmtDateTime(Date.parse(s.started))} with ${fmtUsd(s.capital)} · Delta India mainnet data, paper only`;
+}
+
+function renderHealth(d) {
+  const h = document.getElementById("health");
+  h.replaceChildren();
+  const s = d.state, last = s.last_rebalance_ts * 1000;
+  const age = (d.server_time - last) / 3600e3;
+  h.appendChild(statusPill(age < 26, "Daily rebalance", `last ${fmtDateTime(last)}, ${fmtNum(age, 1)} h ago`));
+  h.appendChild(infoPill("Next", fmtDateTime(nextRebalance(s.last_rebalance_ts))));
+  h.appendChild(infoPill("Rebalances", fmtNum(d.journal.length, 0)));
+  h.appendChild(infoPill("Signal day", s.signal_day));
+}
+
+
+function renderTiles(d) {
+  const box = document.getElementById("tiles");
+  box.replaceChildren();
+  const s = d.state, j = d.journal, last = j[j.length - 1], p = points(d);
+  const ret = last.equity / s.capital - 1, mret = last.model_equity / s.capital - 1;
+  const days = Math.max(1, (d.server_time - Date.parse(s.started)) / DAY);
+  const hero = el("div", { class: "card tile hero" });
+  hero.appendChild(el("div", { class: "label" }, "Paper equity"));
+  hero.appendChild(el("div", { class: "value" }, fmtUsd(last.equity)));
+  hero.appendChild(el("div", { class: `note ${signClass(ret)}` }, `${fmtPct(ret)} since start · ${fmtNum(days, 1)} days`));
+  box.appendChild(hero);
+  box.appendChild(tile("Backtest model", fmtUsd(last.model_equity), `${fmtPct(mret)} · paper − model ${fmtPct(ret - mret)}`));
+  box.appendChild(tile("Worst drawdown", fmtPct(maxDrawdown([s.capital].concat(p.paper)), 1), `backtest worst: −14.1%`));
+  const held = Object.keys(last.positions).length;
+  box.appendChild(tile("Exposure", `${fmtNum(last.gross, 2)}x`, `${held} of 9 coins held · cap 2x`));
+  const fees = j.reduce((a, r) => a + r.fees, 0), fund = j.reduce((a, r) => a + r.funding, 0);
+  box.appendChild(tile("Costs so far", fmtUsd(fees + fund), `fees ${fmtUsd(fees)} · funding ${fmtUsd(fund)}`));
+  const orders = j.flatMap(r => r.orders);
+  const notional = orders.reduce((a, o) => a + o.notional, 0);
+  const slip = notional ? orders.reduce((a, o) => a + o.slippage_bps * o.notional, 0) / notional : null;
+  box.appendChild(tile("Slippage cost vs mid", slip === null ? "–" : `${fmtNum(slip, 2)} bps`, `modelled 2 bps · ${orders.length} orders, ${fmtUsd(notional)} traded`));
+}
+
+function drawEquity(d) {
+  const c = document.getElementById("equityChart");
+  const p = points(d);
+  if (p.t.length < 2) { c.replaceChildren(el("div", { class: "empty" }, "The chart starts after the second daily rebalance (00:05 UTC)")); return; }
+  const f = frame(c, 260, { l: 64, r: 72, t: 12, b: 26 });
+  const series = [
+    { key: "paper", label: "Paper", color: cssVar("--series-1") },
+    { key: "model", label: "Backtest model", color: cssVar("--series-2") },
+  ];
+  const vals = p.paper.concat(p.model, [d.state.capital]);
+  let lo = Math.min(...vals), hi = Math.max(...vals);
+  const pad = (hi - lo) * 0.1 || hi * 0.002; lo -= pad; hi += pad;
+  const t0 = p.t[0], t1 = p.t[p.t.length - 1];
+  const x = linear(t0, t1, f.x0, f.x1), y = linear(lo, hi, f.y1, f.y0);
+  yAxis(f, niceTicks(lo, hi, 5), y, v => fmtUsd(v));
+  xDateAxis(f, p.t, x);
+  const cap = d.state.capital;
+  f.root.appendChild(svg("line", { x1: f.x0, x2: f.x1, y1: y(cap), y2: y(cap), stroke: cssVar("--axis"), "stroke-dasharray": "4 4" }));
+  for (const s of series) {
+    f.root.appendChild(svg("path", { d: pathFrom(p.t, p[s.key], x, y), fill: "none", stroke: s.color, "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }));
+    const i = p.t.length - 1;
+    f.root.appendChild(svg("circle", { cx: x(p.t[i]), cy: y(p[s.key][i]), r: 4, fill: s.color, stroke: cssVar("--surface-1"), "stroke-width": 2 }));
+  }
+  const last = p.t.length - 1;
+  const ends = series.map(s => ({ ...s, v: p[s.key][last] })).sort((a, b) => y(a.v) - y(b.v));
+  let prev = -Infinity;
+  for (const e of ends) {
+    const yy = Math.max(y(e.v), prev + 13);
+    prev = yy;
+    const t = svg("text", { x: f.x1 + 8, y: yy + 4, fill: cssVar("--text-secondary"), "font-size": 11 });
+    t.textContent = fmtUsd(e.v);
+    f.root.appendChild(t);
+  }
+  crosshair(f, c, p.t, x, i => ({
+    title: fmtDateTime(p.t[i]),
+    rows: series.map(s => ({ label: s.label, value: fmtUsd(p[s.key][i]), color: s.color })),
+  }));
+  legend(c, series.map(s => ({ label: s.label, color: s.color })));
+}
+
+function head(t, cols) { const tr = el("tr"); for (const h of cols) tr.appendChild(el("th", {}, h)); t.appendChild(tr); }
+
+function renderPositions(d) {
+  const t = document.getElementById("posTable");
+  t.replaceChildren();
+  const last = d.journal[d.journal.length - 1];
+  document.getElementById("posInfo").textContent = `Marked at the ${fmtDateTime(Date.parse(last.time))} rebalance mids. Target is the rule's weight before rounding to whole contracts.`;
+  head(t, ["Coin", "Contracts", "Value", "Weight", "Target"]);
+  const coins = Object.keys(last.weights).sort((a, b) => (last.weights[b] || 0) - (last.weights[a] || 0));
+  for (const c of coins) {
+    const q = last.positions[c] || 0;
+    const value = last.values[c] || 0;
+    const tr = el("tr");
+    tr.appendChild(td(c));
+    tr.appendChild(td(fmtNum(q, 0)));
+    tr.appendChild(td(fmtUsd(value)));
+    tr.appendChild(td(`${fmtNum(value / last.equity * 100, 1)}%`));
+    tr.appendChild(td(`${fmtNum((last.weights[c] || 0) * 100, 1)}%`));
+    t.appendChild(tr);
+  }
+}
+
+function renderOrders(d) {
+  const t = document.getElementById("ordTable");
+  t.replaceChildren();
+  const last = d.journal[d.journal.length - 1];
+  document.getElementById("ordInfo").textContent = `${fmtDateTime(Date.parse(last.time))} · signal from the ${last.signal_day} close · taker fills walked through the live book`;
+  if (!last.orders.length) { const tr = el("tr"); const c = td("No trades needed: targets unchanged after rounding"); c.colSpan = 7; c.className = "empty"; tr.appendChild(c); t.appendChild(tr); return; }
+  head(t, ["Coin", "Side", "Contracts", "Mid", "Fill", "Slippage", "Fee"]);
+  for (const o of last.orders) {
+    const tr = el("tr");
+    const digits = priceDigits(o.mid);
+    tr.appendChild(td(o.coin));
+    tr.appendChild(td(o.contracts > 0 ? "Buy" : "Sell"));
+    tr.appendChild(td(fmtNum(Math.abs(o.contracts), 0)));
+    tr.appendChild(td(o.mid.toFixed(digits)));
+    tr.appendChild(td(o.price.toFixed(digits)));
+    tr.appendChild(td(`${fmtNum(o.slippage_bps, 2)} bps`));
+    tr.appendChild(td(fmtUsd(o.fee)));
+    t.appendChild(tr);
+  }
+}
+
+function renderDays(d) {
+  const t = document.getElementById("dayTable");
+  t.replaceChildren();
+  head(t, ["Rebalance", "Equity", "Return", "Model return", "Fees", "Funding", "Trades", "Exposure"]);
+  const j = d.journal;
+  for (let i = j.length - 1; i >= 0; i--) {
+    const r = j[i];
+    const prevEq = i ? j[i - 1].equity : d.state.capital, prevM = i ? j[i - 1].model_equity : d.state.capital;
+    const ret = r.equity / prevEq - 1, mret = r.model_equity / prevM - 1;
+    const tr = el("tr");
+    tr.appendChild(td(fmtDateTime(Date.parse(r.time))));
+    tr.appendChild(td(fmtUsd(r.equity)));
+    tr.appendChild(td(fmtPct(ret), signClass(ret)));
+    tr.appendChild(td(fmtPct(mret), signClass(mret)));
+    tr.appendChild(td(fmtUsd(r.fees)));
+    tr.appendChild(td(fmtUsd(r.funding)));
+    tr.appendChild(td(fmtNum(r.orders.length, 0)));
+    tr.appendChild(td(`${fmtNum(r.gross, 2)}x`));
+    t.appendChild(tr);
+  }
+}
+
+function render() {
+  const d = state.data;
+  if (!d) return;
+  if (!d.ok) {
+    document.getElementById("runInfo").textContent = d.error;
+    for (const id of ["tiles", "equityChart", "posTable", "ordTable", "dayTable", "health"]) document.getElementById(id).replaceChildren();
+    return;
+  }
+  renderHeader(d);
+  renderHealth(d);
+  renderTiles(d);
+  drawEquity(d);
+  renderPositions(d);
+  renderOrders(d);
+  renderDays(d);
+}
+
+async function refresh() {
+  try {
+    const res = await fetch("/api/trend", { cache: "no-store" });
+    state.data = await res.json();
+    render();
+  } catch (e) {
+    document.getElementById("runInfo").textContent = "Dashboard server not reachable";
+  }
+}
+
+(function init() {
+  const themeBtn = document.getElementById("themeBtn");
+  try { const saved = localStorage.getItem("shadow-theme"); if (saved) document.documentElement.dataset.theme = saved; } catch (e) {}
+  themeBtn.addEventListener("click", () => {
+    const dark = document.documentElement.dataset.theme
+      ? document.documentElement.dataset.theme === "dark"
+      : matchMedia("(prefers-color-scheme: dark)").matches;
+    const next = dark ? "light" : "dark";
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem("shadow-theme", next); } catch (e) {}
+    render();
+  });
+  let rt;
+  new ResizeObserver(() => { clearTimeout(rt); rt = setTimeout(render, 120); }).observe(document.querySelector("main"));
+  refresh();
+  setInterval(refresh, 60000);
+})();
+</script>
+</body>
+</html>

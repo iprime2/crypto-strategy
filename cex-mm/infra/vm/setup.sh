@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Bootstrap a DISM host (Ubuntu 24.04, e.g. the dism-tokyo stack): swap, toolchain, release build,
-# and the shadow test as user services that survive reboots and restart when a process dies.
+# the shadow test as user services that survive reboots and restart when a process dies, and the
+# hourly trend paper trader timer.
 # Run as the login user from a checkout of this repo; uses sudo for apt, swap and linger.
 # Safe to re-run.
 set -euo pipefail
@@ -31,5 +32,6 @@ done
 # User services keep running after logout and start at boot.
 sudo loginctl enable-linger "$USER"
 systemctl --user daemon-reload
-systemctl --user enable --now cex-mm-shadow.service cex-mm-shadow-dashboard.service cex-mm-shadow-watchdog.timer
+systemctl --user enable --now cex-mm-shadow.service cex-mm-shadow-dashboard.service cex-mm-shadow-watchdog.timer \
+  cex-mm-trend-paper.timer
 "$CEX_MM/scripts/shadow.sh" status
