@@ -1,0 +1,11 @@
+# User unit, rendered by infra/vm/setup.sh. Hourly, so a failed or missed run retries; the paper
+# trader rebalances at most once per UTC day (normally 00:05 UTC, right after the daily close).
+[Unit]
+Description=Run the trend paper trader every hour
+
+[Timer]
+OnCalendar=*-*-* *:05:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

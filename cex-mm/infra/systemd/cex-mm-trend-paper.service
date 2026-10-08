@@ -1,0 +1,11 @@
+# User unit, rendered by infra/vm/setup.sh. Started by cex-mm-trend-paper.timer.
+[Unit]
+Description=Trend-following paper trader: daily rebalance on Delta India mainnet data (no keys, no orders)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=@CEX_MM@
+ExecStart=/usr/bin/python3 @CEX_MM@/scripts/trend_paper.py --capital 1000
+TimeoutStartSec=600
