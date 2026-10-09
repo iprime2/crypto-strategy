@@ -36,6 +36,7 @@ git clone git@github.com:iprime2/crypto-strategy.git ~/crypto-strategy
 | `cex-mm-shadow-dashboard.service` | dashboard on 127.0.0.1:8788 |
 | `cex-mm-shadow-watchdog.timer` | every 2 min, restarts the test if the dry-run or recorder died |
 | `cex-mm-trend-paper.timer` | hourly `scripts/trend_paper.py`: rebalances the trend paper book once per UTC day (00:05 UTC) |
+| `cex-mm-shadow-housekeep.timer` | daily 03:30 UTC `scripts/shadow_housekeep.py --apply`: deletes shadow runs older than 14 days. Installed but **not enabled** by `setup.sh` (see [Housekeeping](#housekeeping)) |
 
 ## Operate
 
@@ -48,8 +49,22 @@ ssh -i ~/.ssh/dism-tokyo -N -L 8788:127.0.0.1:8788 ubuntu@<elastic-ip>   # dashb
 rsync -az -e 'ssh -i ~/.ssh/dism-tokyo' ubuntu@<elastic-ip>:crypto-strategy/cex-mm/artifacts/shadow/ artifacts/shadow-vm/
 ```
 
-Four symbols write about 0.5 GB a day; the 30 GB disk holds about 50 days. Copy runs off and delete old
-run directories before it fills.
+Four symbols write about 0.5 GB a day; the 30 GB disk holds about 50 days. Copy runs off with the `rsync` line
+above (it has no `--delete`, so local copies survive), then let the housekeeping timer delete old run directories.
+
+### Housekeeping
+
+`scripts/shadow_housekeep.py` deletes run directories in `artifacts/shadow/` whose newest file is older than
+`--days` (default 14). It never touches the run `current` points to, a run whose `*.pid` files name a live
+process, symlinks, or anything not named like a run (`20261006T161427Z`). If `current` is missing or dangling it
+deletes nothing and exits 2. Without `--apply` it only reports. **Deletion is permanent: copy runs off first.**
+
+```bash
+cd ~/crypto-strategy/cex-mm && python3 scripts/shadow_housekeep.py   # dry run: keep/would-delete per run, sizes, disk free
+systemctl --user enable --now cex-mm-shadow-housekeep.timer          # daily 03:30 UTC (+ up to 10 min), runs it with --apply
+systemctl --user list-timers cex-mm-shadow-housekeep.timer
+journalctl --user -u cex-mm-shadow-housekeep -n 30                   # what the last run kept and deleted
+```
 
 ## Trend paper trader
 
