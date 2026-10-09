@@ -14,6 +14,7 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
+from unittest import mock
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
@@ -217,6 +218,88 @@ class HousekeepTest(unittest.TestCase):
         for run in runs:
             self.assertFalse(run.exists(), (run, out))
 
+    def test_unreadable_subdirectory_keeps_run(self):
+        """os.walk reporting an error (e.g. EACCES on a subdir) must keep the run, not age it on partial mtimes."""
+        bad = self.make_run("20260801T000000Z", 60)
+        self.point_current(self.make_run("20261008T000000Z", 0))
+        real_walk = os.walk
+
+        def walk(top, *args, onerror=None, **kwargs):
+            yield from real_walk(top, *args, onerror=onerror, **kwargs)
+            if Path(top).name == bad.name and onerror is not None:
+                onerror(PermissionError(13, "Permission denied", str(bad / "sub")))
+
+        with mock.patch.object(hk.os, "walk", walk):
+            code, out, _ = self.run_main("--apply")
+        self.assertEqual(code, 0, out)
+        self.assertTrue((bad / "dry-run.log").is_file())
+        self.assertRegex(out, r"keep\s+20260801T000000Z\s+could not scan .*Permission denied")
+        self.assertRegex(out, r"total: 2 run dirs, kept 2, deleted 0")
+
+    def test_file_vanishing_mid_scan_keeps_run(self):
+        bad = self.make_run("20260801T000000Z", 60)
+        victim = str(bad / "dry-run.log")
+        self.point_current(self.make_run("20261008T000000Z", 0))
+        real_lstat = os.lstat
+
+        def lstat(path, *args, **kwargs):
+            if os.fspath(path) == victim:
+                raise FileNotFoundError(2, "No such file or directory", victim)
+            return real_lstat(path, *args, **kwargs)
+
+        with mock.patch.object(hk.os, "lstat", lstat):
+            code, out, _ = self.run_main("--apply")
+        self.assertEqual(code, 0, out)
+        self.assertTrue(bad.is_dir())
+        self.assertRegex(out, r"keep\s+20260801T000000Z\s+could not scan .*No such file")
+
+    def test_future_mtime_is_kept_and_logged_as_clock_skew(self):
+        run = self.make_run("20260801T000000Z", -3)  # mtimes three days in the future
+        self.point_current(self.make_run("20261008T000000Z", 0))
+        code, out, _ = self.run_main("--apply")
+        self.assertEqual(code, 0)
+        self.assertTrue(run.is_dir())
+        self.assertRegex(out, r"keep\s+20260801T000000Z.*newest file in the future \(clock skew\)")
+        self.assertNotRegex(out, r"newest file -")
+
+    def test_stdout_is_line_buffered(self):
+        out = io.TextIOWrapper(io.BytesIO(), encoding="utf-8")  # block-buffered, like a pipe to journald
+        self.assertFalse(out.line_buffering)
+        self.point_current(self.make_run("20261008T000000Z", 0))
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(hk.main(["--shadow-dir", str(self.shadow)]), 0)
+        self.assertTrue(out.line_buffering)
+
+    def test_mid_run_stop_logs_deletions_before_the_stop_message(self):
+        """Through a real pipe (as under systemd), stdout lines must not be held back behind stderr."""
+        first = self.make_run("20260801T000000Z", 60)
+        second = self.make_run("20260802T000000Z", 60)
+        self.point_current(self.make_run("20261008T000000Z", 0))
+        code = (
+            "import sys\n"
+            "sys.path.insert(0, sys.argv[1])\n"
+            "import shadow_housekeep as hk\n"
+            "real, calls = hk.check_deletable, []\n"
+            "def guard(*a):\n"
+            "    calls.append(a)\n"
+            "    if len(calls) > 1:\n"
+            "        raise hk.Refuse('test: current changed')\n"
+            "    return real(*a)\n"
+            "hk.check_deletable = guard\n"
+            "sys.exit(hk.main(sys.argv[2:]))\n"
+        )
+        env = {k: v for k, v in os.environ.items() if k != "PYTHONUNBUFFERED"}
+        p = subprocess.run([sys.executable, "-c", code, str(HERE), "--shadow-dir", str(self.shadow), "--apply"],
+                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env)
+        self.assertEqual(p.returncode, 2, p.stdout)
+        self.assertFalse(first.exists())
+        self.assertTrue(second.is_dir())
+        deleted = p.stdout.find("deleted       20260801T000000Z")
+        stopped = p.stdout.find("stopped before deleting more: test: current changed")
+        self.assertGreaterEqual(deleted, 0, p.stdout)
+        self.assertGreater(stopped, deleted, p.stdout)
+        self.assertGreater(stopped, p.stdout.find("disk free after"), p.stdout)
+
     # ------------------------------------------------------------ refusals
 
     def test_missing_current_deletes_nothing_and_fails(self):
@@ -244,6 +327,23 @@ class HousekeepTest(unittest.TestCase):
         self.assertNotEqual(code, 0)
         self.assertTrue(old.is_dir())
         self.assertIn("current", err)
+
+    def test_current_as_plain_directory_deletes_nothing_and_fails(self):
+        old = self.make_run("20260801T000000Z", 60)
+        self.make_run("current", 0)  # a real directory, not shadow.sh's symlink
+        code, _, err = self.run_main("--apply")
+        self.assertEqual(code, 2)
+        self.assertTrue(old.is_dir())
+        self.assertIn("not a symlink", err)
+        self.assertIn("nothing deleted", err)
+
+    def test_current_pointing_at_non_run_directory_deletes_nothing_and_fails(self):
+        old = self.make_run("20260801T000000Z", 60)
+        self.point_current(self.make_run("notarun", 0))
+        code, _, err = self.run_main("--apply")
+        self.assertEqual(code, 2)
+        self.assertTrue(old.is_dir())
+        self.assertIn("not a run directory", err)
 
     def test_missing_shadow_dir_fails(self):
         code, _, err = self.run_main("--apply", shadow=self.root / "nope")

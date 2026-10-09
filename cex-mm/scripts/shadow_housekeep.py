@@ -4,9 +4,9 @@
 A run directory is a direct child of artifacts/shadow/ named like scripts/shadow.sh names it
 (`date -u +%Y%m%dT%H%M%SZ`, e.g. 20261006T161427Z). One is deleted when the newest mtime of the
 directory and everything in it is older than --days (default 14). Never deleted: the run `current`
-points to, a run whose *.pid files name a live process, symlinks (never followed), and anything not
-named like a run. If `current` is missing, dangling or outside the shadow dir, nothing is deleted and
-the exit code is 2.
+points to, a run whose *.pid files name a live process, a run that could not be fully scanned,
+symlinks (never followed), and anything not named like a run. If `current` is missing, dangling, not a
+symlink, or not pointing at a run directory in the shadow dir, nothing is deleted and the exit code is 2.
 
 Dry run by default; --apply deletes. Deletion is permanent: copy runs off first (docs/VM.md).
 
@@ -42,15 +42,18 @@ def human(n: float) -> str:
 
 
 def resolve_current(shadow: Path) -> Path:
-    """The run directory `current` points to; Refuse unless it is a real directory directly in `shadow`."""
+    """The run directory `current` points to. Refuse unless `current` is a symlink (as shadow.sh makes it)
+    to a run-named directory directly in `shadow`; otherwise the live run is unknown."""
     cur = shadow / "current"
     if not os.path.lexists(cur):
         raise Refuse(f"{cur} is missing, so the live run cannot be identified")
+    if not cur.is_symlink():
+        raise Refuse(f"{cur} is not a symlink (shadow.sh makes one), so the live run cannot be identified")
     try:
         target = cur.resolve(strict=True)
     except (OSError, RuntimeError):
         raise Refuse(f"{cur} is dangling (-> {os.readlink(cur)})") from None
-    if not target.is_dir() or target.parent != shadow:
+    if not target.is_dir() or target.parent != shadow or not RUN_RE.fullmatch(target.name):
         raise Refuse(f"{cur} resolves to {target}, which is not a run directory in {shadow}")
     return target
 
@@ -153,7 +156,10 @@ def housekeep(shadow_dir: Path, days: int, apply: bool) -> int:
             kept += 1
             print(f"keep          {name}  could not scan ({e})")
             continue
-        age = f"newest file {(now - newest) / DAY:.1f} days old"
+        if newest > now:  # kept below (newer than cutoff); say why instead of printing a negative age
+            age = "newest file in the future (clock skew)"
+        else:
+            age = f"newest file {(now - newest) / DAY:.1f} days old"
         live = live_pids(pidfiles)
         if run == current:
             why = "current run"
@@ -199,6 +205,11 @@ def housekeep(shadow_dir: Path, days: int, apply: bool) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # Under systemd stdout is a pipe to journald and would be block-buffered: run lines would land late,
+    # after stderr, or be lost if the oneshot is killed. Flush each line as it is printed.
+    reconfigure = getattr(sys.stdout, "reconfigure", None)
+    if reconfigure is not None:
+        reconfigure(line_buffering=True)
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--days", type=int, default=14,
                     help="delete runs whose newest file is older than this many days (default 14, minimum 1)")

@@ -56,8 +56,9 @@ above (it has no `--delete`, so local copies survive), then let the housekeeping
 
 `scripts/shadow_housekeep.py` deletes run directories in `artifacts/shadow/` whose newest file is older than
 `--days` (default 14). It never touches the run `current` points to, a run whose `*.pid` files name a live
-process, symlinks, or anything not named like a run (`20261006T161427Z`). If `current` is missing or dangling it
-deletes nothing and exits 2. Without `--apply` it only reports. **Deletion is permanent: copy runs off first.**
+process, symlinks, or anything not named like a run (`20261006T161427Z`). If `current` is missing, dangling, or
+not a symlink to a run directory (as `shadow.sh` makes it) it deletes nothing and exits 2. Without `--apply` it
+only reports. **Deletion is permanent: copy runs off first.**
 
 ```bash
 cd ~/crypto-strategy/cex-mm && python3 scripts/shadow_housekeep.py   # dry run: keep/would-delete per run, sizes, disk free
