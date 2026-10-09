@@ -118,6 +118,20 @@ class ScalperOfferFees(unittest.TestCase):
         self.assertEqual([f.free_qty for f in flat], [0, 0, 1, 0])
         self.assertAlmostEqual(flat[3].fee_offer, fee(1, ASK))
 
+    def test_flat_episode_restarts_when_position_reopens(self):
+        # Flat at 10 s. The long opened at 100 s is a new episode, so closing it at 120 s is free,
+        # although 119 s have passed since the first open.
+        for match in ("fifo", "flat"):
+            fills = self.fills([(1, BUY, 1), (10, SELL, 1), (100, BUY, 1), (120, SELL, 1)], match=match)
+            self.assertEqual([f.free_qty for f in fills], [0, 1, 0, 1], match)
+
+    def test_flat_flip_restarts_episode(self):
+        # The flip at 50 s closes the long opened at 1 s (49 s old, free) and opens a short, a new
+        # episode, so covering it at 100 s (50 s later, 99 s after the first open) is free too.
+        for match in ("fifo", "flat"):
+            fills = self.fills([(1, BUY, 1), (50, SELL, 2), (100, BUY, 1)], match=match)
+            self.assertEqual([f.free_qty for f in fills], [0, 1, 1], match)
+
     def test_flat_whole_fill_pays_when_episode_too_old(self):
         *_, closed = self.fills([(1, BUY, 1), (50, BUY, 1), (70, SELL, 2)], match="flat")
         self.assertEqual(closed.free_qty, 0)

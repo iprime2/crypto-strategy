@@ -33,13 +33,15 @@ Fills, markouts and the normal fee are unchanged; the script adds a second fee p
 - Report: columns after `|` show `ofee onet60 onet300 oPnL$ free%` for the same fills under the offer; `free%` = share of fill notional that was a free closing leg. The verdict ignores the offer.
 
 ## Results
-| ADA, fair ±5 bps | net60 | net60 with offer (fifo) | net60 with offer (flat) | free% |
+| ADA, fair ±5 bps, 6 Oct run | net60 | net60 with offer (fifo) | net60 with offer (flat) | free% |
 |---|---|---|---|---|
-| 6 Oct run (2,444 fills, 46.5 h) | pending, not measured | pending, not measured | pending, not measured | pending |
+| 20 ms latency | pending, not measured | pending, not measured | pending, not measured | pending |
+| 300 ms latency (the 5 Oct memo's setting) | pending, not measured | pending, not measured | pending, not measured | pending |
 
-**Bound, not a measurement.** Closing contracts can never exceed opening contracts, so at most about half of fill notional is a free closing leg. The fee saving is at most 0.5 × 2.12 = **1.06 bps per fill**, and then only if every close lands inside 15 minutes.
-- 6 Oct run: net60 +1.90 bps over 2,444 ADA fills after 46.5 h (user status of 9 Oct; that run's data is not in the repo [UNVERIFIED here]). The 5 Oct memo also has +1.90 over 4,117 fills (`2026-10-05-dism-gate-six-coins.md`). With the offer, net60 is **at most about +2.96 bps**.
-- In dollars, the 32 h run in the 5 Oct memo made +$5.40 after −$16.20 of fees. With the offer, that run is bounded at +$13.50 (half the fees back).
+**Bound, not a measurement.** Closing contracts can never exceed opening contracts, so at most about half of fill contracts are free closing legs. (The `free%` column is a notional share averaged over scored fills only, so it can come out slightly above 50%.) The fee saving is at most about 0.5 × 2.12 = **1.06 bps per fill**, and then only if every close lands inside 15 minutes. So at the same latency and quote settings: **net60 with the offer ≤ net60 without + ~1.06 bps.** Compare each row with its own net60, not with the numbers below.
+- 5 Oct memo (`2026-10-05-dism-gate-six-coins.md`): ADA fair ±5 bps net60 +1.90 bps over 4,117 fills, fill-weighted over five runs, at **300 ms** latency and $50 quotes. With the offer: at most about **+2.96 bps** at 300 ms.
+- 6 Oct run: net60 +1.90 bps over 2,444 ADA fills after 46.5 h, per the user's status of 9 Oct. The latency behind that figure is not stated, and the run's data is not in the repo. [UNVERIFIED here] The 20 ms row will probably not read +1.90.
+- In dollars, the 32 h run in the 5 Oct memo (300 ms) made +$5.40 after −$16.20 of fees. With the offer, that run is bounded at +$13.50 (half the fees back).
 
 ## Decision (for the user)
 1. **Opt in or not.** The upside is at most ~1 bps per fill. The risks:
@@ -60,7 +62,11 @@ Copy `/tmp/scalper/` off the VM, then from `cex-mm/`:
 ```bash
 python3 scripts/shadow_fill_sim.py --run-dir <dir> --latency-ms 20 --sweep 5 --scalper-window-min 15
 python3 scripts/shadow_fill_sim.py --run-dir <dir> --latency-ms 20 --sweep 5 --scalper-window-min 15 --scalper-match flat
+# the 5 Oct memo's latency, to compare with its +1.90:
+python3 scripts/shadow_fill_sim.py --run-dir <dir> --latency-ms 300 --sweep 5 --scalper-window-min 15
+python3 scripts/shadow_fill_sim.py --run-dir <dir> --latency-ms 300 --sweep 5 --scalper-window-min 15 --scalper-match flat
 ```
+- The `fair +/- 5bps` row always uses `--latency-ms`; `--latencies` adds rows only for the bot's own quotes. So the 300 ms row needs its own run.
 - Keep the file names. The loader globs `dry-run*.log*` (gzip is fine) and `delta_mainnet_public_*.jsonl`, which must stay uncompressed. It needs `api.india.delta.exchange` for tick size and contract value.
 - Alternative on the VM itself: `scripts/shadow.sh report --latency-ms 20 --sweep 5 --scalper-window-min 15`.
-- Fill the Results table from the ADAUSDT `fair +/- 5bps` row (`net60`, `onet60`, `free%`). If fifo and flat differ materially, the pairing rule matters, so ask Delta which one it uses in the same support ticket.
+- Fill each Results row from the ADAUSDT `fair +/- 5bps` row of the matching run (`net60`, `onet60`, `free%`). If fifo and flat differ materially, the pairing rule matters, so ask Delta which one it uses in the same support ticket.
