@@ -4,6 +4,9 @@
 //! - unexpected taker fills (quotes are post-only; only the bot's own reduce-only exit may take);
 //! - Delta's dead man's switch (`MM_DMS_TTL_MS`, armed before quoting): Delta cancels our orders
 //!   if the process or the network stops sending heartbeats.
+//!
+//! Before any of that, a mainnet start is refused when Delta's order leverage on a quoted product
+//! is above `MM_MAX_LEVERAGE`.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -11,7 +14,7 @@ use std::sync::atomic::{AtomicBool, AtomicI64, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use chrono::Utc;
 use mm_delta::DeltaRest;
 
@@ -19,6 +22,52 @@ use crate::risk::{taker_fill_unexpected, DailyLossGuard, DailyLossState};
 
 /// Taker fills within this long of our own reduce-only order are expected.
 const REDUCE_ONLY_GRACE_MS: i64 = 60_000;
+
+/// `MM_MAX_LEVERAGE` default. Delta's own default order leverage is 100x.
+pub const DEFAULT_MAX_LEVERAGE: f64 = 5.0;
+
+/// A zero, negative or non-finite `MM_MAX_LEVERAGE` would block every start or disable the guard;
+/// it falls back to the default instead.
+pub fn max_leverage_or_default(v: f64) -> f64 {
+    if v.is_finite() && v > 0.0 {
+        v
+    } else {
+        DEFAULT_MAX_LEVERAGE
+    }
+}
+
+/// Errors naming every symbol whose order leverage is above `max` (equal passes; an unreadable
+/// value fails), with the fix.
+pub fn check_leverage(readings: &[(String, f64)], max: f64) -> Result<()> {
+    let over: Vec<String> = readings
+        .iter()
+        .filter(|(_, leverage)| leverage.is_nan() || *leverage > max)
+        .map(|(symbol, leverage)| format!("{symbol} {leverage}x"))
+        .collect();
+    if !over.is_empty() {
+        anyhow::bail!(
+            "order leverage above MM_MAX_LEVERAGE={max}x: {}. Set the order leverage on Delta for \
+             each of these products to {max}x or less, then restart.",
+            over.join(", ")
+        );
+    }
+    Ok(())
+}
+
+/// Reads Delta's order leverage for every quoted symbol (logged at info) and checks it against
+/// `max`. A failed read is an error too: the caller decides whether that blocks the start.
+pub async fn verify_order_leverage(rest: &DeltaRest, symbols: &[String], max: f64) -> Result<()> {
+    let mut readings = Vec::with_capacity(symbols.len());
+    for symbol in symbols {
+        let leverage = rest
+            .get_order_leverage(symbol)
+            .await
+            .with_context(|| format!("{symbol}: order leverage read failed"))?;
+        tracing::info!(%symbol, leverage, max_leverage = max, "order leverage");
+        readings.push((symbol.clone(), leverage));
+    }
+    check_leverage(&readings, max)
+}
 
 #[derive(Debug, Default)]
 pub struct AccountFlags {
@@ -186,5 +235,50 @@ async fn keep_heartbeat(rest: DeltaRest, id: String, ttl_ms: u64) {
                 failing = true;
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn readings(rows: &[(&str, f64)]) -> Vec<(String, f64)> {
+        rows.iter().map(|(s, l)| (s.to_string(), *l)).collect()
+    }
+
+    #[test]
+    fn leverage_at_or_below_the_cap_passes() {
+        assert!(check_leverage(&readings(&[("ADAUSDT", 5.0), ("ETHUSDT", 2.0)]), 5.0).is_ok());
+        assert!(check_leverage(&[], 5.0).is_ok());
+    }
+
+    #[test]
+    fn leverage_over_the_cap_names_every_symbol_and_the_fix() {
+        let err = check_leverage(
+            &readings(&[("ADAUSDT", 100.0), ("ETHUSDT", 5.0), ("SOLUSDT", 10.0)]),
+            5.0,
+        )
+        .unwrap_err()
+        .to_string();
+        assert!(err.contains("ADAUSDT 100x"), "{err}");
+        assert!(err.contains("SOLUSDT 10x"), "{err}");
+        assert!(!err.contains("ETHUSDT"), "{err}");
+        assert!(err.contains("MM_MAX_LEVERAGE=5x"), "{err}");
+        assert!(err.contains("Set the order leverage on Delta") && err.contains("restart"), "{err}");
+    }
+
+    #[test]
+    fn unreadable_leverage_fails_closed() {
+        assert!(check_leverage(&readings(&[("ADAUSDT", f64::NAN)]), 5.0).is_err());
+    }
+
+    #[test]
+    fn max_leverage_knob_falls_back_to_the_default_when_not_positive() {
+        assert_eq!(max_leverage_or_default(3.0), 3.0);
+        assert_eq!(max_leverage_or_default(0.0), DEFAULT_MAX_LEVERAGE);
+        assert_eq!(max_leverage_or_default(-2.0), DEFAULT_MAX_LEVERAGE);
+        assert_eq!(max_leverage_or_default(f64::NAN), DEFAULT_MAX_LEVERAGE);
+        assert_eq!(max_leverage_or_default(f64::INFINITY), DEFAULT_MAX_LEVERAGE);
+        assert_eq!(DEFAULT_MAX_LEVERAGE, 5.0);
     }
 }

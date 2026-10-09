@@ -243,7 +243,9 @@ fn delta_credentials(env: mm_delta::DeltaEnvironment) -> Result<mm_delta::DeltaC
 }
 
 /// Daily loss stop, taker-fill guard and dead man's switch for a live run. Refuses to start when
-/// today's loss limit was already hit, or when the dead man's switch is configured but cannot arm.
+/// today's loss limit was already hit, when (mainnet only) Delta's order leverage on a quoted
+/// product is above `MM_MAX_LEVERAGE` or cannot be read, or when the dead man's switch is
+/// configured but cannot arm. Runs before any symbol loop is spawned, so before any order.
 async fn start_account_guards(
     rest: mm_delta::DeltaRest,
     symbols: &[String],
@@ -264,6 +266,17 @@ async fn start_account_guards(
             path.display()
         );
     }
+    let max_leverage = crate::account::max_leverage_or_default(env_f64_global(
+        "MM_MAX_LEVERAGE",
+        crate::account::DEFAULT_MAX_LEVERAGE,
+    ));
+    match crate::account::verify_order_leverage(&rest, symbols, max_leverage).await {
+        Ok(()) => {}
+        Err(e) if env == mm_delta::DeltaEnvironment::IndiaMainnet => {
+            return Err(e.context("leverage guard: mainnet start refused"));
+        }
+        Err(e) => tracing::warn!("leverage guard (demo, not blocking; demo defaults to 100x): {e:#}"),
+    }
     let heartbeat = if cfg.dms_ttl_ms > 0 {
         Some(
             crate::account::arm_dead_mans_switch(&rest, symbols, cfg.dms_ttl_ms)
@@ -273,7 +286,7 @@ async fn start_account_guards(
     } else {
         None
     };
-    tracing::info!(limit_usd = cfg.daily_loss_limit_usd, poll_sec = cfg.poll.as_secs(), dms_ttl_ms = cfg.dms_ttl_ms, "account guards on");
+    tracing::info!(limit_usd = cfg.daily_loss_limit_usd, poll_sec = cfg.poll.as_secs(), dms_ttl_ms = cfg.dms_ttl_ms, max_leverage, "account guards on");
     let flags = Arc::new(AccountFlags::default());
     crate::account::spawn_monitor(rest, symbols.to_vec(), cfg, flags.clone(), guard, path);
     Ok((flags, heartbeat))

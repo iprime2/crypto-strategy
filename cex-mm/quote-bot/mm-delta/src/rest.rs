@@ -91,6 +91,25 @@ fn parse_order_state(text: &str) -> Result<(String, i64)> {
     Ok((state.to_string(), unfilled))
 }
 
+/// `GET /v2/products/{product_id}/orders/leverage` -> `result.leverage` (a string, e.g. `"10"`, in
+/// the response ccxt's Delta adapter captured; a number is accepted too). Fails closed: a failed
+/// call, a missing or unparsable value, or a non-finite or non-positive one is an error.
+fn parse_order_leverage(text: &str) -> Result<f64> {
+    let v: serde_json::Value = serde_json::from_str(text).context("leverage json")?;
+    if v.get("success").and_then(|s| s.as_bool()) == Some(false) {
+        anyhow::bail!("leverage: {}", v.get("error").map(|e| e.to_string()).unwrap_or_default());
+    }
+    let leverage = match v.get("result").and_then(|r| r.get("leverage")) {
+        Some(serde_json::Value::String(s)) => s.trim().parse::<f64>().context("leverage: unparsable")?,
+        Some(serde_json::Value::Number(n)) => n.as_f64().context("leverage: not a number")?,
+        _ => anyhow::bail!("leverage: no result.leverage"),
+    };
+    if !leverage.is_finite() || leverage <= 0.0 {
+        anyhow::bail!("leverage: invalid value {leverage}");
+    }
+    Ok(leverage)
+}
+
 /// Dead man's switch: cancel all orders on these products when a heartbeat is missed. Schema from
 /// Delta's "Deadman Switch" guide (https://docs.delta.exchange/#deadman-switch), not the swagger.
 fn heartbeat_create_body(heartbeat_id: &str, delta_symbols: &[String]) -> serde_json::Value {
@@ -421,6 +440,20 @@ impl DeltaRest {
         parse_order_state(&resp.text().await?)
     }
 
+    /// Order leverage Delta applies to new orders on this product (Delta's default is 100x; the bot
+    /// never sets it). Signed `GET /v2/products/{product_id}/orders/leverage`, no query or body, per
+    /// Delta's official client `get_order_leverage`
+    /// (https://github.com/delta-exchange/python-rest-client/blob/master/delta_rest_client/delta_rest_client.py)
+    /// and https://docs.delta.exchange/#get-order-leverage. Response shape from ccxt's `fetchLeverage`
+    /// (https://github.com/ccxt/ccxt/blob/master/ts/src/delta.ts).
+    pub async fn get_order_leverage(&self, mm_symbol: &str) -> Result<f64> {
+        let meta = self.products.get(mm_symbol)?;
+        let path = format!("/v2/products/{}/orders/leverage", meta.product_id);
+        let resp = self.signed_request(reqwest::Method::GET, &path, "", "").await?;
+        parse_order_leverage(&resp.text().await?)
+            .with_context(|| format!("{} (product {})", meta.symbol, meta.product_id))
+    }
+
     pub async fn heartbeat_create(&self, heartbeat_id: &str, delta_symbols: &[String]) -> Result<()> {
         let body = heartbeat_create_body(heartbeat_id, delta_symbols).to_string();
         let resp = self
@@ -490,6 +523,31 @@ mod tests {
         let text = r#"{"success":true,"result":{"id":7,"state":"cancelled","unfilled_size":1,"size":1}}"#;
         assert_eq!(parse_order_state(text).unwrap(), ("cancelled".to_string(), 1));
         assert!(parse_order_state(r#"{"success":false,"error":{"code":"not_found"}}"#).is_err());
+    }
+
+    #[test]
+    fn order_leverage_reads_string_or_number_and_fails_closed() {
+        // Verbatim from ccxt's Delta adapter (fetchLeverage): leverage is a string.
+        let ccxt = r#"{"result":{"index_symbol":null,"leverage":"10","margin_mode":"isolated","order_margin":"0","product_id":84,"user_id":30084879},"success":true}"#;
+        assert_eq!(parse_order_leverage(ccxt).unwrap(), 10.0);
+        let num = r#"{"result":{"leverage":5,"product_id":84},"success":true}"#;
+        assert_eq!(parse_order_leverage(num).unwrap(), 5.0);
+        // Delta's default order leverage.
+        let default = r#"{"result":{"leverage":"100","product_id":84},"success":true}"#;
+        assert_eq!(parse_order_leverage(default).unwrap(), 100.0);
+
+        let failed = r#"{"success":false,"error":{"code":"unauthorized","message":"invalid api key"}}"#;
+        let err = parse_order_leverage(failed).unwrap_err().to_string();
+        assert!(err.contains("unauthorized") && err.contains("invalid api key"), "{err}");
+        assert!(parse_order_leverage(r#"{"success":true}"#).is_err());
+        assert!(parse_order_leverage(r#"{"success":true,"result":{"product_id":84}}"#).is_err());
+        assert!(parse_order_leverage(r#"{"success":true,"result":{"leverage":"ten"}}"#).is_err());
+        assert!(parse_order_leverage(r#"{"success":true,"result":{"leverage":null}}"#).is_err());
+        assert!(parse_order_leverage(r#"{"success":true,"result":{"leverage":"0"}}"#).is_err());
+        assert!(parse_order_leverage(r#"{"success":true,"result":{"leverage":-3}}"#).is_err());
+        assert!(parse_order_leverage(r#"{"success":true,"result":{"leverage":"NaN"}}"#).is_err());
+        assert!(parse_order_leverage(r#"{"success":true,"result":{"leverage":"inf"}}"#).is_err());
+        assert!(parse_order_leverage("<html>502 Bad Gateway</html>").is_err());
     }
 
     #[test]
