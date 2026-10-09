@@ -1,4 +1,4 @@
-use chrono::Timelike;
+use chrono::{DateTime, Datelike, NaiveDate, NaiveDateTime, TimeDelta, Timelike, Utc, Weekday};
 
 /// Volatility regime L0–L3 (R5 / STRATEGY §6.3).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -143,12 +143,47 @@ impl RegimeEngine {
         }
     }
 
-    pub fn calendar_pause_utc(now: chrono::DateTime<chrono::Utc>) -> bool {
-        let minute = now.minute();
-        let hour = now.hour();
-        (hour == 13 && minute >= 28 && minute <= 35)
-            || (hour == 18 && minute >= 28 && minute <= 35)
+    /// Daily news pause (K11, STRATEGY.md: CPI/FOMC T-2m to T+5m), anchored to
+    /// America/New_York wall-clock time so it follows US daylight saving:
+    ///
+    /// - 08:28-08:35 ET: the 08:30 ET US releases (CPI, NFP, PPI, jobless
+    ///   claims, retail sales). 12:28-12:35 UTC under EDT, 13:28-13:35 UTC under EST.
+    /// - 14:28-14:35 ET: the 14:30 ET FOMC press conference (the 14:00 ET
+    ///   statement is not covered). 18:28-18:35 UTC under EDT, 19:28-19:35 UTC under EST.
+    ///
+    /// Minutes are inclusive (through hh:35:59). It runs every day, not from an
+    /// event calendar, so it also pauses on days with no release.
+    pub fn calendar_pause_utc(now: DateTime<Utc>) -> bool {
+        let local = new_york_local_time(now);
+        (local.hour() == 8 || local.hour() == 14) && (28..=35).contains(&local.minute())
     }
+}
+
+/// America/New_York UTC offset in hours at `now`: -4 under US daylight time
+/// (EDT), -5 otherwise (EST). DST runs from the second Sunday of March at
+/// 02:00 EST (07:00 UTC) to the first Sunday of November at 02:00 EDT (06:00 UTC).
+// shortcut: hard-codes the 2007 US DST rule, switch to chrono-tz if US DST law changes
+fn new_york_utc_offset_hours(now: DateTime<Utc>) -> i64 {
+    let year = now.year();
+    let start = sunday_utc(year, 3, 2, 7);
+    let end = sunday_utc(year, 11, 1, 6);
+    match (start, end) {
+        (Some(start), Some(end)) if now >= start && now < end => -4,
+        _ => -5,
+    }
+}
+
+/// The `nth` Sunday of `month` in `year` at `hour_utc`:00 UTC. `None` only
+/// outside chrono's date range.
+fn sunday_utc(year: i32, month: u32, nth: u8, hour_utc: u32) -> Option<DateTime<Utc>> {
+    NaiveDate::from_weekday_of_month_opt(year, month, Weekday::Sun, nth)
+        .and_then(|d| d.and_hms_opt(hour_utc, 0, 0))
+        .map(|dt| dt.and_utc())
+}
+
+/// Wall-clock time in America/New_York at `now`.
+fn new_york_local_time(now: DateTime<Utc>) -> NaiveDateTime {
+    now.naive_utc() + TimeDelta::hours(new_york_utc_offset_hours(now))
 }
 
 #[cfg(test)]
@@ -193,5 +228,105 @@ mod tests {
         };
         let fair = crate::fair::resolve_fair_cex(100.0, None, ext);
         assert!(fair < 100.0);
+    }
+
+    fn utc(rfc3339: &str) -> DateTime<Utc> {
+        rfc3339.parse().expect("test timestamp is RFC 3339")
+    }
+
+    fn ny_local(rfc3339: &str) -> String {
+        new_york_local_time(utc(rfc3339))
+            .format("%Y-%m-%d %H:%M:%S")
+            .to_string()
+    }
+
+    #[test]
+    fn new_york_offset_flips_exactly_at_the_dst_boundaries() {
+        // (one second before, boundary, offset before, offset at boundary)
+        let cases = [
+            ("2025-03-09T06:59:59Z", "2025-03-09T07:00:00Z", -5, -4),
+            ("2025-11-02T05:59:59Z", "2025-11-02T06:00:00Z", -4, -5),
+            ("2026-03-08T06:59:59Z", "2026-03-08T07:00:00Z", -5, -4),
+            ("2026-11-01T05:59:59Z", "2026-11-01T06:00:00Z", -4, -5),
+            ("2027-03-14T06:59:59Z", "2027-03-14T07:00:00Z", -5, -4),
+            ("2027-11-07T05:59:59Z", "2027-11-07T06:00:00Z", -4, -5),
+        ];
+        for (before, at, off_before, off_at) in cases {
+            assert_eq!(
+                new_york_utc_offset_hours(utc(before)),
+                off_before,
+                "{before}"
+            );
+            assert_eq!(new_york_utc_offset_hours(utc(at)), off_at, "{at}");
+        }
+    }
+
+    #[test]
+    fn new_york_local_time_jumps_at_the_2026_boundaries() {
+        // Spring forward: 01:59:59 EST -> 03:00:00 EDT.
+        assert_eq!(ny_local("2026-03-08T06:59:59Z"), "2026-03-08 01:59:59");
+        assert_eq!(ny_local("2026-03-08T07:00:00Z"), "2026-03-08 03:00:00");
+        // Fall back: 01:59:59 EDT -> 01:00:00 EST.
+        assert_eq!(ny_local("2026-11-01T05:59:59Z"), "2026-11-01 01:59:59");
+        assert_eq!(ny_local("2026-11-01T06:00:00Z"), "2026-11-01 01:00:00");
+        // Across UTC midnight the local date is the previous day.
+        assert_eq!(ny_local("2026-12-10T03:00:00Z"), "2026-12-09 22:00:00");
+    }
+
+    fn paused(rfc3339: &str) -> bool {
+        RegimeEngine::calendar_pause_utc(utc(rfc3339))
+    }
+
+    #[test]
+    fn news_pause_follows_new_york_daylight_time() {
+        // Fri 2026-10-09 is EDT (UTC-4): 08:30 ET = 12:30 UTC, 14:30 ET = 18:30 UTC.
+        for t in [
+            "2026-10-09T12:30:00Z",
+            "2026-10-09T12:28:00Z",
+            "2026-10-09T12:35:00Z",
+            "2026-10-09T12:35:59Z",
+            "2026-10-09T18:28:00Z",
+            "2026-10-09T18:30:00Z",
+            "2026-10-09T18:35:59Z",
+        ] {
+            assert!(paused(t), "{t} is inside an EDT news window");
+        }
+        for t in [
+            "2026-10-09T12:27:59Z",
+            "2026-10-09T12:36:00Z",
+            // 09:30 EDT: the old fixed 13:28-13:35 UTC window paused here.
+            "2026-10-09T13:30:00Z",
+            "2026-10-09T18:27:59Z",
+            "2026-10-09T18:36:00Z",
+        ] {
+            assert!(!paused(t), "{t} is outside the EDT news windows");
+        }
+    }
+
+    #[test]
+    fn news_pause_follows_new_york_standard_time() {
+        // Thu 2026-12-10 is EST (UTC-5): 08:30 ET = 13:30 UTC, 14:30 ET = 19:30 UTC.
+        assert!(paused("2026-12-10T13:30:00Z"));
+        assert!(!paused("2026-12-10T12:30:00Z"), "07:30 EST");
+        assert!(paused("2026-12-10T19:30:00Z"));
+        assert!(!paused("2026-12-10T18:30:00Z"), "13:30 EST");
+    }
+
+    #[test]
+    fn news_pause_moves_with_the_dst_end_weekend() {
+        // DST ends Sun 2026-11-01 at 06:00 UTC (02:00 EDT -> 01:00 EST).
+        assert!(paused("2026-10-30T12:30:00Z"), "Fri 08:30 EDT");
+        assert!(!paused("2026-11-01T12:30:00Z"), "Sun 07:30 EST");
+        assert!(paused("2026-11-01T13:30:00Z"), "Sun 08:30 EST");
+        assert!(paused("2026-11-02T13:30:00Z"), "Mon 08:30 EST");
+        assert!(!paused("2026-11-02T12:30:00Z"), "Mon 07:30 EST");
+    }
+
+    #[test]
+    fn news_pause_moves_with_the_dst_start_weekend() {
+        // DST starts Sun 2026-03-08 at 07:00 UTC (02:00 EST -> 03:00 EDT).
+        assert!(paused("2026-03-06T13:30:00Z"), "Fri 08:30 EST");
+        assert!(paused("2026-03-09T12:30:00Z"), "Mon 08:30 EDT");
+        assert!(!paused("2026-03-09T13:30:00Z"), "Mon 09:30 EDT");
     }
 }
