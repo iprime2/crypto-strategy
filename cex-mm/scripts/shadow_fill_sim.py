@@ -18,8 +18,14 @@ dry-run itself always has zero inventory, so inventory skew is not simulated.
 Per fill: capture = side * (delta_mid - price), markout(h) = side * (delta_mid(t+h) - delta_mid(t)),
 net(h) = capture + markout(h) - maker fee. All in bps.
 
+`--scalper-window-min N` also prices Delta's Scalper Offer (no fee on the closing leg of a futures
+trade opened and closed within N minutes; opening legs pay): extra columns show fee, net60, net300
+and PnL with the offer, and free% = share of fill notional that was a free closing leg.
+`--scalper-match` picks how closes pair with opens, which Delta does not specify (see ScalperOffer).
+
     python3 scripts/shadow_fill_sim.py --run-dir artifacts/shadow/<run>
     python3 scripts/shadow_fill_sim.py --run-dir artifacts/shadow/<run> --sweep 3,4,5,6,8 --latencies 0,300,1000
+    python3 scripts/shadow_fill_sim.py --run-dir artifacts/shadow/<run> --sweep 5 --scalper-window-min 15
 """
 from __future__ import annotations
 
@@ -174,6 +180,8 @@ class Fill:
     fee: float
     mid: float
     fair: float
+    fee_offer: float | None = None  # fee under the Scalper Offer; None when the offer is not simulated
+    free_qty: float = 0.0  # contracts of this fill that were a fee-free closing leg
 
 
 @dataclass
@@ -194,6 +202,8 @@ class SimConfig:
     requote_tol_bps: float
     max_gap_ms: float
     loop_ms: float
+    scalper_window_min: float = 0.0  # Delta Scalper Offer window; 0 = not simulated
+    scalper_match: str = "fifo"  # fifo | flat, see ScalperOffer
 
 
 @dataclass
@@ -203,6 +213,47 @@ class SimResult:
     inside_ms: float = 0.0
     span_ms: float = 0.0
     final_inv: float = 0.0
+    offer: bool = False  # fills carry fee_offer / free_qty
+
+
+class ScalperOffer:
+    """Delta's Scalper Offer: no fee on the closing leg of a futures trade opened and closed within the window.
+
+    Delta does not say how closes pair with opens, so two rules bound it:
+      fifo: the closing qty is matched first-in-first-out against open lots, each aged from its own fill.
+      flat: the closing qty is free only if the position episode (since inventory last left zero) is
+            within the window. Never more generous than fifo.
+    Opening legs, and the part of a fill that flips through zero, always pay.
+    """
+
+    def __init__(self, window_ms: float, match: str = "fifo"):
+        if match not in ("fifo", "flat"):
+            raise ValueError(f"unknown scalper match rule {match!r}")
+        self.window_ms = window_ms
+        self.match = match
+        self.lots: collections.deque[list[float]] = collections.deque()  # [open_ts, qty], oldest first
+        self.episode_start = 0.0
+
+    def free_qty(self, ts: float, inv: float, side: int, q: float) -> float:
+        """Book a fill of q contracts on `side` with inventory `inv` before it; return the fee-free contracts."""
+        closing = min(q, abs(inv)) if side * inv < 0 else 0.0
+        free, left = 0.0, closing
+        while left > 1e-9 and self.lots:
+            lot = self.lots[0]
+            take = min(left, lot[1])
+            if ts - lot[0] <= self.window_ms:
+                free += take
+            lot[1] -= take
+            left -= take
+            if lot[1] <= 1e-9:
+                self.lots.popleft()
+        if self.match == "flat":
+            free = closing if ts - self.episode_start <= self.window_ms else 0.0
+        if q - closing > 1e-9:  # opens, adds, or the overshoot of a flip
+            if not self.lots:
+                self.episode_start = ts
+            self.lots.append([ts, q - closing])
+        return free
 
 
 def floor_tick(px: float, tick: float) -> float:
@@ -234,6 +285,8 @@ def simulate(samples: list[Sample], trades: list[Trade], tick: float, cv: float,
     qty = max(1.0, round(cfg.quote_usd / (ref_px * cv)))
     max_inv = qty * cfg.max_inv_orders
     sides = {1: SideState(), -1: SideState()}  # +1 = our bid, -1 = our ask
+    offer = ScalperOffer(cfg.scalper_window_min * 60_000, cfg.scalper_match) if cfg.scalper_window_min > 0 else None
+    res.offer = offer is not None
     inv = 0.0
     alive_until = 0.0
     si = 0
@@ -292,6 +345,7 @@ def simulate(samples: list[Sample], trades: list[Trade], tick: float, cv: float,
             continue
         notional = q * cv * st.price
         s = last_sample
+        free = offer.free_qty(t.ts, inv, side, q) if offer else 0.0
         res.fills.append(
             Fill(
                 ts=t.ts,
@@ -302,6 +356,8 @@ def simulate(samples: list[Sample], trades: list[Trade], tick: float, cv: float,
                 fee=notional * cfg.fee_bps / 1e4,
                 mid=(s.book_bid + s.book_ask) / 2,
                 fair=s.fair,
+                fee_offer=(q - free) * cv * st.price * cfg.fee_bps / 1e4 if offer else None,
+                free_qty=free,
             )
         )
         inv += side * q
@@ -352,7 +408,7 @@ def summarize(res: SimResult, mids: MidSeries, cv: float) -> dict:
     total = cash + res.final_inv * cv * last_mid - fees
     spread_usd = sum(f.side * (f.mid - f.price) * f.qty * cv for f in res.fills)
     fee_bps = wavg(lambda f, c, mo: f.fee / f.notional * 1e4)
-    return {
+    out = {
         "fills": len(res.fills),
         "scored": len(rows),
         "days": days,
@@ -371,6 +427,18 @@ def summarize(res: SimResult, mids: MidSeries, cv: float) -> dict:
         "pnl_inventory": total + fees - spread_usd,
         "final_inv": res.final_inv,
     }
+    if res.offer:  # the same fills priced under the Scalper Offer
+        fees_offer = sum(f.fee_offer for f in res.fills)
+        fee_offer_bps = wavg(lambda f, c, mo: f.fee_offer / f.notional * 1e4)
+        out.update(
+            fee_offer=fee_offer_bps,
+            net60_offer=out["net60"] + fee_bps - fee_offer_bps,
+            net300_offer=out["net300"] + fee_bps - fee_offer_bps,
+            pnl_total_offer=total + fees - fees_offer,
+            pnl_fees_offer=-fees_offer,
+            free_share=wavg(lambda f, c, mo: f.free_qty / f.qty),
+        )
+    return out
 
 
 def verdict(s: dict, min_fills: int, target: float) -> str:
@@ -383,7 +451,7 @@ def verdict(s: dict, min_fills: int, target: float) -> str:
     return "INCONCLUSIVE"
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--run-dir", required=True)
     ap.add_argument("--latency-ms", type=float, default=300)
@@ -398,7 +466,17 @@ def main() -> None:
     ap.add_argument("--loop-ms", type=float, default=400)
     ap.add_argument("--min-fills", type=int, default=300)
     ap.add_argument("--target-bps", type=float, default=0.5)
-    args = ap.parse_args()
+    ap.add_argument(
+        "--scalper-window-min", type=float, default=0.0,
+        help="also price Delta's Scalper Offer: closing legs within this many minutes pay no fee "
+        "(15 for ADAUSD, 30 for BTCUSD/ETHUSD; 0 = off)",
+    )
+    ap.add_argument(
+        "--scalper-match", choices=["fifo", "flat"], default="fifo",
+        help="pair closes with opens first-in-first-out (fifo) or by position age since flat (flat, stricter)",
+    )
+    args = ap.parse_args(argv)
+    offer_on = args.scalper_window_min > 0
 
     metric_paths = sorted(glob.glob(os.path.join(args.run_dir, "dry-run*.log*")))
     trade_paths = sorted(glob.glob(os.path.join(args.run_dir, "delta_mainnet_public_*.jsonl")))
@@ -415,6 +493,8 @@ def main() -> None:
         requote_tol_bps=args.requote_tol_bps,
         max_gap_ms=args.max_gap_ms,
         loop_ms=args.loop_ms,
+        scalper_window_min=args.scalper_window_min,
+        scalper_match=args.scalper_match,
     )
     for sym in sorted(metrics):
         samples = metrics[sym]
@@ -435,7 +515,9 @@ def main() -> None:
         header = (
             f"{'config':22s} {'fills':>6s} {'/day':>6s} {'$/day':>8s} {'up%':>5s} {'in%':>5s} "
             f"{'capt':>6s} " + " ".join(f"{f'mo{h}':>6s}" for h in HORIZONS) + f" {'fee':>5s} {'net60':>6s} {'net300':>6s} "
-            f"{'PnL$':>7s} {'spr$':>7s} {'inv$':>7s} {'fee$':>7s}  verdict"
+            f"{'PnL$':>7s} {'spr$':>7s} {'inv$':>7s} {'fee$':>7s}"
+            + (f" | {'ofee':>5s} {'onet60':>6s} {'onet300':>7s} {'oPnL$':>7s} {'free%':>5s}" if offer_on else "")
+            + "  verdict"
         )
         print(header)
 
@@ -446,8 +528,14 @@ def main() -> None:
                 f"{s['uptime']:5.0%} {s['inside']:5.0%} {s['capture']:6.2f} "
                 + " ".join(f"{s['mo'][h]:6.2f}" for h in HORIZONS)
                 + f" {s['fee']:5.2f} {s['net60']:6.2f} {s['net300']:6.2f} "
-                f"{s['pnl_total']:7.2f} {s['pnl_spread']:7.2f} {s['pnl_inventory']:7.2f} {s['pnl_fees']:7.2f}  "
-                f"{verdict(s, args.min_fills, args.target_bps)}"
+                f"{s['pnl_total']:7.2f} {s['pnl_spread']:7.2f} {s['pnl_inventory']:7.2f} {s['pnl_fees']:7.2f}"
+                + (
+                    f" | {s['fee_offer']:5.2f} {s['net60_offer']:6.2f} {s['net300_offer']:7.2f} "
+                    f"{s['pnl_total_offer']:7.2f} {s['free_share']:5.0%}"
+                    if offer_on
+                    else ""
+                )
+                + f"  {verdict(s, args.min_fills, args.target_bps)}"
             )
 
         row(f"bot quotes {args.latency_ms:.0f}ms", SimConfig(latency_ms=args.latency_ms, half_spread_bps=None, **base))
@@ -463,6 +551,12 @@ def main() -> None:
         f"maker fee {args.fee_bps} bps. Verdict: PASS if net60 >= {args.target_bps} bps over >= {args.min_fills} "
         f"fills, STOP if net60 < 0. up% = both sides quoted; in% = at least one side inside the Delta touch."
     )
+    if offer_on:
+        print(
+            f"Scalper Offer: {args.scalper_window_min:g} min window, {args.scalper_match} matching. Columns after "
+            f"'|' price the same fills with closing legs inside the window fee-free (opening legs pay); free% = "
+            f"share of fill notional that was a free closing leg. The verdict ignores the offer."
+        )
 
 
 if __name__ == "__main__":
