@@ -26,3 +26,4 @@ resource/godark-mm-bot/mms/artifacts/
 # Shadow-test recordings (large; regenerate with cex-mm/scripts/shadow.sh)
 cex-mm/artifacts/shadow/
 cex-mm/artifacts/trend/
+graphify-out/
