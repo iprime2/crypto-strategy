@@ -59,7 +59,7 @@ At $280, the BTC and BNB positions round to zero on most days. From about $1,000
 
 ## Next experiment
 Paper-trade the fixed rule for 4 weeks on Delta mainnet public data (`scripts/trend_paper.py`, dashboard `/trend`, started 2026-10-08 on the Tokyo VM with $1,000 paper equity at the default 40% target vol): one rebalance a day after the 00:00 UTC close, whole contracts, taker fills walked through the live L2 book, Delta funding. Mainnet data rather than Delta demo, because demo prices do not track mainnet and demo fills do not validate economics; order plumbing gets its own check before any live start.
-- **Metric:** paper equity tracks the model equity (backtest arithmetic on the same days); measured slippage and fees per rebalance.
+- **Metric:** paper equity tracks the model equity (the rule's unrounded weights held between the same rebalance mids, with modelled costs; until 2026-10-09 the model was close-to-close, which charged the mid-day first start for the whole day); measured slippage and fees per rebalance.
 - **Success:** every rebalance executes, and costs stay within 2x of the 7.31 bps modelled.
 - **Stop:** missed or partial rebalances on two days, or costs above 2x the model.
 

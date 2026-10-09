@@ -22,7 +22,7 @@
 
   <section class="card full">
     <h2>Equity, paper vs backtest model (USD)</h2>
-    <div class="sub">Paper: orders filled against Delta's live order book at each rebalance, with taker fees and funding. Model: the backtest's arithmetic on the same days' closes. The gap is execution, rounding to whole contracts, and timing.</div>
+    <div class="sub">Paper: orders filled against Delta's live order book at each rebalance, with taker fees and funding. Model: the rule's weights before rounding, held between the same rebalances, with the backtest's modelled costs. The gap is execution and rounding to whole contracts.</div>
     <div class="chart" id="equityChart"></div>
   </section>
 
@@ -109,7 +109,7 @@ function renderTiles(d) {
   box.replaceChildren();
   const s = d.state, j = d.journal, last = j[j.length - 1], p = points(d);
   const ret = last.equity / s.capital - 1, mret = last.model_equity / s.capital - 1;
-  const days = Math.max(1, (d.server_time - Date.parse(s.started)) / DAY);
+  const days = Math.max(0, (d.server_time - Date.parse(s.started)) / DAY);
   const hero = el("div", { class: "card tile hero" });
   hero.appendChild(el("div", { class: "label" }, "Paper equity"));
   hero.appendChild(el("div", { class: "value" }, fmtUsd(last.equity)));
