@@ -270,13 +270,10 @@ async fn start_account_guards(
         "MM_MAX_LEVERAGE",
         crate::account::DEFAULT_MAX_LEVERAGE,
     ));
-    match crate::account::verify_order_leverage(&rest, symbols, max_leverage).await {
-        Ok(()) => {}
-        Err(e) if env == mm_delta::DeltaEnvironment::IndiaMainnet => {
-            return Err(e.context("leverage guard: mainnet start refused"));
-        }
-        Err(e) => tracing::warn!("leverage guard (demo, not blocking; demo defaults to 100x): {e:#}"),
-    }
+    crate::account::apply_leverage_guard(
+        env,
+        crate::account::verify_order_leverage(&rest, symbols, max_leverage).await,
+    )?;
     let heartbeat = if cfg.dms_ttl_ms > 0 {
         Some(
             crate::account::arm_dead_mans_switch(&rest, symbols, cfg.dms_ttl_ms)
