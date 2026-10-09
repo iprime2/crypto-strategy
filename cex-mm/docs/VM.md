@@ -66,3 +66,19 @@ systemctl --user start cex-mm-trend-paper            # run now (a no-op if today
 
 Deleting `artifacts/trend/paper/` starts a new paper book at the next run.
 
+
+## Phone access (Tailscale)
+
+The dashboard is published on the operator's private tailnet, not the internet: no inbound ports are opened.
+
+```bash
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up --hostname=dism-tokyo          # prints a login link, approved once in the browser
+sudo tailscale serve --bg 8788                   # https://dism-tokyo.<tailnet>.ts.net/ (tailnet only)
+tailscale serve status
+sudo tailscale serve --https=443 off             # unpublish
+```
+
+HTTPS needs MagicDNS and HTTPS certificates enabled for the tailnet (the first `serve` prints the link). Open the
+dashboard by name, not by 100.x IP. Traffic inside the tailnet is WireGuard-encrypted. Disable key expiry for `dism-tokyo` in the Tailscale admin console,
+or the VM drops off the tailnet when its node key expires (180 days).

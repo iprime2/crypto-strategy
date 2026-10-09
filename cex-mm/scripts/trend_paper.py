@@ -4,8 +4,8 @@
 Once per UTC day, after the 00:00 close: compute the backtest's long-only target weights from Delta daily
 closes, size them off paper equity in whole contracts, and fill the difference as taker orders walked
 through Delta's live L2 book, so slippage is measured rather than assumed. Funding is charged from
-Delta's FUNDING:<sym> rates. A "model" equity applies the backtest arithmetic to the same days, so the
-two can be compared. Public data only: no API keys, no orders. Safe to run hourly; it rebalances at most
+Delta's FUNDING:<sym> rates. A "model" equity holds the rule's unrounded weights between the same
+rebalances (mid to mid) with the backtest's modelled costs, so the two can be compared. Public data only: no API keys, no orders. Safe to run hourly; it rebalances at most
 once per UTC day and exits non-zero when data is missing, so the next run retries.
 
     python3 scripts/trend_paper.py --capital 1000     # state in artifacts/trend/paper/
@@ -81,7 +81,7 @@ def walk_book(levels: list[tuple[float, float]], qty: float) -> float:
 
 def init_state(capital: float, now: dt.datetime) -> dict:
     return {"started": now.isoformat(), "capital": capital, "cash": capital, "positions": {},
-            "model_equity": capital, "model_weights": {}, "signal_day": None,
+            "model_equity": capital, "model_weights": {}, "model_mids": {}, "signal_day": None,
             "last_rebalance": None, "last_rebalance_ts": None}
 
 
@@ -124,18 +124,17 @@ def step(state: dict, closes: dict, books: dict, funding: dict, cvals: dict, now
                        "slippage_bps": (px / mids[c] - 1) * 1e4 * (1 if qty > 0 else -1)})
     eq_after = equity(state, mids, cvals)
 
-    # Model: the backtest's arithmetic over the same days (close to close, modelled costs).
-    prev_w, prev_day = state["model_weights"], state["signal_day"]
-    r = 0.0
-    if prev_day:
-        p = dt.date.fromisoformat(prev_day)
-        r += sum(x * (closes[c][signal_day] / closes[c][p] - 1) for c, x in prev_w.items() if p in closes[c])
-        r -= sum(x * funding.get(c, 0.0) for c, x in prev_w.items())
+    # Model: the rule's unrounded weights held over the same window as the paper book (rebalance mid to
+    # rebalance mid), with the backtest's modelled costs. Close-to-close would charge a mid-day start
+    # for moves that happened before the paper book existed.
+    prev_w, prev_mids = state["model_weights"], state.get("model_mids") or {}
+    r = sum(x * (mids[c] / prev_mids[c] - 1) for c, x in prev_w.items() if c in prev_mids)
+    r -= sum(x * funding.get(c, 0.0) for c, x in prev_w.items())
     r -= sum(abs(w.get(c, 0.0) - prev_w.get(c, 0.0)) for c in tb.COINS) * MODEL_COST
     state["model_equity"] *= 1 + r
 
-    state.update(model_weights=w, signal_day=signal_day.isoformat(), last_rebalance=now.date().isoformat(),
-                 last_rebalance_ts=int(now.timestamp()))
+    state.update(model_weights=w, model_mids=mids, signal_day=signal_day.isoformat(),
+                 last_rebalance=now.date().isoformat(), last_rebalance_ts=int(now.timestamp()))
     return {"time": now.isoformat(), "signal_day": signal_day.isoformat(), "equity_before": eq_before,
             "equity": eq_after, "model_equity": state["model_equity"], "cash": state["cash"], "funding": fund_paid,
             "fees": fees, "orders": orders, "weights": w, "positions": dict(pos), "mids": mids,
@@ -171,6 +170,14 @@ def selftest() -> None:
     rec2 = step(s, closes, books, {c: 0.0003 for c in tb.COINS}, cvals, nxt)
     assert rec2["equity_before"] > rec["equity"] and rec2["funding"] > 0, rec2
     assert s["model_equity"] > 1000 * (1 - 0.01), s["model_equity"]
+    # A big close-to-close drop with flat mids between rebalances (e.g. a mid-day start) must not move the
+    # model: it only holds positions between rebalance mids, like the paper book.
+    m0, nxt2 = s["model_equity"], nxt + dt.timedelta(1)
+    for c in tb.COINS:
+        closes[c][nxt2.date() - dt.timedelta(1)] = last * 1.02 * 0.9
+    rec3 = step(s, closes, books, {}, cvals, nxt2)
+    assert abs(s["model_equity"] / m0 - 1) < 0.002, (m0, s["model_equity"])
+    assert abs(rec3["model_equity"] - rec3["equity"]) / rec3["equity"] < 0.01, rec3
     print("selftest ok")
 
 
