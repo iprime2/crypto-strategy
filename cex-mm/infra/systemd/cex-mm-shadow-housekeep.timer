@@ -1,0 +1,12 @@
+# User unit, rendered by infra/vm/setup.sh. Not enabled by setup.sh: enable it by hand once runs are
+# being copied off (docs/VM.md, Housekeeping). Daily at 03:30 UTC, away from the trend paper trader's :05.
+[Unit]
+Description=Delete old cex-mm shadow runs daily at 03:30 UTC
+
+[Timer]
+OnCalendar=*-*-* 03:30:00 UTC
+RandomizedDelaySec=10min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

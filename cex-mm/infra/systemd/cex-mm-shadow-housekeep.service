@@ -1,0 +1,11 @@
+# User unit, rendered by infra/vm/setup.sh. Started by cex-mm-shadow-housekeep.timer (setup.sh installs
+# it but does not enable it; see docs/VM.md, Housekeeping).
+[Unit]
+Description=Delete cex-mm shadow runs older than 14 days (keeps the current run and any run with a live process)
+
+[Service]
+Type=oneshot
+WorkingDirectory=@CEX_MM@
+ExecStart=/usr/bin/python3 @CEX_MM@/scripts/shadow_housekeep.py --apply
+Nice=10
+IOSchedulingClass=idle
