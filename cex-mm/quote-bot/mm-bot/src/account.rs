@@ -4,6 +4,9 @@
 //! - unexpected taker fills (quotes are post-only; only the bot's own reduce-only exit may take);
 //! - Delta's dead man's switch (`MM_DMS_TTL_MS`, armed before quoting): Delta cancels our orders
 //!   if the process or the network stops sending heartbeats.
+//!
+//! Before any of that, a mainnet start is refused when Delta's order leverage on a quoted product
+//! is above `MM_MAX_LEVERAGE`.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -13,12 +16,84 @@ use std::time::Duration;
 
 use anyhow::Result;
 use chrono::Utc;
-use mm_delta::DeltaRest;
+use mm_delta::{DeltaEnvironment, DeltaRest};
 
 use crate::risk::{taker_fill_unexpected, DailyLossGuard, DailyLossState};
 
 /// Taker fills within this long of our own reduce-only order are expected.
 const REDUCE_ONLY_GRACE_MS: i64 = 60_000;
+
+/// `MM_MAX_LEVERAGE` default. Delta's own default order leverage is 100x.
+pub const DEFAULT_MAX_LEVERAGE: f64 = 5.0;
+
+/// A zero, negative or non-finite `MM_MAX_LEVERAGE` would block every start or disable the guard;
+/// it falls back to the default instead.
+pub fn max_leverage_or_default(v: f64) -> f64 {
+    if v.is_finite() && v > 0.0 {
+        v
+    } else {
+        DEFAULT_MAX_LEVERAGE
+    }
+}
+
+/// One error naming every symbol whose order leverage is above `max` (equal passes; NaN fails),
+/// with the fix, and every symbol whose read failed (fails closed).
+pub fn check_leverage(readings: &[(String, Result<f64>)], max: f64) -> Result<()> {
+    let (mut over, mut failed) = (Vec::new(), Vec::new());
+    for (symbol, reading) in readings {
+        match reading {
+            Ok(leverage) if leverage.is_nan() || *leverage > max => {
+                over.push(format!("{symbol} {leverage}x"))
+            }
+            Ok(_) => {}
+            Err(e) => failed.push(format!("{symbol} ({e:#})")),
+        }
+    }
+    let mut problems = Vec::new();
+    if !over.is_empty() {
+        problems.push(format!(
+            "order leverage above MM_MAX_LEVERAGE={max}x: {}. Set the order leverage on Delta for \
+             each of these products to {max}x or less, then restart.",
+            over.join(", ")
+        ));
+    }
+    if !failed.is_empty() {
+        problems.push(format!("order leverage read failed: {}.", failed.join("; ")));
+    }
+    if !problems.is_empty() {
+        anyhow::bail!("{}", problems.join(" "));
+    }
+    Ok(())
+}
+
+/// Reads Delta's order leverage for every quoted symbol (each reading logged at info; a failed read
+/// does not stop the others) and checks them all against `max`.
+pub async fn verify_order_leverage(rest: &DeltaRest, symbols: &[String], max: f64) -> Result<()> {
+    let mut readings = Vec::with_capacity(symbols.len());
+    for symbol in symbols {
+        let reading = rest.get_order_leverage(symbol).await;
+        if let Ok(leverage) = &reading {
+            tracing::info!(%symbol, leverage = *leverage, max_leverage = max, "order leverage");
+        }
+        readings.push((symbol.clone(), reading));
+    }
+    check_leverage(&readings, max)
+}
+
+/// A leverage-guard error refuses a mainnet start; on demo it is only a warning (the demo bot
+/// restarts via the OEMS and demo leverage defaults to 100x).
+pub fn apply_leverage_guard(env: DeltaEnvironment, res: Result<()>) -> Result<()> {
+    match (env, res) {
+        (_, Ok(())) => Ok(()),
+        (DeltaEnvironment::IndiaMainnet, Err(e)) => {
+            Err(e.context("leverage guard: mainnet start refused"))
+        }
+        (DeltaEnvironment::DemoIndia, Err(e)) => {
+            tracing::warn!("leverage guard (demo, not blocking; demo defaults to 100x): {e:#}");
+            Ok(())
+        }
+    }
+}
 
 #[derive(Debug, Default)]
 pub struct AccountFlags {
@@ -186,5 +261,78 @@ async fn keep_heartbeat(rest: DeltaRest, id: String, ttl_ms: u64) {
                 failing = true;
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn readings(rows: &[(&str, f64)]) -> Vec<(String, Result<f64>)> {
+        rows.iter().map(|(s, l)| (s.to_string(), Ok(*l))).collect()
+    }
+
+    #[test]
+    fn leverage_at_or_below_the_cap_passes() {
+        assert!(check_leverage(&readings(&[("ADAUSDT", 5.0), ("ETHUSDT", 2.0)]), 5.0).is_ok());
+        assert!(check_leverage(&[], 5.0).is_ok());
+    }
+
+    #[test]
+    fn failed_reads_and_over_cap_symbols_are_reported_together() {
+        let mut rows = readings(&[("ETHUSDT", 2.0), ("SOLUSDT", 100.0)]);
+        rows.insert(0, ("ADAUSDT".to_string(), Err(anyhow::anyhow!("HTTP 502"))));
+        rows.push(("XRPUSDT".to_string(), Err(anyhow::anyhow!("bad envelope"))));
+        let err = check_leverage(&rows, 5.0).unwrap_err().to_string();
+        assert!(err.contains("SOLUSDT 100x"), "{err}");
+        assert!(err.contains("ADAUSDT (HTTP 502)"), "{err}");
+        assert!(err.contains("XRPUSDT (bad envelope)"), "{err}");
+        assert!(err.contains("read failed"), "{err}");
+        assert!(!err.contains("ETHUSDT"), "{err}");
+        // A failed read alone still fails closed.
+        let only_failed = vec![("ADAUSDT".to_string(), Err(anyhow::anyhow!("timeout")))];
+        assert!(check_leverage(&only_failed, 5.0).is_err());
+    }
+
+    #[test]
+    fn leverage_guard_error_blocks_mainnet_and_only_warns_on_demo() {
+        use mm_delta::DeltaEnvironment::{DemoIndia, IndiaMainnet};
+        let err = apply_leverage_guard(IndiaMainnet, Err(anyhow::anyhow!("ADAUSDT 100x")))
+            .unwrap_err();
+        assert!(format!("{err:#}").contains("mainnet start refused"), "{err:#}");
+        assert!(format!("{err:#}").contains("ADAUSDT 100x"), "{err:#}");
+        assert!(apply_leverage_guard(DemoIndia, Err(anyhow::anyhow!("ADAUSDT 100x"))).is_ok());
+        assert!(apply_leverage_guard(IndiaMainnet, Ok(())).is_ok());
+        assert!(apply_leverage_guard(DemoIndia, Ok(())).is_ok());
+    }
+
+    #[test]
+    fn leverage_over_the_cap_names_every_symbol_and_the_fix() {
+        let err = check_leverage(
+            &readings(&[("ADAUSDT", 100.0), ("ETHUSDT", 5.0), ("SOLUSDT", 10.0)]),
+            5.0,
+        )
+        .unwrap_err()
+        .to_string();
+        assert!(err.contains("ADAUSDT 100x"), "{err}");
+        assert!(err.contains("SOLUSDT 10x"), "{err}");
+        assert!(!err.contains("ETHUSDT"), "{err}");
+        assert!(err.contains("MM_MAX_LEVERAGE=5x"), "{err}");
+        assert!(err.contains("Set the order leverage on Delta") && err.contains("restart"), "{err}");
+    }
+
+    #[test]
+    fn unreadable_leverage_fails_closed() {
+        assert!(check_leverage(&readings(&[("ADAUSDT", f64::NAN)]), 5.0).is_err());
+    }
+
+    #[test]
+    fn max_leverage_knob_falls_back_to_the_default_when_not_positive() {
+        assert_eq!(max_leverage_or_default(3.0), 3.0);
+        assert_eq!(max_leverage_or_default(0.0), DEFAULT_MAX_LEVERAGE);
+        assert_eq!(max_leverage_or_default(-2.0), DEFAULT_MAX_LEVERAGE);
+        assert_eq!(max_leverage_or_default(f64::NAN), DEFAULT_MAX_LEVERAGE);
+        assert_eq!(max_leverage_or_default(f64::INFINITY), DEFAULT_MAX_LEVERAGE);
+        assert_eq!(DEFAULT_MAX_LEVERAGE, 5.0);
     }
 }
