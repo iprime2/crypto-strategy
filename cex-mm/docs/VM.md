@@ -114,10 +114,15 @@ scripts/live.sh stop                           # kill the bot, cancel its orders
 - Run data lives in `artifacts/live/<UTC start>/` (`config.txt` without secrets, `bot.log`, `bot.pid`, `fills.json`
   from the last report). A full-resolution report costs about 150 MB of RAM per day of window on a VM that also
   runs the bot; for a long run use `--compact` or copy the run off the VM.
-- `report` (`scripts/live_vs_shadow.py`) reads the real fills from Delta, prices them against the shadow's Delta mid,
-  and simulates the same window twice: on the shadow's quotes and on the live bot's own quotes. Real vs "sim live"
-  is the fill model; "sim live" vs "sim shadow" is the quotes (the live bot holds inventory). The live stop rule is
-  printed too: real net60 below 0 after 300 fills means stop.
+- **While the live bot quotes, the shadow is no longer an independent prediction.** Our quotes are usually the
+  Delta touch, so the shadow reads them as the book, and the trades that fill us print at our price, which the
+  simulator's strict rule does not count. The shadow dashboard's simulated numbers for the live period are therefore
+  not a counterfactual.
+- `report` (`scripts/live_vs_shadow.py`) compares the real fills (from Delta) with the simulator on the shadow
+  *before* the live start (the baseline: the window's length, 1-24 h). Per-fill edge is shown on the Delta mid (clean
+  for the baseline, biased by our own quotes for the real row) and on the Binance mid shifted by the Delta-Binance
+  basis (`b*` columns: compare real and sim on these). `PnLbp` is PnL per dollar traded, which needs no price
+  reference; the live stop rule uses it: below 0 after 300 real fills means stop.
 - Restarting the shadow test (`systemctl --user restart cex-mm-shadow`) does not touch the live bot.
 
 ## OEMS (optional)
@@ -127,7 +132,8 @@ the `dism` strategy. `setup.sh` installs `cex-mm-oems.service` but does not enab
 needs. It was set up and verified on dism-tokyo on 2026-10-12, then switched off again.
 
 **Never run the OEMS `dism` strategy and `scripts/live.sh` at the same time:** two bots on one account
-fight over the same orders and position.
+fight over the same orders and position. `live.sh` refuses to start next to any `mm-bot run`, but the OEMS does not
+check for a bot it did not start.
 
 ```bash
 sudo apt-get install -y docker.io docker-compose-v2 postgresql-client

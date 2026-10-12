@@ -22,10 +22,10 @@ T0 = 1_791_800_000_000.0  # ms, local clock
 
 
 def metrics_line(ts: float, bid: float = 99.9, ask: float = 100.1, book_bid: float = 99.8, book_ask: float = 100.2,
-                 symbol: str = "ADAUSDT", inventory: float = 0.0, fair: float = 100.0) -> str:
+                 symbol: str = "ADAUSDT", inventory: float = 0.0, fair: float = 100.0, binance_mid: float = 100.0) -> str:
     m = {"symbol": symbol, "fair": fair, "bid": bid, "ask": ask, "inventory": inventory, "regime_level": 0,
          "place_bid": True, "place_ask": True, "ts_ms": int(ts), "book_bid": book_bid, "book_ask": book_ask,
-         "binance_mid": 100.0}
+         "binance_mid": binance_mid}
     return f"2026-10-12T08:00:00.000000Z  INFO MM_METRICS: {json.dumps(m, separators=(',', ':'))}\n"
 
 
@@ -106,6 +106,24 @@ class FetchFills(unittest.TestCase):
         self.assertEqual(calls[0], ("/v2/fills", "product_ids=16614&page_size=100"))
         self.assertEqual(calls[1][1], "product_ids=16614&page_size=100&after=a%2Bb%2F%3D")
 
+    def test_stops_at_a_cached_fill_and_returns_only_new_rows(self):
+        pages = [{"success": True, "result": [fill_row("2026-10-12T08:00:03Z", "buy", "1", fid="9"),
+                                              fill_row("2026-10-12T08:00:02Z", "buy", "1", fid="8")], "meta": {"after": "x"}},
+                 {"success": True, "result": [fill_row("2026-10-12T08:00:01Z", "buy", "1", fid="7")], "meta": {"after": "y"}}]
+        calls = []
+        get = lambda p, q: (calls.append(q), pages[len(calls) - 1])[1]  # noqa: E731
+        rows = lvs.fetch_fills(get, 1, since_ms=0, known_ids={"8"})
+        self.assertEqual([r["id"] for r in rows], ["9"])
+        self.assertEqual(len(calls), 1)
+        merged = lvs.merge_fills([fill_row("2026-10-12T08:00:02Z", "buy", "1", fid="8")], rows)
+        self.assertEqual([r["id"] for r in merged], ["9", "8"])
+
+    def test_page_cap_raises_instead_of_truncating(self):
+        page = {"success": True, "result": [fill_row("2026-10-12T08:00:03Z", "buy", "1")], "meta": {"after": "z"}}
+        with mock.patch.object(lvs.time, "sleep"), self.assertRaises(RuntimeError) as cm:
+            lvs.fetch_fills(lambda p, q: page, 1, since_ms=0, max_pages=3)
+        self.assertIn("3 pages", str(cm.exception))
+
     def test_failed_call_raises_with_the_error_code_only(self):
         with self.assertRaises(RuntimeError) as cm:
             lvs.fetch_fills(lambda p, q: {"success": False, "error": {"code": "ip_not_whitelisted"}}, 1, 0)
@@ -171,15 +189,19 @@ class RealMetrics(unittest.TestCase):
 
 
 class QuoteStats(unittest.TestCase):
-    def test_uptime_inside_and_agreement(self):
+    def test_uptime_and_inside(self):
         live = [sim.Sample(T0 + i * 400, 100, 99.9, 100.1, True, i != 2, 0, 99.8, 100.2, 100) for i in range(5)]
-        shadow = [sim.Sample(T0 + i * 400 + 50, 100, 99.9, 100.1 if i != 4 else 100.2, True, True, 0, 99.8, 100.2, 100)
-                  for i in range(5)]
         quoted, inside = lvs.quote_time(live)
         self.assertEqual(quoted, 1200)  # 4 gaps of 400 ms, one with the ask off
         self.assertEqual(inside, 1200)
-        same, total = lvs.quote_agreement(live, shadow, tick=0.05)
-        self.assertEqual((same, total), (3, 5))  # one place flag differs, one ask differs
+
+    def test_live_span_falls_back_to_a_full_scan(self):
+        d = Path(tempfile.mkdtemp())
+        p = d / "bot.log"
+        p.write_text(metrics_line(T0, inventory=200) + metrics_line(T0 + 1000) + "WARN stale book\n" * 50)
+        with mock.patch.object(lvs, "TAIL_BYTES", 100):
+            self.assertEqual(lvs.live_span([str(p)], "ADAUSDT"), (T0, T0 + 1000, 200.0))
+        self.assertEqual(lvs.inventory_at([str(p)], "ADAUSDT", T0 + 500), 0.0)
 
 
 def write_runs(base: Path) -> tuple[Path, Path]:
@@ -192,58 +214,120 @@ def write_runs(base: Path) -> tuple[Path, Path]:
     (shadow / "config.txt").write_text("symbols=ADAUSDT\nstarted_utc=2026-10-12T07:00:00Z\n")
     n = 900  # 15 min of samples, flat 99.8/100.2 book, quotes 99.9/100.1
     (live / "bot.log").write_text("".join(metrics_line(T0 + i * 1000) for i in range(n)))
-    (shadow / "dry-run.log").write_text("".join(metrics_line(T0 + i * 1000 + 100) for i in range(-5, n + 400)))
-    # Aggressive sells through 99.9 and buys through 100.1, local recv 1 s after exchange time.
-    trades = [trade_line(T0 + 10_000 + k * 20_000, T0 + 9000 + k * 20_000, 99.85 if k % 2 == 0 else 100.15, 5, k % 2 == 1)
-              for k in range(30)]
+    (shadow / "dry-run.log").write_text("".join(metrics_line(T0 + i * 1000 + 100) for i in range(-3600, n + 400)))
+    # Aggressive sells through 99.9 and buys through 100.1 every 20 s, from an hour before the live start to 10 min
+    # into it; local recv 1 s after exchange time.
+    trades = [trade_line(T0 - 3_600_000 + k * 20_000, T0 - 3_601_000 + k * 20_000, 99.85 if k % 2 == 0 else 100.15, 5,
+                         k % 2 == 1) for k in range(210)]
     (shadow / "delta_mainnet_public_20261012.jsonl").write_text("".join(trades))
     return live, shadow
 
 
+def iso(ms: float) -> str:
+    import datetime
+    return datetime.datetime.fromtimestamp(ms / 1000, datetime.timezone.utc).isoformat().replace("+00:00", "Z")
+
+
 class Compare(unittest.TestCase):
-    def test_real_and_simulated_rows_over_the_same_window(self):
+    def test_real_fills_vs_the_pre_live_baseline_on_both_references(self):
         live, shadow = write_runs(Path(tempfile.mkdtemp()))
-        iso = lambda ms: __import__("datetime").datetime.fromtimestamp(ms / 1000, __import__("datetime").timezone.utc) \
-            .isoformat().replace("+00:00", "Z")
-        # Two real maker fills at exchange time (local = exchange + 1 s), one outside the window.
+        # Two real maker fills (local = exchange + 1 s), plus ones that must not count.
         rows = [fill_row(iso(T0 + 9000), "buy", "99.9", size="2", commission=str(99.9 * 2 * 2.12e-4), fid="a"),
                 fill_row(iso(T0 + 29_000), "sell", "100.1", size="2", commission=str(100.1 * 2 * 2.12e-4), fid="b"),
                 fill_row(iso(T0 - 3_600_000), "sell", "100.1", size="2", fid="old"),
-                fill_row(iso(T0 + 39_000), "buy", "99.9", size="2", symbol="KITEUSD", fid="kite")]
+                fill_row(iso(T0 + 39_000), "buy", "99.9", size="2", symbol="KITEUSD", fid="kite"),
+                dict(fill_row(iso(T0 + 49_000), "sell", "100.1", size="2", fid="adl"), fill_type="adl"),
+                fill_row(iso(T0 + 2_000_000), "sell", "100.1", size="2", fid="late")]
         out = lvs.compare(live, [shadow], rows, latencies=[20, 300], tick=0.05, cv=1.0)
         self.assertEqual(out["window"]["clock_offset_ms"], 1000)
+        self.assertTrue(out["window"]["whole_run"])
+        self.assertEqual(set(out["rows"]), {"real", "sim baseline 20ms", "sim baseline 300ms"})
         real = out["rows"]["real"]
         self.assertEqual(real["fills"], 2)
         self.assertEqual(real["maker_pct"], 100.0)
         self.assertAlmostEqual(real["fee"], 2.12, places=6)
-        sim_rows = {k: v for k, v in out["rows"].items() if k.startswith("sim")}
-        self.assertEqual(set(sim_rows), {"sim shadow 20ms", "sim shadow 300ms", "sim live 20ms", "sim live 300ms"})
-        self.assertGreater(sim_rows["sim shadow 300ms"]["fills"], 0)
-        self.assertEqual(out["quotes"]["same"], out["quotes"]["compared"])
+        self.assertIsNone(real["inside"])  # our own quotes are the book: not measurable
+        # Binance reference: flat 100.0 and zero basis, so capture is the distance to 100 and markouts are 0.
+        self.assertEqual(out["basis_bps"], 0.0)
+        cap = ((100 - 99.9) / 99.9 * 199.8 + (100.1 - 100) / 100.1 * 200.2) / 400 * 1e4
+        self.assertAlmostEqual(real["bcapture"], cap, places=6)
+        self.assertAlmostEqual(real["bmo60"], 0.0, places=9)
+        self.assertAlmostEqual(real["bnet60"], cap - 2.12, places=6)
+        self.assertEqual(out["fills"], {"total": 5, "used": 2, "before_window": 1, "after_window": 1, "no_mid": 0,
+                                        "other_types": {"adl": 1}})
+        # The baseline ends 300 s before the live start and lasts 1 h (the 15 min window is below the minimum),
+        # clipped by the shadow's start an hour before the live run: 164 trades through our quotes, each a fill.
+        b = out["baseline"]
+        self.assertAlmostEqual(b["t1"], T0 - 300_000, delta=1000)
+        self.assertAlmostEqual(b["t0"], T0 - 3_600_000, delta=1000)
+        self.assertEqual(b["tape_trades"], 164)
+        for lat in (20, 300):
+            r = out["rows"][f"sim baseline {lat}ms"]
+            self.assertEqual(r["fills"], 164)
+            self.assertIsNotNone(r["bnet60"])
         self.assertEqual(out["sizing"], {"order_contracts": 2, "max_inv_orders": 3})
+        text = lvs.format_table(out)
+        self.assertIn("1 adl fill(s) excluded", text)
+        self.assertIn("live stop rule: CONTINUE (2/300 real fills)", text)
+        # PnL per $ traded: bought 2 @ 99.9, sold 2 @ 100.1, flat, minus fees.
+        self.assertAlmostEqual(real["pnl_bps"], (0.4 - 400 * 2.12e-4) / 400 * 1e4, places=6)
 
-    def test_since_limits_the_window_and_drops_earlier_real_fills(self):
+    def test_a_partial_window_says_so_and_reports_the_inventory_there(self):
         live, shadow = write_runs(Path(tempfile.mkdtemp()))
-        iso = lambda ms: __import__("datetime").datetime.fromtimestamp(ms / 1000, __import__("datetime").timezone.utc) \
-            .isoformat().replace("+00:00", "Z")
+        logp = live / "bot.log"
+        logp.write_text(logp.read_text().replace('"inventory":0.0', '"inventory":200.0'))
         rows = [fill_row(iso(T0 + 9000), "buy", "99.9", size="2", fid="early"),
                 fill_row(iso(T0 + 609_000), "sell", "100.1", size="2", fid="late")]
         out = lvs.compare(live, [shadow], rows, latencies=[300], tick=0.05, cv=1.0, since_ms=T0 + 600_000)
         self.assertAlmostEqual(out["window"]["t0"], T0 + 600_000, delta=1000)
+        self.assertFalse(out["window"]["whole_run"])
         self.assertEqual(out["rows"]["real"]["fills"], 1)
+        self.assertEqual(out["inventory_at_window_start"], 200.0)
+        # The baseline still sits before the live run's start, not before the window.
+        self.assertLess(out["baseline"]["t1"], T0)
+        self.assertIn("[this window only", lvs.format_table(out))
+
+    def test_without_a_binance_mid_the_b_columns_are_marked_unavailable(self):
+        live, shadow = write_runs(Path(tempfile.mkdtemp()))
+        sl = shadow / "dry-run.log"
+        sl.write_text(sl.read_text().replace('"binance_mid":100.0', '"binance_mid":null'))
+        out = lvs.compare(live, [shadow], [], latencies=[300], tick=0.05, cv=1.0)
+        self.assertIsNone(out["basis_bps"])
+        self.assertIsNone(out["rows"]["real"]["bnet60"])
+        self.assertIn("the b* columns are unavailable", lvs.format_table(out))
+
+    def test_stop_rule_on_pnl_per_dollar_after_300_fills(self):
+        out = {"window": {"whole_run": True}, "rows": {"real": {"fills": 300, "pnl_bps": -0.4}}}
+        self.assertTrue(lvs.stop_rule(out).startswith("STOP: real PnL -0.40 bps per $ traded after 300 fills"))
+        out["rows"]["real"]["pnl_bps"] = 1.2
+        self.assertTrue(lvs.stop_rule(out).startswith("OK: real PnL +1.20 bps"))
+        out["window"]["whole_run"] = False
+        self.assertIn("[this window only", lvs.stop_rule(out))
+
+    def test_no_baseline_when_the_shadow_started_with_the_live_run(self):
+        live, shadow = write_runs(Path(tempfile.mkdtemp()))
+        sl = shadow / "dry-run.log"
+        sl.write_text("".join(l for l in sl.read_text().splitlines(keepends=True)
+                              if json.loads(l[l.index("{"):])["ts_ms"] >= T0 - 60_000))
+        out = lvs.compare(live, [shadow], [], latencies=[300], tick=0.05, cv=1.0)
+        self.assertIsNone(out["baseline"])
+        self.assertEqual(set(out["rows"]), {"real"})
+        self.assertIn("no baseline", lvs.format_table(out))
 
     def test_main_offline_prints_the_table_and_json(self):
         base = Path(tempfile.mkdtemp())
         live, shadow = write_runs(base)
         (live / "fills.json").write_text("[]")
         buf = io.StringIO()
-        with mock.patch.object(lvs.sim, "product_meta", return_value=(0.05, 1.0)), contextlib.redirect_stdout(buf):
+        with mock.patch.object(lvs.sim, "product_meta", return_value=(0.05, 1.0)), contextlib.redirect_stdout(buf), \
+                contextlib.redirect_stderr(io.StringIO()):
             lvs.main(["--live-dir", str(live), "--shadow-dir", str(shadow), "--offline"])
         text = buf.getvalue()
         self.assertIn("real (Delta fills)", text)
-        self.assertIn("sim shadow 300ms", text)
+        self.assertIn("sim baseline 300ms", text)
         buf = io.StringIO()
-        with mock.patch.object(lvs.sim, "product_meta", return_value=(0.05, 1.0)), contextlib.redirect_stdout(buf):
+        with mock.patch.object(lvs.sim, "product_meta", return_value=(0.05, 1.0)), contextlib.redirect_stdout(buf), \
+                contextlib.redirect_stderr(io.StringIO()):
             lvs.main(["--live-dir", str(live), "--shadow-dir", str(shadow), "--offline", "--json"])
         self.assertEqual(json.loads(buf.getvalue())["rows"]["real"]["fills"], 0)
 

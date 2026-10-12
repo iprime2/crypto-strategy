@@ -56,7 +56,7 @@ curl -s -X POST -H 'X-OEMS-Client: cli' localhost:8791/api/strategies/dism/stop
 
 The bot itself arms Delta's dead man's switch, a $15 daily loss stop and the taker-fill guard (`mm-bot/src/account.rs`). Never start it without the user's explicit go-ahead in this conversation.
 
-Without the OEMS, next to the shadow test (Tokyo VM, `docs/VM.md` "Real-money run"): `scripts/live.sh start --confirm "START REAL"`, `status`, `report` (real fills vs the simulator over the same window), `stop` (kill, then cancel; the position stays open). It refuses while any other `mm-bot run` is alive, never restarts itself, and the shadow dashboard shows its state. Never run it and the OEMS `dism` strategy at the same time. Same go-ahead rule.
+Without the OEMS, next to the shadow test (Tokyo VM, `docs/VM.md` "Real-money run"): `scripts/live.sh start --confirm "START REAL"`, `status`, `report` (real fills vs the simulator on the shadow before the live start; stop rule on PnL per dollar traded), `stop` (kill, cancel, check no order is left; the position stays open). While it quotes, the shadow's simulated numbers are not an independent prediction (our quotes are the touch). It refuses while any other `mm-bot run` is alive, never restarts itself, and the shadow dashboard shows its state. Never run it and the OEMS `dism` strategy at the same time. Same go-ahead rule.
 
 ## Read-only venue checks
 

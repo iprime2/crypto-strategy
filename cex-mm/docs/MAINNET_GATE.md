@@ -19,7 +19,7 @@ Testnet validates **plumbing**; mainnet validates **edge**. Do not promote on te
 1. Read+Trade API keys only; start at min lot; wide half-spread (≥2× backtest-calibrated)
 2. Run 48h monitor, then 4 weeks per [STRATEGY.md §11.3](../../STRATEGY.md)
    (on the Tokyo VM: `scripts/live.sh` next to the shadow test; `scripts/live.sh report` compares real fills
-   with the simulator over the same window)
+   with the simulator on the shadow before the live start)
 3. Evidence to collect:
    - Signed markout at 1s/5s/30s (and 100ms/1m/5m when enabled)
    - Toxicity ratio < 0.7 at 10s
