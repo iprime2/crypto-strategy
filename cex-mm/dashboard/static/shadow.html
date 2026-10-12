@@ -295,6 +295,10 @@ function renderHealth(d) {
   const hl = d.health, cnt = hl.counts[d.symbol] || {};
   h.appendChild(statusPill(hl.dry_run, "Dry-run bot", hl.dry_run ? "running" : "stopped"));
   h.appendChild(statusPill(hl.recorder, "Trade recorder", hl.recorder ? "running" : "stopped"));
+  const lb = hl.live_bot;
+  if (lb && lb.state === "stopped") h.appendChild(infoPill("Real-money bot", "stopped"));
+  else if (lb) h.appendChild(statusPill(lb.state === "running", "Real-money bot",
+    lb.state === "running" ? `running (${lb.run})` : "DOWN: exited on its own, not restarted"));
   if (d.live) h.appendChild(infoPill("Last quote", `${fmtNum(d.live.age_s, 1)} s ago`, d.live.age_s > 5));
   h.appendChild(infoPill("Binance feed", `${fmtNum(cnt.binance_pct, 0)}% of samples`, cnt.binance_pct < 95));
   h.appendChild(infoPill("Trades recorded", fmtNum(cnt.trades, 0)));

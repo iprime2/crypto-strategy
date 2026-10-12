@@ -1,0 +1,25 @@
+# User unit, rendered by infra/vm/setup.sh (@CEX_MM@ = the cex-mm checkout). Installed, not enabled:
+# see "OEMS (optional)" in docs/VM.md for the database, the builds and how to enable it.
+[Unit]
+Description=cex-mm OEMS on 127.0.0.1:8791 (book of record + bot supervisor)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=@CEX_MM@
+Environment=PATH=%h/.cargo/bin:/usr/local/bin:/usr/bin:/bin
+Environment=CEX_MM_ROOT=@CEX_MM@
+Environment=RUST_LOG=mm_oems=info,tower_http=warn
+# OEMS_ALLOW_MAINNET is deliberately unset: starting a real-money strategy is refused (403) until the
+# operator adds Environment=OEMS_ALLOW_MAINNET=1 here (systemctl --user edit cex-mm-oems).
+# The OEMS reads its strategies once at start, so wait for Postgres (Docker starts it at boot).
+ExecStartPre=/bin/sh -c 'for i in $(seq 1 90); do pg_isready -q -h 127.0.0.1 -p 5462 -U oems -d cex_mm_oems && exit 0; sleep 2; done; exit 1'
+ExecStart=@CEX_MM@/target/release/mm-oems
+Restart=on-failure
+RestartSec=10
+# Stopping or restarting the OEMS must not kill a bot it spawned; the next OEMS adopts it by pid.
+KillMode=process
+
+[Install]
+WantedBy=default.target

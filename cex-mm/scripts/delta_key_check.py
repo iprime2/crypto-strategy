@@ -32,7 +32,7 @@ def load_env(path: Path) -> dict:
         line = line.strip()
         if line and not line.startswith("#") and "=" in line:
             k, v = line.split("=", 1)
-            vals[k.strip()] = v.strip().strip('"').strip("'")
+            vals[k.strip()] = v.strip().strip('"')  # like the OEMS's load_env_file, so this checks what the bot sends
     return vals
 
 

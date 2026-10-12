@@ -37,6 +37,7 @@ git clone git@github.com:iprime2/crypto-strategy.git ~/crypto-strategy
 | `cex-mm-shadow-watchdog.timer` | every 2 min, restarts the test if the dry-run or recorder died |
 | `cex-mm-trend-paper.timer` | hourly `scripts/trend_paper.py`: rebalances the trend paper book once per UTC day (00:05 UTC) |
 | `cex-mm-shadow-housekeep.timer` | daily 03:30 UTC `scripts/shadow_housekeep.py --apply`: deletes shadow runs older than 14 days. Installed but **not enabled** by `setup.sh` (see [Housekeeping](#housekeeping)) |
+| `cex-mm-oems.service` | the OEMS on 127.0.0.1:8791. Installed but **not enabled** by `setup.sh` (see [OEMS (optional)](#oems-optional)) |
 
 ## Operate
 
@@ -82,6 +83,79 @@ systemctl --user start cex-mm-trend-paper            # run now (a no-op if today
 ```
 
 Deleting `artifacts/trend/paper/` starts a new paper book at the next run.
+
+
+## Real-money run (`scripts/live.sh`)
+
+`scripts/live.sh` runs the DISM profile with **real money** on Delta mainnet next to the shadow test, so real fills
+can be compared with the simulator over the same window. It is the shadow dry-run's exact command (same binary,
+`config/dism.env`, `--loop-ms 400`) with `run` in place of `dry-run`, and the mainnet key from `quote-bot/.env`.
+Starting it needs the user's explicit go-ahead.
+
+```bash
+scripts/live.sh start --confirm "START REAL"   # refuses unless the checks below pass
+scripts/live.sh status                         # running / stopped / DOWN, last quote, venue position and orders
+scripts/live.sh report                         # real fills vs the simulator, last 24 h (--hours N, --all)
+scripts/live.sh stop                           # kill the bot, cancel its orders, check none are left open
+```
+
+- `start` refuses unless: the typed confirmation, no other `live.sh start`/`stop` in progress (a lock), no other
+  `mm-bot run` process (the OEMS or a stray bot), the shadow dry-run is running the same binary, both mainnet keys
+  are set without quotes or spaces, and `scripts/delta_key_check.py` passes (key works from this IP, order leverage
+  at most 5x). If the bot dies during startup, `start` cancels its orders and says why.
+- `stop` waits for an in-flight `start`, kills the bot, sends cancel-all for the stopped run's symbols, then reads
+  the book and fails unless no order is left open.
+- **No auto-restart.** mm-bot has no signal handler, so a crash or kill leaves its orders until Delta's dead man's
+  switch (15 s) cancels them, and the position stays open. `status` and the dashboard's "Real-money bot" pill then
+  say DOWN; the operator decides whether to restart, flatten or hold.
+- The bot's working directory is `artifacts/live/`, so its economics file cannot reach the shadow dry-run (which
+  reads `artifacts/economics/`). Its daily loss state ($15) is shared with the OEMS and any other mainnet run from
+  `cex-mm/`: `artifacts/live/artifacts/risk` is a symlink to `artifacts/risk/`.
+- Run data lives in `artifacts/live/<UTC start>/` (`config.txt` without secrets, `bot.log`, `bot.pid`, `fills.json`
+  from the last report). A full-resolution report costs about 150 MB of RAM per day of window on a VM that also
+  runs the bot; for a long run use `--compact` or copy the run off the VM.
+- **While the live bot quotes, the shadow is no longer an independent prediction.** Our quotes are usually the
+  Delta touch, so the shadow reads them as the book, and the trades that fill us print at our price, which the
+  simulator's strict rule does not count. The shadow dashboard's simulated numbers for the live period are therefore
+  not a counterfactual.
+- `report` (`scripts/live_vs_shadow.py`) compares the real fills (from Delta) with the simulator on the shadow
+  *before* the live start (the baseline: the window's length, 1-24 h). Per-fill edge is shown on the Delta mid (clean
+  for the baseline, biased by our own quotes for the real row) and on the Binance mid shifted by the Delta-Binance
+  basis (`b*` columns: compare real and sim on these). `PnLbp` is PnL per dollar traded, which needs no price
+  reference; the live stop rule uses it: below 0 after 300 real fills means stop.
+- Restarting the shadow test (`systemctl --user restart cex-mm-shadow`) does not touch the live bot.
+
+## OEMS (optional)
+
+The OEMS (`backend/mm-oems`, API on 127.0.0.1:8791) can run on the VM as the book of record and supervisor of
+the `dism` strategy. `setup.sh` installs `cex-mm-oems.service` but does not enable it, and installs nothing it
+needs. It was set up and verified on dism-tokyo on 2026-10-12, then switched off again.
+
+**Never run the OEMS `dism` strategy and `scripts/live.sh` at the same time:** two bots on one account
+fight over the same orders and position. `live.sh` refuses to start next to any `mm-bot run`, but the OEMS does not
+check for a bot it did not start.
+
+```bash
+sudo apt-get install -y docker.io docker-compose-v2 postgresql-client
+cd ~/crypto-strategy/cex-mm
+cargo build --release -p mm-oems && cargo build -p mm-bot   # the supervisor starts target/debug/mm-bot
+cd backend && sudo docker compose -f docker-compose.yml -f ../infra/vm/oems-compose.override.yml up -d && cd ..
+systemctl --user enable --now cex-mm-oems
+curl -s localhost:8791/api/strategies                       # mm (demo) and dism (mainnet), both stopped
+journalctl --user -u cex-mm-oems -n 20                      # "real-money starts disabled" until you allow them
+```
+
+- TimescaleDB runs in Docker from the same `backend/docker-compose.yml` as on WSL. The override restarts it after
+  a reboot and caps Postgres at 128 MB `shared_buffers`. The unit waits for Postgres before starting, because the
+  OEMS reads its strategies only once.
+- Real-money starts stay refused until `Environment=OEMS_ALLOW_MAINNET=1` is added with
+  `systemctl --user edit cex-mm-oems`, and even then need the typed `START REAL`.
+- `KillMode=process`: stopping or restarting the OEMS leaves a bot it started running; the next OEMS adopts it.
+- The API is reachable only on the VM. From a laptop: `ssh -L 8791:127.0.0.1:8791 ubuntu@dism-tokyo`.
+- Switch it off and free the disk (about 2 GB of image):
+  `systemctl --user disable --now cex-mm-oems`, then
+  `cd backend && sudo docker compose -f docker-compose.yml -f ../infra/vm/oems-compose.override.yml down -v --rmi all`
+  (`-v` deletes the database).
 
 
 ## Phone access (Tailscale)
