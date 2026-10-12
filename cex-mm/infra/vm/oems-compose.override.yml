@@ -1,0 +1,9 @@
+# VM override for backend/docker-compose.yml: restart the database after a reboot and size Postgres for the
+# 1.8 GB host (the image's timescaledb-tune would otherwise take a quarter of the machine's memory).
+#   cd backend && sudo docker compose -f docker-compose.yml -f ../infra/vm/oems-compose.override.yml up -d
+services:
+  timescaledb:
+    restart: unless-stopped
+    environment:
+      TS_TUNE_MEMORY: 512MB
+      TS_TUNE_NUM_CPUS: "1"

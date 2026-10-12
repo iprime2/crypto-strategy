@@ -37,6 +37,7 @@ git clone git@github.com:iprime2/crypto-strategy.git ~/crypto-strategy
 | `cex-mm-shadow-watchdog.timer` | every 2 min, restarts the test if the dry-run or recorder died |
 | `cex-mm-trend-paper.timer` | hourly `scripts/trend_paper.py`: rebalances the trend paper book once per UTC day (00:05 UTC) |
 | `cex-mm-shadow-housekeep.timer` | daily 03:30 UTC `scripts/shadow_housekeep.py --apply`: deletes shadow runs older than 14 days. Installed but **not enabled** by `setup.sh` (see [Housekeeping](#housekeeping)) |
+| `cex-mm-oems.service` | the OEMS on 127.0.0.1:8791. Installed but **not enabled** by `setup.sh` (see [OEMS (optional)](#oems-optional)) |
 
 ## Operate
 
@@ -82,6 +83,38 @@ systemctl --user start cex-mm-trend-paper            # run now (a no-op if today
 ```
 
 Deleting `artifacts/trend/paper/` starts a new paper book at the next run.
+
+
+## OEMS (optional)
+
+The OEMS (`backend/mm-oems`, API on 127.0.0.1:8791) can run on the VM as the book of record and supervisor of
+the `dism` strategy. `setup.sh` installs `cex-mm-oems.service` but does not enable it, and installs nothing it
+needs. It was set up and verified on dism-tokyo on 2026-10-12, then switched off again.
+
+**Never run the OEMS `dism` strategy and `scripts/live.sh` at the same time:** two bots on one account
+fight over the same orders and position.
+
+```bash
+sudo apt-get install -y docker.io docker-compose-v2 postgresql-client
+cd ~/crypto-strategy/cex-mm
+cargo build --release -p mm-oems && cargo build -p mm-bot   # the supervisor starts target/debug/mm-bot
+cd backend && sudo docker compose -f docker-compose.yml -f ../infra/vm/oems-compose.override.yml up -d && cd ..
+systemctl --user enable --now cex-mm-oems
+curl -s localhost:8791/api/strategies                       # mm (demo) and dism (mainnet), both stopped
+journalctl --user -u cex-mm-oems -n 20                      # "real-money starts disabled" until you allow them
+```
+
+- TimescaleDB runs in Docker from the same `backend/docker-compose.yml` as on WSL. The override restarts it after
+  a reboot and caps Postgres at 128 MB `shared_buffers`. The unit waits for Postgres before starting, because the
+  OEMS reads its strategies only once.
+- Real-money starts stay refused until `Environment=OEMS_ALLOW_MAINNET=1` is added with
+  `systemctl --user edit cex-mm-oems`, and even then need the typed `START REAL`.
+- `KillMode=process`: stopping or restarting the OEMS leaves a bot it started running; the next OEMS adopts it.
+- The API is reachable only on the VM. From a laptop: `ssh -L 8791:127.0.0.1:8791 ubuntu@dism-tokyo`.
+- Switch it off and free the disk (about 2 GB of image):
+  `systemctl --user disable --now cex-mm-oems`, then
+  `cd backend && sudo docker compose -f docker-compose.yml -f ../infra/vm/oems-compose.override.yml down -v --rmi all`
+  (`-v` deletes the database).
 
 
 ## Phone access (Tailscale)
