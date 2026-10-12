@@ -308,9 +308,12 @@ def live_bot_state() -> dict | None:
     if not LIVE_CURRENT.exists():
         return None
     run = LIVE_CURRENT.resolve()
-    try:  # alive and not a zombie
-        stat = Path(f"/proc/{int((run / 'bot.pid').read_text().strip())}/stat").read_text()
-        running = stat.rsplit(") ", 1)[1][:1] != "Z"
+    try:  # alive, not a zombie, and still an `mm-bot run` process (as live.sh's is_bot: a reused pid is not ours)
+        pid = int((run / "bot.pid").read_text().strip())
+        running = Path(f"/proc/{pid}/stat").read_text().rsplit(") ", 1)[1][:1] != "Z"
+        argv = Path(f"/proc/{pid}/cmdline").read_bytes().split(b"\0")
+        running = running and any(Path(a.decode(errors="replace")).name == "mm-bot" and b == b"run"
+                                  for a, b in zip(argv, argv[1:]))
     except (OSError, ValueError, IndexError):
         running = False
     if running:

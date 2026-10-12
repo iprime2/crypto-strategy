@@ -27,5 +27,5 @@ Live pilot on **ADA only**, quote rule **fair ±5 bps** (`MM_FIXED_HALF_SPREAD_B
 
 ## Next
 1. Restart the shadow test on the DISM profile so the bot-quotes row is the live rule itself (dry-run check: 140/140 quotes equal the simulator's ±5 rule).
-2. Live stop rule: net60 < 0 after 300 live fills → stop, same as the shadow gate.
+2. Live stop rule: net60 < 0 after 300 live fills → stop, same as the shadow gate. (Superseded 2026-10-12: live net60 is measured on our own quotes; see `2026-10-12-live-stop-rule.md`.)
 3. Inventory drift is the largest cost after fees; measure it live before raising size.

@@ -29,7 +29,10 @@ root="$(cd "$(dirname "$0")/../.." && pwd)"
 case "$1" in
   run)
     if [[ -f "$root/run_fails" ]]; then echo "ERROR leverage guard: mainnet start refused"; exit 1; fi
-    echo "INFO mm_bot::runner: account guards on"; while :; do sleep 0.2; done ;;
+    echo "INFO mm_bot::runner: account guards on"
+    echo '2026-10-12T12:57:54.189191Z  INFO MM_METRICS: {"symbol":"ADAUSDT","bid":0.24809,"ask":0.24834,"inventory":0.0,"ts_ms":1}'
+    echo 'INFO MM_ORDER: placed post-only symbol=ADAUSDT side="buy" price=0.24793 qty=200.0'
+    while :; do sleep 0.2; done ;;
   dry-run) while :; do sleep 0.2; done ;;
   cancel-all) [[ -f "$root/cancel_fails" ]] && exit 1; echo "cancelled"; exit 0 ;;
 esac
@@ -222,6 +225,61 @@ class LiveSh(unittest.TestCase):
         self.assertNotIn(SECRET, r.stdout + r.stderr)
         self.assertNotIn(KEY, r.stdout + r.stderr)
 
+    def test_start_refuses_a_profile_value_the_bot_would_misread(self):
+        self.start_shadow()
+        prof = self.root / "config" / "dism.env"
+        for bad in ('MM_DAILY_LOSS_LIMIT_USD="15"', "MM_DMS_TTL_MS=15000  # 15 s", "MM_DMS_TTL_MS=15000 "):
+            key = bad.split("=")[0]
+            text = "\n".join(bad if l.startswith(key + "=") else l for l in HERE.parent.joinpath("config", "dism.env")
+                             .read_text().splitlines()) + "\n"
+            prof.write_text(text)
+            r = self.live("start", "--confirm", "START REAL")
+            self.assertNotEqual(r.returncode, 0, bad)
+            self.assertIn(key, r.stderr)
+            self.assertIn("quotes, spaces or an inline comment", r.stderr)
+        self.assertEqual(self.stub_calls("run"), [])
+
+    def test_start_refuses_a_shadow_with_other_settings_unless_allowed(self):
+        self.start_shadow()
+        cfg = self.root / "artifacts" / "shadow" / "current" / "config.txt"
+        prof = (self.root / "config" / "dism.env").read_text()
+        cfg.write_text("symbols=ADAUSDT\n" + prof.replace("MM_FIXED_HALF_SPREAD_BPS=5", "MM_FIXED_HALF_SPREAD_BPS=4"))
+        r = self.live("start", "--confirm", "START REAL")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("different MM_ settings", r.stderr)
+        r = self.live("start", "--confirm", "START REAL", env={"LIVE_ALLOW_PROFILE_MISMATCH": "1"})
+        self.assertEqual(r.returncode, 0, r.stderr)
+        cfg.write_text("symbols=ADAUSDT\n" + prof + "RUST_LOG=warn\nNO_COLOR=1\n")  # same MM_ lines: fine
+
+    def test_status_shows_the_last_quote_and_counts_in_one_pass(self):
+        self.start_shadow()
+        self.live("start", "--confirm", "START REAL", check=True)
+        out = self.live("status").stdout
+        self.assertIn('last quote: 2026-10-12T12:57:54.189191Z "bid":0.24809 "ask":0.24834 "inventory":0.0', out)
+        self.assertIn("orders placed/edited: 1   rejects: 0", out)
+        self.assertIn("--symbol ADAUSDT", out)  # venue read per symbol
+
+    def test_stop_still_cancels_when_the_marker_cannot_be_written(self):
+        self.start_shadow()
+        self.live("start", "--confirm", "START REAL", check=True)
+        (self.root / "artifacts" / "live" / "current" / "stopped").symlink_to("/dev/full")
+        r = self.live("stop")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("could not write the stopped marker", r.stderr)
+        self.assertEqual(len(self.stub_calls("cancel-all")), 1)
+
+    def test_stop_checks_every_symbol_of_the_run(self):
+        self.start_shadow()
+        prof = self.root / "config" / "dism.env"
+        prof.write_text(prof.read_text().replace("MM_SYMBOLS=ADAUSDT", "MM_SYMBOLS=ADAUSDT,KITEUSDT"))
+        self.live("start", "--confirm", "START REAL", check=True)
+        self.live("stop")
+        calls = [l for l in (self.root / "lvs_calls.log").read_text().splitlines() if "--require-no-orders" in l]
+        self.assertEqual(len(calls), 2)
+        self.assertIn("--symbol ADAUSDT", calls[0])
+        self.assertIn("--symbol KITEUSDT", calls[1])
+        self.assertEqual([c["argv"].split()[-1] for c in self.stub_calls("cancel-all")], ["ADAUSDT", "KITEUSDT"])
+
     # ------------------------------------------------------------ start / status / stop
 
     def test_start_runs_the_bot_on_mainnet_with_only_the_keys_and_the_profile(self):
@@ -323,6 +381,7 @@ class LiveSh(unittest.TestCase):
         self.assertIn("--hours 24", calls[0])
         self.assertNotIn("--hours", calls[1])
         self.assertIn("--json", calls[1])
+        self.assertIn("--compact", calls[1])  # --all never loads the whole run at full resolution
         self.assertIn("--hours 6", calls[2])
         self.assertNotIn("--hours 24", calls[2])
 

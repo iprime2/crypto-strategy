@@ -23,7 +23,11 @@ references, and one figure that needs none:
                        intraday swings in Oct 2026), so the level differs from the Delta numbers even without us;
                        compare real with sim on these columns, like for like.
   PnLbp                PnL$ per dollar traded, in bps: cash flows plus the inventory marked at the last mid,
-                       minus fees. The live stop rule uses it (below 0 after 300 real fills means stop).
+                       minus fees.
+
+Live stop rule (2026-10-12 memo, calibrated on the 6-12 Oct shadow): STOP if real PnL per dollar traded is below
+-2.6 bps after 300 fills, or below 0 after 1,000 fills. It counts every real fill in the window, marked at the live
+bot's own last mid, so it does not depend on the shadow running.
 
     python3 scripts/live_vs_shadow.py                    # artifacts/live/current vs the shadow runs around it
     python3 scripts/live_vs_shadow.py --hours 24 --json
@@ -60,7 +64,10 @@ BASE = os.environ.get("DELTA_REST_BASE", "https://api.india.delta.exchange")
 RUN_NAME = re.compile(r"^\d{8}T\d{6}Z$")
 MAX_GAP_MS = 1500.0  # same as shadow_fill_sim's default: a quote older than this is gone
 COMPACT_MS = 1000.0  # with --compact, at least one sample per second is kept
-STOP_FILLS = 300  # live stop rule (2026-10-05 memo): net60 < 0 after this many real fills
+# Live stop rule (2026-10-12 memo): PnL per $ traded below EARLY_BPS after EARLY_FILLS fills, or below 0 after
+# FULL_FILLS. About 5% false stops on flat-start 300-fill blocks of the 6-12 Oct ADA shadow (mean +2.6, sd 2.6 bps).
+EARLY_FILLS, EARLY_BPS, FULL_FILLS = 300, -2.6, 1000
+DMS_MS = 15_000.0  # MM_DMS_TTL_MS in config/dism.env: a stopped run's orders may rest this long
 TAIL_BYTES = 4_000_000  # live_span reads this much of the log's end before falling back to a full scan
 BASELINE_GAP_MS = 300_000.0  # the baseline ends this long before the live start, so its 300 s markouts are clean
 MIN_BASELINE_MS, MAX_BASELINE_MS = 3.6e6, 24 * 3.6e6  # baseline = the window's length, clamped to 1-24 h
@@ -175,6 +182,14 @@ def parse_fill(row: dict, cv: float) -> RealFill | None:
         return None
 
 
+class FillsIncomplete(RuntimeError):
+    """Paging hit its cap before reaching the run's start; `rows` holds what was fetched."""
+
+    def __init__(self, message: str, rows: list[dict]):
+        super().__init__(message)
+        self.rows = rows
+
+
 def fetch_fills(get, product_id: int, since_ms: float, known_ids: set[str] | frozenset = frozenset(),
                 max_pages: int = 500) -> list[dict]:
     """New fills for one product, newest first: pages until one reaches back past `since_ms` or holds a fill
@@ -194,8 +209,8 @@ def fetch_fills(get, product_id: int, since_ms: float, known_ids: set[str] | fro
                 or any(str(r.get("id")) in known_ids for r in page)):
             return rows
         time.sleep(0.2)
-    raise RuntimeError(f"Delta /v2/fills: {max_pages} pages did not reach back to the live run's start; "
-                       "rerun (fills.json keeps what was fetched) or raise --max-pages")
+    raise FillsIncomplete(f"Delta /v2/fills: {max_pages} pages did not reach back to the live run's start; "
+                          "rerun (fills.json keeps what was fetched) or raise --max-pages", rows)
 
 
 def merge_fills(cached: list[dict], new: list[dict]) -> list[dict]:
@@ -320,6 +335,16 @@ def read_config(run_dir: Path) -> dict[str, str]:
     except OSError:
         pass
     return out
+
+
+def sibling_runs(live_dir: Path) -> list[Path]:
+    """Other live run directories next to this one (artifacts/live/<UTC start>)."""
+    me = live_dir.resolve()
+    try:
+        return sorted(p for p in me.parent.iterdir()
+                      if p.is_dir() and not p.is_symlink() and RUN_NAME.match(p.name) and p.resolve() != me)
+    except OSError:
+        return []
 
 
 def shadow_runs_for(shadow_root: Path, t0: float, t1: float) -> list[Path]:
@@ -457,11 +482,12 @@ def compare(live_dir: Path, shadow_dirs: list[Path], fill_rows: list[dict], late
         raise SystemExit(f"no MM_METRICS samples for {symbol} in {live_dir}")
     run_start = span_info[0]
     live = load_samples(live_logs, symbol, since_ms, float("inf"), heartbeat_ms)
-    if len(live) < 2:
-        raise SystemExit(f"no MM_METRICS samples for {symbol} in {live_dir} after the window start")
-    t0, t1 = live[0].ts, live[-1].ts
     if fills_until_ms is not None:
-        t1 = min(t1, fills_until_ms)
+        live = [s for s in live if s.ts <= fills_until_ms]
+    if len(live) < 2:
+        raise SystemExit(f"no MM_METRICS samples for {symbol} in {live_dir} in the window")
+    t0, t1 = live[0].ts, live[-1].ts
+    last_live_mid = (live[-1].book_bid + live[-1].book_ask) / 2
     metric_paths = [p for d in shadow_dirs for p in sorted(glob.glob(str(d / "dry-run*.log*")))]
     trade_paths = [p for d in shadow_dirs for p in sorted(glob.glob(str(d / "delta_mainnet_public_*.jsonl")))]
 
@@ -472,20 +498,31 @@ def compare(live_dir: Path, shadow_dirs: list[Path], fill_rows: list[dict], late
     mids, ref = sim.MidSeries(win), RefSeries(win)
     offset = clock_offset_ms(trade_paths, dsym, t0, t1)
 
-    # Baseline: the shadow just before the live run, ending BASELINE_GAP_MS early so its markouts are clean.
+    # Baseline: the shadow just before the live run, ending BASELINE_GAP_MS early so its markouts are clean. Only
+    # the shadow run live.sh checked at start (same binary), and never while another live run was quoting.
     b1 = run_start - BASELINE_GAP_MS
     length = baseline_ms if baseline_ms is not None else min(max(t1 - t0, MIN_BASELINE_MS), MAX_BASELINE_MS)
-    base = load_samples(metric_paths, symbol, b1 - length - 5000, b1 + 310_000, heartbeat_ms) if length > 0 else []
-    base_q = [s for s in base if b1 - length <= s.ts <= b1]
+    b0 = b1 - length
+    for other in sibling_runs(live_dir):
+        span_o = live_span(sorted(glob.glob(str(other / "bot*.log*"))), symbol)
+        if span_o and span_o[0] < b1 and span_o[1] + DMS_MS + BASELINE_GAP_MS > b0:
+            b0 = max(b0, span_o[1] + DMS_MS + BASELINE_GAP_MS)
+    base_dirs = [d for d in shadow_dirs if d.name == cfg.get("shadow_run")] or shadow_dirs
+    base_paths = [p for d in base_dirs for p in sorted(glob.glob(str(d / "dry-run*.log*")))]
+    base_trades = [p for d in base_dirs for p in sorted(glob.glob(str(d / "delta_mainnet_public_*.jsonl")))]
+    base = load_samples(base_paths, symbol, b0 - 5000, b1 + 310_000, heartbeat_ms) if b1 > b0 else []
+    base_q = [s for s in base if b0 <= s.ts <= b1]
     basis = basis_bps(base_q)
 
-    accounting = {"total": 0, "used": 0, "before_window": 0, "after_window": 0, "no_mid": 0, "other_types": {}}
+    accounting = {"total": 0, "used": 0, "before_window": 0, "after_window": 0, "no_mid": 0, "unparsed": 0,
+                  "other_types": {}}
     real: list[RealFill] = []
     for r in fill_rows:
         if r.get("product_symbol") != dsym:
             continue
         f = parse_fill(r, cv)
         if not f:
+            accounting["unparsed"] += 1
             continue
         accounting["total"] += 1
         if f.fill_type != "normal":
@@ -515,7 +552,7 @@ def compare(live_dir: Path, shadow_dirs: list[Path], fill_rows: list[dict], late
     baseline = None
     if len(base_q) >= 2 and base_q[-1].ts - base_q[0].ts >= 600_000:
         bmids, bref = sim.MidSeries(base), RefSeries(base)
-        tape = load_trades(trade_paths, dsym, base_q[0].ts, base_q[-1].ts)
+        tape = load_trades(base_trades, dsym, base_q[0].ts, base_q[-1].ts)
         ref_px = base_q[len(base_q) // 2].fair
         for lat in latencies:
             c = sim.SimConfig(
@@ -527,7 +564,13 @@ def compare(live_dir: Path, shadow_dirs: list[Path], fill_rows: list[dict], late
             rows[f"sim baseline {lat:g}ms"] = row(sim.summarize(res_b, bmids, cv), ref_metrics(res_b.fills, bref, basis),
                                                   {"maker_pct": 100.0, "taker_fills": 0})
         baseline = {"t0": base_q[0].ts, "t1": base_q[-1].ts, "hours": (base_q[-1].ts - base_q[0].ts) / 3.6e6,
-                    "tape_trades": len(tape)}
+                    "tape_trades": len(tape), "shadow_runs": [d.name for d in base_dirs]}
+
+    # Stop rule: every real fill in the window, marked at the live bot's own last mid (no shadow needed).
+    traded = sum(f.contracts * cv * f.price for f in real)
+    pnl = (sum(-f.side * f.contracts * cv * f.price for f in real) - sum(f.fee for f in real)
+           + sum(f.side * f.contracts for f in real) * cv * last_live_mid)
+    stop = {"fills": len(real), "pnl_usd": pnl, "pnl_bps": pnl / traded * 1e4 if traded else None}
 
     return {
         "symbol": symbol, "live_run": live_dir.name, "shadow_runs": [d.name for d in shadow_dirs],
@@ -538,20 +581,23 @@ def compare(live_dir: Path, shadow_dirs: list[Path], fill_rows: list[dict], late
         "sizing": {"order_contracts": contracts, "max_inv_orders": inv_orders},
         "inventory_at_window_start": inventory_at(live_logs, symbol, t0),
         "fills": accounting,
+        "stop": stop,
         "rows": rows,
     }
 
 
 def stop_rule(out: dict) -> str:
-    """The live stop rule on PnL per dollar traded (needs no price reference): below 0 after 300 real fills."""
-    real = out["rows"]["real"]
+    """The live stop rule on PnL per dollar traded over every real fill (see EARLY_* / FULL_FILLS)."""
+    st = out["stop"]
+    n, pnl = st["fills"], st["pnl_bps"]
     scope = "" if out["window"]["whole_run"] else " [this window only; the rule is on the whole run: --all]"
-    if real["fills"] < STOP_FILLS:
-        return f"CONTINUE ({real['fills']}/{STOP_FILLS} real fills){scope}"
-    pnl = real["pnl_bps"]
-    verdict = "STOP: real PnL {:+.2f} bps per $ traded after {} fills" if pnl < 0 else \
-        "OK: real PnL {:+.2f} bps per $ traded over {} fills"
-    return verdict.format(pnl, real["fills"]) + scope
+    if n < EARLY_FILLS:
+        return f"CONTINUE ({n}/{EARLY_FILLS} real fills){scope}"
+    limit = 0.0 if n >= FULL_FILLS else EARLY_BPS
+    head = "STOP" if pnl < limit else "OK"
+    rel = "<" if pnl < limit else ">="
+    return f"{head}: real PnL {pnl:+.2f} bps per $ traded over {n} fills ({rel} {limit:+.1f} bps after " \
+           f"{FULL_FILLS if n >= FULL_FILLS else EARLY_FILLS} fills){scope}"
 
 
 def fmt(v, spec: str, width: int) -> str:
@@ -569,11 +615,12 @@ def format_table(out: dict) -> str:
     ]
     b = out["baseline"]
     if b:
-        lines.append(f"baseline (shadow before the live start) {iso(b['t0'])} -> {iso(b['t1'])} ({b['hours']:.2f} h, "
-                     f"{b['tape_trades']} trades); Delta-Binance basis "
+        lines.append(f"baseline (shadow {', '.join(b['shadow_runs'])} before the live start) {iso(b['t0'])} -> "
+                     f"{iso(b['t1'])} ({b['hours']:.2f} h, {b['tape_trades']} trades); Delta-Binance basis "
                      + (f"{out['basis_bps']:+.2f} bps" if out["basis_bps"] is not None else "unknown (no Binance mid)"))
     else:
-        lines.append("no baseline: the shadow has under 10 min of data before the live start")
+        lines.append("no baseline: under 10 min of shadow data before the live start (same shadow run, no other live "
+                     "run quoting)")
     head = (f"{'row':20s} {'fills':>6s} {'/day':>6s} {'$/day':>8s} {'mkr%':>5s} {'up%':>5s} {'capt':>6s} "
             + " ".join(f"{f'mo{h}':>6s}" for h in sim.HORIZONS)
             + f" {'fee':>5s} {'net60':>6s} {'net300':>6s} | {'bcapt':>6s} {'bmo60':>6s} {'bnet60':>6s} {'bnet300':>7s}"
@@ -598,8 +645,8 @@ def format_table(out: dict) -> str:
         if label.startswith("sim") and r["fills_per_day"]:
             lines.append(f"real fills/day / {label} fills/day: {real['fills_per_day'] / r['fills_per_day']:.2f}")
     a = out["fills"]
-    lines.append(f"real fills: {a['used']} used of {a['total']} ({a['before_window']} before the window, "
-                 f"{a['after_window']} after it, {a['no_mid']} without a shadow mid)"
+    lines.append(f"real fills: {a['used']} scored of {a['total']} ({a['before_window']} before the window, "
+                 f"{a['after_window']} after it, {a['no_mid']} without a shadow mid, {a['unparsed']} unparsable)"
                  + "".join(f", {n} {t} fill(s) excluded" for t, n in a["other_types"].items()))
     if real["taker_fills"]:
         lines.append(f"! {real['taker_fills']} real taker fill(s): quotes are post-only, so only a reduce-only exit takes")
@@ -692,18 +739,24 @@ def main(argv: list[str] | None = None) -> None:
     cached = json.loads(fills_path.read_text()) if fills_path.exists() else []
     fills_until = None
     if args.offline:
+        if not fills_path.exists():
+            raise SystemExit(f"--offline: no {fills_path} yet; run once without --offline")
         rows = cached
-        if fills_path.exists():
-            fills_until = fills_path.stat().st_mtime * 1000
-            print(f"offline: fills.json is {(time.time() * 1000 - fills_until) / 60_000:.0f} min old; the window "
-                  "ends there", file=sys.stderr)
+        fills_until = fills_path.stat().st_mtime * 1000
+        print(f"offline: fills.json is {(time.time() * 1000 - fills_until) / 60_000:.0f} min old; the window "
+              "ends there", file=sys.stderr)
     else:
         pid, _, _ = product(dsym)
-        new = fetch_fills(Delta(args.env_file).get, pid, span[0] - 120_000, {str(r.get("id")) for r in cached},
-                          args.max_pages)
+        try:
+            new = fetch_fills(Delta(args.env_file).get, pid, span[0] - 120_000, {str(r.get("id")) for r in cached},
+                              args.max_pages)
+        except FillsIncomplete as e:
+            fills_path.write_text(json.dumps(merge_fills(cached, e.rows)))
+            raise SystemExit(str(e))
         rows = merge_fills(cached, new)
         fills_path.write_text(json.dumps(rows))
-    since = span[1] - args.hours * 3.6e6 if args.hours else 0.0
+    end = min(span[1], fills_until) if fills_until is not None else span[1]
+    since = end - args.hours * 3.6e6 if args.hours else 0.0
     if (span[1] - max(since, span[0])) > 72 * 3.6e6 and not args.compact:
         print("warning: a window over 72 h at full resolution needs about 150 MB of RAM per day; consider --hours or "
               "--compact", file=sys.stderr)
