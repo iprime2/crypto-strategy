@@ -43,6 +43,7 @@ git clone git@github.com:iprime2/crypto-strategy.git ~/crypto-strategy
 ```bash
 ssh -i ~/.ssh/dism-tokyo ubuntu@<elastic-ip>
 cd ~/crypto-strategy/cex-mm && scripts/shadow.sh status
+python3 scripts/delta_key_check.py       # read-only: mainnet key in quote-bot/.env works, ADAUSD leverage <= 5x
 systemctl --user stop cex-mm-shadow      # stop for good (the watchdog leaves a stopped test alone)
 systemctl --user restart cex-mm-shadow   # new run, e.g. after `git pull` (it rebuilds first)
 ssh -i ~/.ssh/dism-tokyo -N -L 8788:127.0.0.1:8788 ubuntu@<elastic-ip>   # dashboard at http://127.0.0.1:8788/ (trend: /trend)
