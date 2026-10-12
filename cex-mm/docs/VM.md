@@ -122,7 +122,8 @@ scripts/live.sh stop                           # kill the bot, cancel its orders
 - `report` (`scripts/live_vs_shadow.py`) compares the real fills (from Delta) with the simulator on the shadow
   *before* the live start (the baseline: the window's length, 1-24 h). Per-fill edge is shown on the Delta mid (clean
   for the baseline, biased by our own quotes for the real row) and on the Binance mid shifted by the Delta-Binance
-  basis (`b*` columns: compare real and sim on these). `PnLbp` is PnL per dollar traded, which needs no price
+  basis (`b*` columns: compare real and sim on these; a Binance mid unchanged for over 15 minutes counts as a frozen
+  feed and is left out, see the 2026-10-12 memo). `PnLbp` is PnL per dollar traded, which needs no price
   reference. The live stop rule uses it over every real fill: below -2.6 bps after 300 fills, or below 0 after 1,000,
   means stop (calibration in `artifacts/research/2026-10-12-live-stop-rule.md`).
 - Restarting the shadow test (`systemctl --user restart cex-mm-shadow`) does not touch the live bot.

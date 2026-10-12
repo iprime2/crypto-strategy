@@ -19,9 +19,9 @@ references, and one figure that needs none:
   capt, mo*, net60     the Delta L1 mid logged by the shadow. Clean for the baseline; for the real row it is
                        biased, because during the run that mid is mostly our own two quotes.
   bcapt, bmo*, bnet60  the Binance mid in MM_METRICS, which our orders cannot move, shifted by the Delta-Binance
-                       basis measured in the baseline. The basis moves during the day (ADA: about +295 bps with
-                       intraday swings in Oct 2026), so the level differs from the Delta numbers even without us;
-                       compare real with sim on these columns, like for like.
+                       basis measured in the baseline (ADA: Delta 4-7 bps below Binance, daily medians 6-8 Oct).
+                       A Binance mid unchanged for over 15 min is treated as missing: the feed froze for 3.5 days
+                       on 8-12 Oct. Compare real with sim on these columns, like for like.
   PnLbp                PnL$ per dollar traded, in bps: cash flows plus the inventory marked at the last mid,
                        minus fees.
 
@@ -397,12 +397,31 @@ def sizing(cfg: dict[str, str], symbol: str, cv: float) -> tuple[int, int]:
     return contracts, max(1, round(cap / qty))
 
 
+# A Binance mid unchanged this long is a frozen feed. Healthy ADA feed, 6-8 Oct 2026: longest unchanged 275 s (one
+# tick is about 4 bps). The 8-12 Oct freeze: 3.5 days.
+BINANCE_STALE_MS = 900_000.0
+
+
+def fresh_binance(samples: list[sim.Sample]) -> list[tuple[float, float]]:
+    """(ts, binance_mid) of samples whose Binance mid changed within BINANCE_STALE_MS. The first sample counts as a
+    change, so a freeze that began before the samples passes for up to BINANCE_STALE_MS."""
+    out, last_px, changed_at = [], None, 0.0
+    for s in samples:
+        if s.binance_mid <= 0:
+            continue
+        if s.binance_mid != last_px:
+            last_px, changed_at = s.binance_mid, s.ts
+        if s.ts - changed_at <= BINANCE_STALE_MS:
+            out.append((s.ts, s.binance_mid))
+    return out
+
+
 class RefSeries:
     """Binance mid from MM_METRICS (binance_mid), with MidSeries' contract: the last value at or before t, or
-    None if it is older than 5 s. Our Delta orders cannot move it."""
+    None if it is older than 5 s or frozen. Our Delta orders cannot move it."""
 
     def __init__(self, samples: list[sim.Sample]):
-        pts = [(s.ts, s.binance_mid) for s in samples if s.binance_mid > 0]
+        pts = fresh_binance(samples)
         self.ts = [t for t, _ in pts]
         self.px = [p for _, p in pts]
 
@@ -414,8 +433,9 @@ class RefSeries:
 
 
 def basis_bps(samples: list[sim.Sample]) -> float | None:
-    """Median Delta mid over Binance mid, in bps, over samples with both."""
-    vals = [((s.book_bid + s.book_ask) / 2 / s.binance_mid - 1) * 1e4 for s in samples if s.binance_mid > 0]
+    """Median Delta mid over Binance mid, in bps, over samples with a fresh Binance mid."""
+    fresh = {t for t, _ in fresh_binance(samples)}
+    vals = [((s.book_bid + s.book_ask) / 2 / s.binance_mid - 1) * 1e4 for s in samples if s.ts in fresh]
     return float(statistics.median(vals)) if vals else None
 
 
@@ -640,7 +660,7 @@ def format_table(out: dict) -> str:
     lines.append("The real row's capt/mo/net60 use the Delta mid, which is mostly our own quotes while we quote: "
                  "compare real and sim on the b* columns and PnLbp.")
     if out["basis_bps"] is None:
-        lines.append("no Binance mid in the shadow log: the b* columns are unavailable")
+        lines.append("no fresh Binance mid in the shadow log (missing or frozen): the b* columns are unavailable")
     for label, r in out["rows"].items():
         if label.startswith("sim") and r["fills_per_day"]:
             lines.append(f"real fills/day / {label} fills/day: {real['fills_per_day'] / r['fills_per_day']:.2f}")

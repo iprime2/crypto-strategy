@@ -8,6 +8,7 @@ import contextlib
 import io
 import json
 import os
+import re
 import sys
 import tempfile
 import unittest
@@ -215,7 +216,11 @@ def write_runs(base: Path) -> tuple[Path, Path]:
     (shadow / "config.txt").write_text("symbols=ADAUSDT\nstarted_utc=2026-10-12T07:00:00Z\n")
     n = 900  # 15 min of samples, flat 99.8/100.2 book, quotes 99.9/100.1
     (live / "bot.log").write_text("".join(metrics_line(T0 + i * 1000) for i in range(n)))
-    (shadow / "dry-run.log").write_text("".join(metrics_line(T0 + i * 1000 + 100) for i in range(-3600, n + 400)))
+    # Binance flat at 100.0 but ticking for one second every 10 min, like a live feed (a mid unchanged for over
+    # BINANCE_STALE_MS is a frozen feed). No markout of the real fills lands on a tick.
+    (shadow / "dry-run.log").write_text("".join(
+        metrics_line(T0 + i * 1000 + 100, binance_mid=100.0001 if i % 600 == 450 else 100.0)
+        for i in range(-3600, n + 400)))
     # Aggressive sells through 99.9 and buys through 100.1 every 20 s, from an hour before the live start to 10 min
     # into it; local recv 1 s after exchange time.
     trades = [trade_line(T0 - 3_600_000 + k * 20_000, T0 - 3_601_000 + k * 20_000, 99.85 if k % 2 == 0 else 100.15, 5,
@@ -294,7 +299,7 @@ class Compare(unittest.TestCase):
     def test_without_a_binance_mid_the_b_columns_are_marked_unavailable(self):
         live, shadow = write_runs(Path(tempfile.mkdtemp()))
         sl = shadow / "dry-run.log"
-        sl.write_text(sl.read_text().replace('"binance_mid":100.0', '"binance_mid":null'))
+        sl.write_text(re.sub(r'"binance_mid":[0-9.]+', '"binance_mid":null', sl.read_text()))
         out = lvs.compare(live, [shadow], [], latencies=[300], tick=0.05, cv=1.0)
         self.assertIsNone(out["basis_bps"])
         self.assertIsNone(out["rows"]["real"]["bnet60"])
@@ -308,6 +313,19 @@ class Compare(unittest.TestCase):
         self.assertTrue(lvs.stop_rule(out(1000, -0.1)).startswith("STOP: real PnL -0.10"))  # below 0 after 1,000
         self.assertTrue(lvs.stop_rule(out(1000, 0.3)).startswith("OK: real PnL +0.30"))
         self.assertIn("[this window only", lvs.stop_rule(out(300, 1.0, whole=False)))
+
+    def test_a_frozen_binance_feed_is_not_a_basis(self):
+        # The 8-12 Oct 2026 failure: Binance stuck (last change at 2 s) while Delta moves from 100 to 110.
+        stale_s = int(lvs.BINANCE_STALE_MS / 1000)
+        last_fresh = stale_s + 2
+        samples = [sim.Sample(T0 + i * 1000, 100, 99.9, 100.1, True, True, 0, 99.95 + 10 * (i > last_fresh),
+                              100.05 + 10 * (i > last_fresh), 95.5 if i == 1 else 95.0) for i in range(3 * stale_s)]
+        # Only samples up to BINANCE_STALE_MS after the last change count, all with Delta at 100.
+        self.assertAlmostEqual(lvs.basis_bps(samples), (100 / 95 - 1) * 1e4, places=9)
+        ref = lvs.RefSeries(samples)
+        self.assertEqual(ref.at(T0 + 1000), 95.5)
+        self.assertEqual(ref.at(T0 + last_fresh * 1000), 95.0)  # unchanged for exactly BINANCE_STALE_MS: fresh
+        self.assertIsNone(ref.at(T0 + 2 * stale_s * 1000))  # frozen, though a sample exists at that time
 
     def test_stop_rule_counts_fills_the_shadow_missed_marked_at_the_live_mid(self):
         live, shadow = write_runs(Path(tempfile.mkdtemp()))
