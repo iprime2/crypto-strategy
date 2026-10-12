@@ -8,6 +8,7 @@ import contextlib
 import io
 import json
 import os
+import re
 import sys
 import tempfile
 import unittest
@@ -118,11 +119,12 @@ class FetchFills(unittest.TestCase):
         merged = lvs.merge_fills([fill_row("2026-10-12T08:00:02Z", "buy", "1", fid="8")], rows)
         self.assertEqual([r["id"] for r in merged], ["9", "8"])
 
-    def test_page_cap_raises_instead_of_truncating(self):
+    def test_page_cap_raises_instead_of_truncating_and_keeps_the_rows(self):
         page = {"success": True, "result": [fill_row("2026-10-12T08:00:03Z", "buy", "1")], "meta": {"after": "z"}}
-        with mock.patch.object(lvs.time, "sleep"), self.assertRaises(RuntimeError) as cm:
+        with mock.patch.object(lvs.time, "sleep"), self.assertRaises(lvs.FillsIncomplete) as cm:
             lvs.fetch_fills(lambda p, q: page, 1, since_ms=0, max_pages=3)
         self.assertIn("3 pages", str(cm.exception))
+        self.assertEqual(len(cm.exception.rows), 3)
 
     def test_failed_call_raises_with_the_error_code_only(self):
         with self.assertRaises(RuntimeError) as cm:
@@ -214,7 +216,11 @@ def write_runs(base: Path) -> tuple[Path, Path]:
     (shadow / "config.txt").write_text("symbols=ADAUSDT\nstarted_utc=2026-10-12T07:00:00Z\n")
     n = 900  # 15 min of samples, flat 99.8/100.2 book, quotes 99.9/100.1
     (live / "bot.log").write_text("".join(metrics_line(T0 + i * 1000) for i in range(n)))
-    (shadow / "dry-run.log").write_text("".join(metrics_line(T0 + i * 1000 + 100) for i in range(-3600, n + 400)))
+    # Binance flat at 100.0 but ticking for one second every 10 min, like a live feed (a mid unchanged for over
+    # BINANCE_STALE_MS is a frozen feed). No markout of the real fills lands on a tick.
+    (shadow / "dry-run.log").write_text("".join(
+        metrics_line(T0 + i * 1000 + 100, binance_mid=100.0001 if i % 600 == 450 else 100.0)
+        for i in range(-3600, n + 400)))
     # Aggressive sells through 99.9 and buys through 100.1 every 20 s, from an hour before the live start to 10 min
     # into it; local recv 1 s after exchange time.
     trades = [trade_line(T0 - 3_600_000 + k * 20_000, T0 - 3_601_000 + k * 20_000, 99.85 if k % 2 == 0 else 100.15, 5,
@@ -237,7 +243,8 @@ class Compare(unittest.TestCase):
                 fill_row(iso(T0 - 3_600_000), "sell", "100.1", size="2", fid="old"),
                 fill_row(iso(T0 + 39_000), "buy", "99.9", size="2", symbol="KITEUSD", fid="kite"),
                 dict(fill_row(iso(T0 + 49_000), "sell", "100.1", size="2", fid="adl"), fill_type="adl"),
-                fill_row(iso(T0 + 2_000_000), "sell", "100.1", size="2", fid="late")]
+                fill_row(iso(T0 + 2_000_000), "sell", "100.1", size="2", fid="late"),
+                fill_row(iso(T0 + 59_000), "hold", "100.1", size="2", fid="junk")]
         out = lvs.compare(live, [shadow], rows, latencies=[20, 300], tick=0.05, cv=1.0)
         self.assertEqual(out["window"]["clock_offset_ms"], 1000)
         self.assertTrue(out["window"]["whole_run"])
@@ -254,7 +261,9 @@ class Compare(unittest.TestCase):
         self.assertAlmostEqual(real["bmo60"], 0.0, places=9)
         self.assertAlmostEqual(real["bnet60"], cap - 2.12, places=6)
         self.assertEqual(out["fills"], {"total": 5, "used": 2, "before_window": 1, "after_window": 1, "no_mid": 0,
-                                        "other_types": {"adl": 1}})
+                                        "unparsed": 1, "other_types": {"adl": 1}})
+        self.assertEqual(out["stop"]["fills"], 2)
+        self.assertEqual(out["baseline"]["shadow_runs"], [shadow.name])
         # The baseline ends 300 s before the live start and lasts 1 h (the 15 min window is below the minimum),
         # clipped by the shadow's start an hour before the live run: 164 trades through our quotes, each a fill.
         b = out["baseline"]
@@ -290,19 +299,69 @@ class Compare(unittest.TestCase):
     def test_without_a_binance_mid_the_b_columns_are_marked_unavailable(self):
         live, shadow = write_runs(Path(tempfile.mkdtemp()))
         sl = shadow / "dry-run.log"
-        sl.write_text(sl.read_text().replace('"binance_mid":100.0', '"binance_mid":null'))
+        sl.write_text(re.sub(r'"binance_mid":[0-9.]+', '"binance_mid":null', sl.read_text()))
         out = lvs.compare(live, [shadow], [], latencies=[300], tick=0.05, cv=1.0)
         self.assertIsNone(out["basis_bps"])
         self.assertIsNone(out["rows"]["real"]["bnet60"])
         self.assertIn("the b* columns are unavailable", lvs.format_table(out))
 
-    def test_stop_rule_on_pnl_per_dollar_after_300_fills(self):
-        out = {"window": {"whole_run": True}, "rows": {"real": {"fills": 300, "pnl_bps": -0.4}}}
-        self.assertTrue(lvs.stop_rule(out).startswith("STOP: real PnL -0.40 bps per $ traded after 300 fills"))
-        out["rows"]["real"]["pnl_bps"] = 1.2
-        self.assertTrue(lvs.stop_rule(out).startswith("OK: real PnL +1.20 bps"))
-        out["window"]["whole_run"] = False
-        self.assertIn("[this window only", lvs.stop_rule(out))
+    def test_calibrated_stop_rule(self):
+        out = lambda n, bps, whole=True: {"window": {"whole_run": whole}, "stop": {"fills": n, "pnl_bps": bps}}  # noqa: E731
+        self.assertTrue(lvs.stop_rule(out(299, -9.0)).startswith("CONTINUE (299/300 real fills)"))
+        self.assertTrue(lvs.stop_rule(out(300, -0.4)).startswith("OK: real PnL -0.40"))  # above -2.6 early on
+        self.assertTrue(lvs.stop_rule(out(300, -2.7)).startswith("STOP: real PnL -2.70 bps per $ traded over 300 fills"))
+        self.assertTrue(lvs.stop_rule(out(1000, -0.1)).startswith("STOP: real PnL -0.10"))  # below 0 after 1,000
+        self.assertTrue(lvs.stop_rule(out(1000, 0.3)).startswith("OK: real PnL +0.30"))
+        self.assertIn("[this window only", lvs.stop_rule(out(300, 1.0, whole=False)))
+
+    def test_a_frozen_binance_feed_is_not_a_basis(self):
+        # The 8-12 Oct 2026 failure: Binance stuck (last change at 2 s) while Delta moves from 100 to 110.
+        stale_s = int(lvs.BINANCE_STALE_MS / 1000)
+        last_fresh = stale_s + 2
+        samples = [sim.Sample(T0 + i * 1000, 100, 99.9, 100.1, True, True, 0, 99.95 + 10 * (i > last_fresh),
+                              100.05 + 10 * (i > last_fresh), 95.5 if i == 1 else 95.0) for i in range(3 * stale_s)]
+        # Only samples up to BINANCE_STALE_MS after the last change count, all with Delta at 100.
+        self.assertAlmostEqual(lvs.basis_bps(samples), (100 / 95 - 1) * 1e4, places=9)
+        ref = lvs.RefSeries(samples)
+        self.assertEqual(ref.at(T0 + 1000), 95.5)
+        self.assertEqual(ref.at(T0 + last_fresh * 1000), 95.0)  # unchanged for exactly BINANCE_STALE_MS: fresh
+        self.assertIsNone(ref.at(T0 + 2 * stale_s * 1000))  # frozen, though a sample exists at that time
+
+    def test_stop_rule_counts_fills_the_shadow_missed_marked_at_the_live_mid(self):
+        live, shadow = write_runs(Path(tempfile.mkdtemp()))
+        sl = shadow / "dry-run.log"  # the shadow goes down 5 min into the live run
+        sl.write_text("".join(l for l in sl.read_text().splitlines(keepends=True)
+                              if json.loads(l[l.index("{"):])["ts_ms"] < T0 + 300_000))
+        rows = [fill_row(iso(T0 + 9000), "buy", "99.9", size="2", commission="0", fid="a"),
+                fill_row(iso(T0 + 600_000), "buy", "99.0", size="2", commission="0", fid="b")]  # no shadow mid
+        out = lvs.compare(live, [shadow], rows, latencies=[300], tick=0.05, cv=1.0)
+        self.assertEqual(out["fills"]["no_mid"], 1)
+        self.assertEqual(out["stop"]["fills"], 2)
+        # Bought 2 @ 99.9 and 2 @ 99.0, marked at the live bot's last mid 100.0.
+        self.assertAlmostEqual(out["stop"]["pnl_usd"], 2 * (100 - 99.9) + 2 * (100 - 99.0), places=9)
+
+    def test_baseline_skips_time_another_live_run_was_quoting(self):
+        base = Path(tempfile.mkdtemp())
+        live, shadow = write_runs(base)
+        other = live.parent / "20261012T070000Z"  # an earlier live run that stopped 30 min before this one
+        other.mkdir()
+        (other / "bot.log").write_text("".join(metrics_line(T0 - 2_400_000 + i * 1000) for i in range(600)))
+        out = lvs.compare(live, [shadow], [], latencies=[300], tick=0.05, cv=1.0)
+        # It ended at T0 - 1801 s; the baseline starts after it + the DMS TTL + the 300 s gap.
+        self.assertGreaterEqual(out["baseline"]["t0"], T0 - 1_801_000 + 15_000 + 300_000)
+
+    def test_baseline_uses_only_the_shadow_run_checked_at_start(self):
+        base = Path(tempfile.mkdtemp())
+        live, shadow = write_runs(base)
+        newer = shadow.parent / "20261012T075500Z"  # another run over the same hour, with its own tape
+        newer.mkdir()
+        (newer / "dry-run.log").write_text((shadow / "dry-run.log").read_text())
+        (newer / "delta_mainnet_public_20261012.jsonl").write_text("")
+        cfg = live / "config.txt"
+        cfg.write_text(cfg.read_text() + f"shadow_run={shadow.name}\n")
+        out = lvs.compare(live, [newer, shadow], [], latencies=[300], tick=0.05, cv=1.0)
+        self.assertEqual(out["baseline"]["shadow_runs"], [shadow.name])
+        self.assertEqual(out["baseline"]["tape_trades"], 164)
 
     def test_no_baseline_when_the_shadow_started_with_the_live_run(self):
         live, shadow = write_runs(Path(tempfile.mkdtemp()))
@@ -330,6 +389,28 @@ class Compare(unittest.TestCase):
                 contextlib.redirect_stderr(io.StringIO()):
             lvs.main(["--live-dir", str(live), "--shadow-dir", str(shadow), "--offline", "--json"])
         self.assertEqual(json.loads(buf.getvalue())["rows"]["real"]["fills"], 0)
+
+    def test_offline_needs_fills_json_and_ends_the_window_at_its_time(self):
+        live, shadow = write_runs(Path(tempfile.mkdtemp()))
+        with mock.patch.object(lvs.sim, "product_meta", return_value=(0.05, 1.0)), \
+                contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as cm:
+            lvs.main(["--live-dir", str(live), "--shadow-dir", str(shadow), "--offline"])
+        self.assertIn("no ", str(cm.exception))
+        out = lvs.compare(live, [shadow], [], latencies=[300], tick=0.05, cv=1.0, fills_until_ms=T0 + 300_000)
+        self.assertAlmostEqual(out["window"]["t1"], T0 + 300_000, delta=1000)
+        self.assertLessEqual(out["rows"]["real"]["uptime"], 1.0)
+
+    def test_a_capped_fetch_still_saves_what_it_got(self):
+        live, shadow = write_runs(Path(tempfile.mkdtemp()))
+        env = live.parent / ".env"
+        env.write_text("DELTA_MAINNET_API_KEY=k\nDELTA_MAINNET_API_SECRET=s\n")
+        partial = [fill_row(iso(T0 + 9000), "buy", "99.9", size="2", fid="p1")]
+        with mock.patch.object(lvs.sim, "product_meta", return_value=(0.05, 1.0)), \
+                mock.patch.object(lvs, "product", return_value=(16614, 0.05, 1.0)), \
+                mock.patch.object(lvs, "fetch_fills", side_effect=lvs.FillsIncomplete("capped", partial)), \
+                self.assertRaises(SystemExit):
+            lvs.main(["--live-dir", str(live), "--shadow-dir", str(shadow), "--env-file", str(env)])
+        self.assertEqual([r["id"] for r in json.loads((live / "fills.json").read_text())], ["p1"])
 
     def test_shadow_runs_are_picked_by_overlap_with_the_live_window(self):
         base = Path(tempfile.mkdtemp())

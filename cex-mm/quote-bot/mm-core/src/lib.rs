@@ -46,6 +46,13 @@ pub fn compute_quote_cex(
     book: Option<BookTop>,
     ext: QuoteExtensions,
 ) -> Result<QuotePlan, String> {
+    // DISM quotes the shadow-tested rule. The shadow dry-run has no venue keys, so it never sees funding
+    // carry; a live bot holding inventory does. Leave it out so live and shadow quote the same fair.
+    let ext = if cfg.fixed_half_spread_bps > 0.0 {
+        QuoteExtensions { funding_carry_bps: 0.0, ..ext }
+    } else {
+        ext
+    };
     let fair = fair::resolve_fair_cex(fair_native, book, ext);
     let mut plan = compute_quote(
         cfg,
@@ -170,6 +177,40 @@ mod tests {
         assert_eq!(plan.reservation, plan.fair);
         assert!((plan.spread_bps - (ask - bid) / plan.fair * 1e4).abs() < 1e-9);
         assert!(plan.place_bid && plan.place_ask);
+    }
+
+    #[test]
+    fn fixed_mode_ignores_funding_carry_like_the_shadow() {
+        // The shadow dry-run has no keys, so its funding carry is always 0. A live DISM bot holding
+        // inventory gets one from the venue (12 Oct: +150 bps with 2 ADA, from a units bug); it must
+        // move neither the fair nor the quotes, nor trip the fair-jump defence and drop a side.
+        let run = |carry: f64| {
+            compute_quote_cex(
+                &fixed_cfg(), 0.25, 1e-5, 2.0, 600.0, 200.0, 30.0, 1.5, 0.0, 0.0, 0.0, Some(0.25),
+                ada_book(),
+                QuoteExtensions { regime_spread_mult: 1.0, funding_carry_bps: carry, ..Default::default() },
+            )
+            .unwrap()
+        };
+        let (flat, carried) = (run(0.0), run(150.0));
+        assert_eq!(carried.fair, flat.fair);
+        assert_eq!((carried.bid, carried.ask), (flat.bid, flat.ask));
+        assert!(carried.place_bid && carried.place_ask);
+    }
+
+    #[test]
+    fn as_path_still_applies_funding_carry() {
+        let mut cfg = fixed_cfg();
+        cfg.fixed_half_spread_bps = 0.0;
+        let fair = |carry: f64| {
+            compute_quote_cex(
+                &cfg, 0.25, 1e-5, 0.0, 600.0, 200.0, 30.0, 1.5, 0.0, 0.0, 0.0, None, ada_book(),
+                QuoteExtensions { regime_spread_mult: 1.0, funding_carry_bps: carry, ..Default::default() },
+            )
+            .unwrap()
+            .fair
+        };
+        assert!((fair(1.0) / fair(0.0) - 1.0 - 1e-4).abs() < 1e-12);
     }
 
     #[test]

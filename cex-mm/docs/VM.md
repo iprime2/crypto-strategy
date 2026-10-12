@@ -95,14 +95,15 @@ Starting it needs the user's explicit go-ahead.
 ```bash
 scripts/live.sh start --confirm "START REAL"   # refuses unless the checks below pass
 scripts/live.sh status                         # running / stopped / DOWN, last quote, venue position and orders
-scripts/live.sh report                         # real fills vs the simulator, last 24 h (--hours N, --all)
+scripts/live.sh report                         # real fills vs the simulator, last 24 h (--hours N, --all = compact)
 scripts/live.sh stop                           # kill the bot, cancel its orders, check none are left open
 ```
 
 - `start` refuses unless: the typed confirmation, no other `live.sh start`/`stop` in progress (a lock), no other
-  `mm-bot run` process (the OEMS or a stray bot), the shadow dry-run is running the same binary, both mainnet keys
-  are set without quotes or spaces, and `scripts/delta_key_check.py` passes (key works from this IP, order leverage
-  at most 5x). If the bot dies during startup, `start` cancels its orders and says why.
+  `mm-bot run` process (the OEMS or a stray bot), the shadow dry-run is running the same binary with the same `MM_`
+  settings, no profile value with quotes, spaces or an inline comment (mm-bot would fall back to its defaults: a
+  $500 stop and no dead man's switch), both mainnet keys set without quotes or spaces, and
+  `scripts/delta_key_check.py` passes (key works from this IP, order leverage at most 5x). If the bot dies during startup, `start` cancels its orders and says why.
 - `stop` waits for an in-flight `start`, kills the bot, sends cancel-all for the stopped run's symbols, then reads
   the book and fails unless no order is left open.
 - **No auto-restart.** mm-bot has no signal handler, so a crash or kill leaves its orders until Delta's dead man's
@@ -121,8 +122,10 @@ scripts/live.sh stop                           # kill the bot, cancel its orders
 - `report` (`scripts/live_vs_shadow.py`) compares the real fills (from Delta) with the simulator on the shadow
   *before* the live start (the baseline: the window's length, 1-24 h). Per-fill edge is shown on the Delta mid (clean
   for the baseline, biased by our own quotes for the real row) and on the Binance mid shifted by the Delta-Binance
-  basis (`b*` columns: compare real and sim on these). `PnLbp` is PnL per dollar traded, which needs no price
-  reference; the live stop rule uses it: below 0 after 300 real fills means stop.
+  basis (`b*` columns: compare real and sim on these; a Binance mid unchanged for over 15 minutes counts as a frozen
+  feed and is left out, see the 2026-10-12 memo). `PnLbp` is PnL per dollar traded, which needs no price
+  reference. The live stop rule uses it over every real fill: below -2.6 bps after 300 fills, or below 0 after 1,000,
+  means stop (calibration in `artifacts/research/2026-10-12-live-stop-rule.md`).
 - Restarting the shadow test (`systemctl --user restart cex-mm-shadow`) does not touch the live bot.
 
 ## OEMS (optional)
@@ -152,8 +155,10 @@ journalctl --user -u cex-mm-oems -n 20                      # "real-money starts
   `systemctl --user edit cex-mm-oems`, and even then need the typed `START REAL`.
 - `KillMode=process`: stopping or restarting the OEMS leaves a bot it started running; the next OEMS adopts it.
 - The API is reachable only on the VM. From a laptop: `ssh -L 8791:127.0.0.1:8791 ubuntu@dism-tokyo`.
-- Switch it off and free the disk (about 2 GB of image):
-  `systemctl --user disable --now cex-mm-oems`, then
+- Switch it off and free the disk (about 2 GB of image). First stop every strategy it runs (Strategy page, or
+  `curl -X POST -H 'X-OEMS-Client: cli' localhost:8791/api/strategies/<id>/stop`) and check that
+  `pgrep -af 'mm-bot run'` shows none: with `KillMode=process` a bot outlives the OEMS, and `down -v` deletes the
+  record a later OEMS would adopt it by. Then `systemctl --user disable --now cex-mm-oems`, then
   `cd backend && sudo docker compose -f docker-compose.yml -f ../infra/vm/oems-compose.override.yml down -v --rmi all`
   (`-v` deletes the database).
 

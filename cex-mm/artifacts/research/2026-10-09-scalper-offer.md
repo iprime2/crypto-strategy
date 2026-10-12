@@ -63,7 +63,7 @@ What the run shows:
    - Activation is irreversible.
    - Delta can end the offer at any time.
    Recommendation: ask Delta support in writing (ticket or email) whether a retail KYC account trading over the API with post-only quotes counts as an "MM user", and whether activation changes anything else on the account (fee tier, other offers). Opt in only on a written yes.
-2. **The gate stays without the offer.** Mainnet go/no-go and the live stop rule (net60 < 0 after 300 fills) use net60 without the offer, because the offer can be withdrawn without notice. The offer is upside, not a reason to pass `docs/MAINNET_GATE.md`.
+2. **The gate stays without the offer.** Mainnet go/no-go and the live stop rule (net60 < 0 after 300 fills; superseded 2026-10-12 by PnL per dollar traded, see `2026-10-12-live-stop-rule.md`) use numbers without the offer, because the offer can be withdrawn without notice. The offer is upside, not a reason to pass `docs/MAINNET_GATE.md`.
 
 ## Next
 1. Send the support ticket (Decision 1): ask whether we count as an "MM user", and whether closes pair with opens first-in-first-out or by position age. The two rules are 0.30 bps apart.

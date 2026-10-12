@@ -57,6 +57,14 @@ check_key() {
   [[ "$v" != *[\'\"[:space:]]* ]] || die "$1 in $ENV_FILE contains quotes or spaces; the bot would sign with them"
 }
 
+# Fails if a profile line would reach the bot with quotes, spaces or an inline comment: mm-bot parses MM_* values
+# strictly and falls back to its defaults ($500 daily stop, no dead man's switch) on anything else.
+check_profile() {
+  local bad
+  bad="$( { grep -E '^[A-Z0-9_]+=' "$PROFILE" || true; } | { grep -vE '^[A-Z0-9_]+=[^[:space:]"'"'"'#]*$' || true; } | cut -d= -f1 | tr '\n' ' ')"
+  [[ -z "${bad// /}" ]] || die "$PROFILE: quotes, spaces or an inline comment in ${bad% }; the bot would ignore them"
+}
+
 # Alive and not a zombie (an orphan's zombie can linger until its new parent reaps it).
 alive() { [[ "$1" =~ ^[0-9]+$ ]] && [[ -r "/proc/$1/stat" ]] && [[ "$(cut -d' ' -f3 "/proc/$1/stat" 2>/dev/null)" != Z ]]; }
 pid_alive() { [[ -f "$1" ]] && alive "$(cat "$1")"; }
@@ -113,6 +121,7 @@ exec_bot() {
   case "$mode" in
     run)
       local others
+      check_profile
       others="$(all_bots | tr '\n' ' ')"
       [[ -z "${others// /}" ]] || die "another mm-bot run process appeared (pid ${others% }); not starting"
       while IFS= read -r line; do export "$line"; done < <(grep -E '^[A-Z0-9_]+=' "$PROFILE")
@@ -151,6 +160,7 @@ start() {
   take_lock -n || die "another live.sh start or stop is running"
   [[ -x "$BIN" ]] || die "no $BIN (build it with cargo build --release -p mm-bot, or restart the shadow test)"
   [[ "$SYMBOLS" =~ ^[A-Z0-9]+(,[A-Z0-9]+)*$ ]] || die "no usable MM_SYMBOLS in $PROFILE"
+  check_profile
   local pid others spid sym
   pid="$(bot_pid)"
   if is_bot "$pid"; then die "the live bot is already running (pid $pid)"; fi
@@ -160,6 +170,13 @@ start() {
     [[ "${LIVE_ALLOW_BINARY_MISMATCH:-}" == 1 ]] \
       || die "the shadow dry-run runs a different mm-bot build than $BIN; restart the shadow first (systemctl --user restart cex-mm-shadow) or set LIVE_ALLOW_BINARY_MISMATCH=1"
     echo "warning: the shadow dry-run runs a different mm-bot build (LIVE_ALLOW_BINARY_MISMATCH=1)"
+  fi
+  # The comparison assumes the shadow quotes with the same settings.
+  if [[ -f "$SHADOW_CURRENT/config.txt" ]] \
+    && ! diff -q <(grep -E '^MM_' "$PROFILE" | sort) <(grep -E '^MM_' "$SHADOW_CURRENT/config.txt" | sort) >/dev/null; then
+    [[ "${LIVE_ALLOW_PROFILE_MISMATCH:-}" == 1 ]] \
+      || die "the shadow runs with different MM_ settings than $PROFILE; restart the shadow first or set LIVE_ALLOW_PROFILE_MISMATCH=1"
+    echo "warning: the shadow runs with different MM_ settings (LIVE_ALLOW_PROFILE_MISMATCH=1)"
   fi
   check_key DELTA_MAINNET_API_KEY
   check_key DELTA_MAINNET_API_SECRET
@@ -187,7 +204,7 @@ start() {
   } >"$run/config.txt"
 
   setsid nohup env -i HOME="$HOME" PATH="/usr/bin:/bin" LIVE_ENV_FILE="$ENV_FILE" LIVE_INTERNAL_EXEC=1 \
-    "$ROOT/scripts/live.sh" _exec run "$SYMBOLS" >"$run/bot.log" 2>&1 </dev/null 9>&- &
+    "$ROOT/scripts/live.sh" _exec run "$SYMBOLS" >>"$run/bot.log" 2>&1 </dev/null 9>&- &
   echo $! >"$run/bot.pid"
   echo "REAL-MONEY bot starting: $SYMBOLS on Delta mainnet, run $run"
 
@@ -202,12 +219,13 @@ start() {
   if ! is_bot "$lpid"; then
     echo "live.sh: the bot exited during startup; last log lines:" >&2
     tail -20 "$run/bot.log" >&2
-    echo "failed start at $(date -u +%FT%TZ)" >"$run/stopped"
+    echo "failed start at $(date -u +%FT%TZ)" >"$run/stopped" || echo "live.sh: could not write the stopped marker" >&2
     # It may have placed orders before dying; cancel them rather than wait for the dead man's switch.
     clean_env cancel "$SYMBOLS" >&2 9>&- || echo "live.sh: CANCEL FAILED after the failed start; check the venue" >&2
     exit 1
   fi
   grep -q "account guards on" "$run/bot.log" || echo "warning: no 'account guards on' line after ${wait_s} s; check the log"
+  exec 9>&- # the bot is up: let a stop in, the rest is read-only
   status
 }
 
@@ -225,7 +243,9 @@ stop() {
   else
     echo "the live bot is not running"
   fi
-  [[ -d "$CURRENT" ]] && echo "live.sh stop at $(date -u +%FT%TZ)" >"$CURRENT/stopped"
+  if [[ -d "$CURRENT" ]]; then
+    echo "live.sh stop at $(date -u +%FT%TZ)" >"$CURRENT/stopped" || echo "live.sh: could not write the stopped marker" >&2
+  fi
   # mm-bot has no signal handler, so its orders are still resting: cancel them now rather than wait for the DMS.
   local ok=0
   for ((i = 1; i <= 3; i++)); do
@@ -237,11 +257,14 @@ stop() {
   else
     echo "live.sh: CANCEL FAILED 3 times; Delta's dead man's switch cancels them within MM_DMS_TTL_MS. Check the venue." >&2
   fi
-  # Delta's cancel can report success on an error page, so check the book itself.
-  if [[ -d "$CURRENT" ]] && ! venue "$(readlink -f "$CURRENT")" --require-no-orders 9>&-; then
-    echo "live.sh: orders are still open (or could not be read) after the cancel; check the venue" >&2
-    ok=0
-  fi
+  # Delta's cancel can report success on an error page, so check the book itself, product by product.
+  local sym
+  for sym in ${syms//,/ }; do
+    if ! venue "$(readlink -f "$CURRENT")" --symbol "$sym" --require-no-orders 9>&-; then
+      echo "live.sh: orders are still open on $sym (or could not be read) after the cancel; check the venue" >&2
+      ok=0
+    fi
+  done
   echo "The position is left open: flattening is a separate decision."
   [[ $ok == 1 ]]
 }
@@ -266,21 +289,30 @@ status() {
     echo "  Not restarted automatically. Last errors:"
     { grep -E "ERROR|WARN|panicked" "$run/bot.log" || true; } | tail -5 | sed 's/^/    /'
   fi
-  local last
-  last="$(tail -c 400000 "$run/bot.log" | { grep MM_METRICS || true; } | tail -1)"
-  if [[ -n "$last" ]]; then
-    echo "last quote: ${last:0:27} $(grep -oE '"(bid|ask|inventory)":[^,]*' <<<"$last" | tr '\n' ' ')"
-  fi
-  echo "orders placed/edited: $(grep -c 'MM_ORDER' "$run/bot.log" || true)   rejects: $(grep -c 'MM_REJECT' "$run/bot.log" || true)"
-  { grep -E "ERROR|halt|daily loss|stale book" "$run/bot.log" || true; } | tail -3
-  venue "$run" || true
+  # One pass over the last 64 MB (about 11 h of log), not the whole never-rotated file.
+  tail -c 67108864 "$run/bot.log" | awk -v full="$(stat -c %s "$run/bot.log")" '
+    /MM_METRICS/ { last = $0; when = substr($0, 1, 27) }
+    /MM_ORDER/ { orders++ }
+    /MM_REJECT/ { rejects++ }
+    /ERROR|halt|daily loss|stale book/ { e[++ne % 3] = $0 }
+    END {
+      if (last != "") {
+        q = ""
+        while (match(last, /"(bid|ask|inventory)":[^,]*/)) { q = q substr(last, RSTART, RLENGTH) " "; last = substr(last, RSTART + RLENGTH) }
+        print "last quote: " when " " q
+      }
+      print "orders placed/edited: " orders + 0 "   rejects: " rejects + 0 (full > 67108864 ? "   (last 64 MB of log)" : "")
+      for (i = ne - 2; i <= ne; i++) if (i > 0) print e[i % 3]
+    }'
+  local sym
+  for sym in $(run_symbols | tr ',' ' '); do venue "$run" --symbol "$sym" || true; done
 }
 
 report() {
   local args=() a window=1
   for a in "$@"; do
     case "$a" in
-      --all) window=0 ;;
+      --all) window=0; args+=(--compact) ;; # the whole run at full resolution would not fit next to the bot
       --hours | --hours=*) window=0; args+=("$a") ;;
       *) args+=("$a") ;;
     esac
