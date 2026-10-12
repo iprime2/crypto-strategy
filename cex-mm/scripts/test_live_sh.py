@@ -27,7 +27,9 @@ root="$(cd "$(dirname "$0")/../.." && pwd)"
   echo "END"
 } >>"$root/stub.log"
 case "$1" in
-  run) echo "INFO mm_bot::runner: account guards on"; while :; do sleep 0.2; done ;;
+  run)
+    if [[ -f "$root/run_fails" ]]; then echo "ERROR leverage guard: mainnet start refused"; exit 1; fi
+    echo "INFO mm_bot::runner: account guards on"; while :; do sleep 0.2; done ;;
   dry-run) while :; do sleep 0.2; done ;;
   cancel-all) [[ -f "$root/cancel_fails" ]] && exit 1; echo "cancelled"; exit 0 ;;
 esac
@@ -39,7 +41,15 @@ print("ok   stub key check", sys.argv[1:])
 sys.exit(1 if (root / "keycheck_fails").exists() else 0)
 """
 STUB_VENUE = """import sys
-print("venue: stub", " ".join(sys.argv[1:]))
+from pathlib import Path
+root = Path(__file__).resolve().parent.parent
+args = sys.argv[1:]
+with (root / "lvs_calls.log").open("a") as f:
+    f.write(" ".join(args) + "\\n")
+if args and args[0] == "venue":
+    print("venue: stub", " ".join(args[1:]))
+    if "--require-no-orders" in args and (root / "orders_open").exists():
+        sys.exit(3)
 """
 
 
@@ -174,6 +184,44 @@ class LiveSh(unittest.TestCase):
         self.assertNotEqual(r.returncode, 0)
         self.assertIn(f"another mm-bot run process is alive (pid {p.pid}", r.stderr)
 
+    def test_start_refuses_while_another_start_or_stop_holds_the_lock(self):
+        self.start_shadow()
+        (self.root / "artifacts" / "live").mkdir(parents=True, exist_ok=True)
+        holder = subprocess.Popen(["flock", str(self.root / "artifacts" / "live" / ".lock"), "sleep", "20"],
+                                  start_new_session=True)
+        self.procs.append(holder.pid)
+        time.sleep(0.3)
+        r = self.live("start", "--confirm", "START REAL")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("another live.sh start or stop is running", r.stderr)
+        self.assertEqual(self.stub_calls("run"), [])
+
+    def test_exec_is_internal(self):
+        self.start_shadow()
+        r = self.live("_exec", "run", "ADAUSDT")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("_exec is internal", r.stderr)
+        self.assertEqual(self.stub_calls("run"), [])
+
+    def test_start_refuses_a_quoted_or_spaced_key_naming_only_the_variable(self):
+        self.start_shadow()
+        (self.root / "quote-bot" / ".env").write_text(f"DELTA_MAINNET_API_KEY='{KEY}'\nDELTA_MAINNET_API_SECRET={SECRET}\n")
+        r = self.live("start", "--confirm", "START REAL")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("DELTA_MAINNET_API_KEY", r.stderr)
+        self.assertIn("quotes or spaces", r.stderr)
+        self.assertNotIn(KEY, r.stdout + r.stderr)
+        self.assertNotIn(SECRET, r.stdout + r.stderr)
+
+    def test_tracing_never_prints_the_secret(self):
+        self.start_shadow()
+        e = dict(self.env)
+        r = subprocess.run(["bash", "-x", str(self.root / "scripts" / "live.sh"), "start", "--confirm", "START REAL"],
+                           env=e, capture_output=True, text=True, timeout=60)
+        self.assertEqual(r.returncode, 0, r.stderr[-2000:])
+        self.assertNotIn(SECRET, r.stdout + r.stderr)
+        self.assertNotIn(KEY, r.stdout + r.stderr)
+
     # ------------------------------------------------------------ start / status / stop
 
     def test_start_runs_the_bot_on_mainnet_with_only_the_keys_and_the_profile(self):
@@ -206,11 +254,26 @@ class LiveSh(unittest.TestCase):
             self.assertNotIn(secret, r.stdout + r.stderr)
         self.assertIn("MM_SYMBOLS=ADAUSDT", config)
         self.assertIn("shadow_run=20261012T075609Z", config)
+        # The daily loss state is shared with every mainnet runner from cex-mm/; economics stay apart.
+        risk = self.root / "artifacts" / "live" / "artifacts" / "risk"
+        self.assertTrue(risk.is_symlink())
+        self.assertEqual(risk.resolve(), (self.root / "artifacts" / "risk").resolve())
         self.assertIn("bot: running", r.stdout)
         # A second start is refused while it runs.
         r2 = self.live("start", "--confirm", "START REAL")
         self.assertNotEqual(r2.returncode, 0)
         self.assertIn("already running", r2.stderr)
+
+    def test_a_failed_start_cancels_on_mainnet_and_says_why(self):
+        self.start_shadow()
+        (self.root / "run_fails").write_text("")
+        r = self.live("start", "--confirm", "START REAL")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("exited during startup", r.stderr)
+        self.assertIn("leverage guard", r.stderr)
+        cancels = self.stub_calls("cancel-all")
+        self.assertEqual(len(cancels), 1)
+        self.assertEqual(cancels[0]["argv"], "cancel-all --venue delta --env mainnet --symbol ADAUSDT")
 
     def test_stop_kills_the_bot_then_cancels_on_mainnet_without_the_profile(self):
         self.start_shadow()
@@ -228,6 +291,40 @@ class LiveSh(unittest.TestCase):
         self.assertTrue((self.root / "artifacts" / "live" / "current" / "stopped").exists())
         self.assertIn("left open", r.stdout)
         self.assertIn("bot: stopped", self.live("status").stdout)
+
+    def test_stop_cancels_the_running_run_symbols_even_if_the_profile_changed(self):
+        self.start_shadow()
+        self.live("start", "--confirm", "START REAL", check=True)
+        prof = self.root / "config" / "dism.env"
+        prof.write_text(prof.read_text().replace("MM_SYMBOLS=ADAUSDT", "MM_SYMBOLS=KITEUSDT"))
+        r = self.live("stop")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertEqual(self.stub_calls("cancel-all")[0]["argv"], "cancel-all --venue delta --env mainnet --symbol ADAUSDT")
+        prof.write_text("\n".join(l for l in prof.read_text().splitlines() if not l.startswith("MM_SYMBOLS")))
+        r = self.live("stop")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertEqual(self.stub_calls("cancel-all")[1]["argv"], "cancel-all --venue delta --env mainnet --symbol ADAUSDT")
+
+    def test_stop_fails_when_orders_are_still_open_after_the_cancel(self):
+        self.start_shadow()
+        self.live("start", "--confirm", "START REAL", check=True)
+        (self.root / "orders_open").write_text("")
+        r = self.live("stop")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("orders are still open", r.stderr)
+
+    def test_report_defaults_to_the_last_day(self):
+        self.start_shadow()
+        self.live("start", "--confirm", "START REAL", check=True)
+        self.live("report")
+        self.live("report", "--all", "--json")
+        self.live("report", "--hours", "6")
+        calls = [l for l in (self.root / "lvs_calls.log").read_text().splitlines() if l.startswith("--live-dir")]
+        self.assertIn("--hours 24", calls[0])
+        self.assertNotIn("--hours", calls[1])
+        self.assertIn("--json", calls[1])
+        self.assertIn("--hours 6", calls[2])
+        self.assertNotIn("--hours 24", calls[2])
 
     def test_stop_reports_a_failed_cancel(self):
         self.start_shadow()

@@ -465,7 +465,13 @@ def format_table(out: dict) -> str:
 
 def venue_text(get, product_id: int, symbol: str) -> str:
     """Account equity, the product's position and its open orders (read-only)."""
+    return venue_report(get, product_id, symbol)[0]
+
+
+def venue_report(get, product_id: int, symbol: str) -> tuple[str, int | None]:
+    """(text, number of open orders or None if they could not be read)."""
     lines = []
+    open_orders = None
     bal = get("/v2/wallet/balances")
     eq = (bal.get("meta") or {}).get("net_equity") if bal.get("success") is not False else None
     lines.append(f"venue: equity {eq}" if eq is not None else f"venue: wallet read failed ({error_code(bal)})")
@@ -482,10 +488,11 @@ def venue_text(get, product_id: int, symbol: str) -> str:
         lines.append(f"venue: open orders read failed ({error_code(orders)})")
     else:
         rows = orders.get("result") or []
+        open_orders = len(rows)
         lines.append(f"venue: open orders {len(rows)}")
         for o in rows:
             lines.append(f"  {o.get('side')} {o.get('size')} @ {o.get('limit_price')} ({o.get('state')})")
-    return "\n".join(lines)
+    return "\n".join(lines), open_orders
 
 
 # ---------------------------------------------------------------- main
@@ -508,6 +515,7 @@ def main(argv: list[str] | None = None) -> None:
                     help=f"keep one unchanged sample per {COMPACT_MS / 1000:g} s: fits a long run in memory, "
                     "about 1%% fewer simulated fills")
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--require-no-orders", action="store_true", help="venue: exit 3 unless the product has no open orders")
     args = ap.parse_args(argv)
 
     live_dir = args.live_dir.resolve()
@@ -516,7 +524,10 @@ def main(argv: list[str] | None = None) -> None:
     dsym = sim.delta_symbol(symbol)
     if venue_mode:
         pid, _, _ = product(dsym)
-        print(venue_text(Delta(args.env_file).get, pid, dsym))
+        text, open_orders = venue_report(Delta(args.env_file).get, pid, dsym)
+        print(text)
+        if args.require_no_orders and open_orders != 0:
+            sys.exit(3)
         return
 
     span = live_span(sorted(glob.glob(str(live_dir / "bot*.log*"))), symbol)

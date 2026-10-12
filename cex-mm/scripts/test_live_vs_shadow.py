@@ -274,6 +274,10 @@ class Venue(unittest.TestCase):
         self.assertIn("equity 294.1", text)
         self.assertIn("position ADAUSD -200 contracts", text)
         self.assertIn("buy 200 @ 0.2498", text)
+        _, n = lvs.venue_report(get, product_id=16614, symbol="ADAUSD")
+        self.assertEqual(n, 1)
+        _, n = lvs.venue_report(lambda p, q="": {"success": False, "error": {"code": "x"}}, 16614, "ADAUSD")
+        self.assertIsNone(n)  # unreadable is not "no orders"
 
 
 if __name__ == "__main__":

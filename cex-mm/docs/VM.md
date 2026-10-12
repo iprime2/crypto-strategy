@@ -95,21 +95,25 @@ Starting it needs the user's explicit go-ahead.
 ```bash
 scripts/live.sh start --confirm "START REAL"   # refuses unless the checks below pass
 scripts/live.sh status                         # running / stopped / DOWN, last quote, venue position and orders
-scripts/live.sh report                         # real fills vs the simulator over the same window
-scripts/live.sh report --hours 24              # only the last 24 h (the full run costs ~150 MB of RAM per day)
-scripts/live.sh stop                           # kill the bot, then cancel its orders; the position stays open
+scripts/live.sh report                         # real fills vs the simulator, last 24 h (--hours N, --all)
+scripts/live.sh stop                           # kill the bot, cancel its orders, check none are left open
 ```
 
-- `start` refuses unless: the typed confirmation, no other `mm-bot run` process (the OEMS or a stray bot), the
-  shadow dry-run is running the same binary, both mainnet keys are set, and `scripts/delta_key_check.py` passes
-  (key works from this IP, order leverage at most 5x).
+- `start` refuses unless: the typed confirmation, no other `live.sh start`/`stop` in progress (a lock), no other
+  `mm-bot run` process (the OEMS or a stray bot), the shadow dry-run is running the same binary, both mainnet keys
+  are set without quotes or spaces, and `scripts/delta_key_check.py` passes (key works from this IP, order leverage
+  at most 5x). If the bot dies during startup, `start` cancels its orders and says why.
+- `stop` waits for an in-flight `start`, kills the bot, sends cancel-all for the stopped run's symbols, then reads
+  the book and fails unless no order is left open.
 - **No auto-restart.** mm-bot has no signal handler, so a crash or kill leaves its orders until Delta's dead man's
   switch (15 s) cancels them, and the position stays open. `status` and the dashboard's "Real-money bot" pill then
   say DOWN; the operator decides whether to restart, flatten or hold.
-- The bot's working directory is `artifacts/live/`: its economics file cannot reach the shadow dry-run (which reads
-  `artifacts/economics/`), and its daily loss state (`artifacts/live/artifacts/risk/daily_loss_mainnet.json`, $15)
-  carries over between live runs. Run data lives in `artifacts/live/<UTC start>/` (`config.txt` without secrets,
-  `bot.log`, `bot.pid`, `fills.json` from the last report).
+- The bot's working directory is `artifacts/live/`, so its economics file cannot reach the shadow dry-run (which
+  reads `artifacts/economics/`). Its daily loss state ($15) is shared with the OEMS and any other mainnet run from
+  `cex-mm/`: `artifacts/live/artifacts/risk` is a symlink to `artifacts/risk/`.
+- Run data lives in `artifacts/live/<UTC start>/` (`config.txt` without secrets, `bot.log`, `bot.pid`, `fills.json`
+  from the last report). A full-resolution report costs about 150 MB of RAM per day of window on a VM that also
+  runs the bot; for a long run use `--compact` or copy the run off the VM.
 - `report` (`scripts/live_vs_shadow.py`) reads the real fills from Delta, prices them against the shadow's Delta mid,
   and simulates the same window twice: on the shadow's quotes and on the live bot's own quotes. Real vs "sim live"
   is the fill model; "sim live" vs "sim shadow" is the quotes (the live bot holds inventory). The live stop rule is
