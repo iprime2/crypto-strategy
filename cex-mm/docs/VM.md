@@ -85,6 +85,37 @@ systemctl --user start cex-mm-trend-paper            # run now (a no-op if today
 Deleting `artifacts/trend/paper/` starts a new paper book at the next run.
 
 
+## Real-money run (`scripts/live.sh`)
+
+`scripts/live.sh` runs the DISM profile with **real money** on Delta mainnet next to the shadow test, so real fills
+can be compared with the simulator over the same window. It is the shadow dry-run's exact command (same binary,
+`config/dism.env`, `--loop-ms 400`) with `run` in place of `dry-run`, and the mainnet key from `quote-bot/.env`.
+Starting it needs the user's explicit go-ahead.
+
+```bash
+scripts/live.sh start --confirm "START REAL"   # refuses unless the checks below pass
+scripts/live.sh status                         # running / stopped / DOWN, last quote, venue position and orders
+scripts/live.sh report                         # real fills vs the simulator over the same window
+scripts/live.sh report --hours 24              # only the last 24 h (the full run costs ~150 MB of RAM per day)
+scripts/live.sh stop                           # kill the bot, then cancel its orders; the position stays open
+```
+
+- `start` refuses unless: the typed confirmation, no other `mm-bot run` process (the OEMS or a stray bot), the
+  shadow dry-run is running the same binary, both mainnet keys are set, and `scripts/delta_key_check.py` passes
+  (key works from this IP, order leverage at most 5x).
+- **No auto-restart.** mm-bot has no signal handler, so a crash or kill leaves its orders until Delta's dead man's
+  switch (15 s) cancels them, and the position stays open. `status` and the dashboard's "Real-money bot" pill then
+  say DOWN; the operator decides whether to restart, flatten or hold.
+- The bot's working directory is `artifacts/live/`: its economics file cannot reach the shadow dry-run (which reads
+  `artifacts/economics/`), and its daily loss state (`artifacts/live/artifacts/risk/daily_loss_mainnet.json`, $15)
+  carries over between live runs. Run data lives in `artifacts/live/<UTC start>/` (`config.txt` without secrets,
+  `bot.log`, `bot.pid`, `fills.json` from the last report).
+- `report` (`scripts/live_vs_shadow.py`) reads the real fills from Delta, prices them against the shadow's Delta mid,
+  and simulates the same window twice: on the shadow's quotes and on the live bot's own quotes. Real vs "sim live"
+  is the fill model; "sim live" vs "sim shadow" is the quotes (the live bot holds inventory). The live stop rule is
+  printed too: real net60 below 0 after 300 fills means stop.
+- Restarting the shadow test (`systemctl --user restart cex-mm-shadow`) does not touch the live bot.
+
 ## OEMS (optional)
 
 The OEMS (`backend/mm-oems`, API on 127.0.0.1:8791) can run on the VM as the book of record and supervisor of

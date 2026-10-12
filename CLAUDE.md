@@ -14,7 +14,7 @@ Market making on crypto perpetuals: research and design (`STRATEGY.md`, `resourc
 | `cex-mm/backend/mm-oems` | Axum + SQLx OEMS on 127.0.0.1:8791, TimescaleDB on 127.0.0.1:5462. Supervises the live bot. |
 | `cex-mm/web` | Vite + React trader UI on 127.0.0.1:5179 (Trade, Performance, Blotter, Risk, Strategy) |
 | `cex-mm/dashboard/` | Python dashboards: `server.py` (legacy, 8787), `shadow_server.py` (shadow test on 8788, trend paper trader at `/trend`) |
-| `cex-mm/scripts/` | `shadow.sh`, `shadow_fill_sim.py`, `trend_backtest.py`, `trend_paper.py`, `flatten_delta.py`, `fire_drill.sh`, smoke scripts |
+| `cex-mm/scripts/` | `shadow.sh`, `shadow_fill_sim.py`, `live.sh` + `live_vs_shadow.py` (real-money run next to the shadow, and its comparison), `trend_backtest.py`, `trend_paper.py`, `flatten_delta.py`, `fire_drill.sh`, smoke scripts |
 | `cex-mm/artifacts/research/` | Dated quant memos `YYYY-MM-DD-<slug>.md`. Read the newest before analysis. |
 
 ## Build and verify

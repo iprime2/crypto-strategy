@@ -37,6 +37,7 @@ STATIC = {
     "/charts.js": ("charts.js", "text/javascript; charset=utf-8"),
 }
 TREND_DIR = CEX_MM / "artifacts" / "trend" / "paper"  # written by scripts/trend_paper.py
+LIVE_CURRENT = CEX_MM / "artifacts" / "live" / "current"  # the real-money run, scripts/live.sh
 RECENT_MS = 60 * 60 * 1000  # full-resolution window kept for the live chart
 MAX_POINTS = 900
 MAX_POINTS_ALL = 1500  # "All" window: whole run, thinned for the chart
@@ -301,6 +302,26 @@ def pid_alive(path: Path) -> bool:
         return False
 
 
+def live_bot_state() -> dict | None:
+    """State of the real-money bot started by scripts/live.sh: running, stopped (by live.sh stop) or DOWN
+    (exited on its own; it is not restarted automatically). None if there has never been a live run."""
+    if not LIVE_CURRENT.exists():
+        return None
+    run = LIVE_CURRENT.resolve()
+    try:  # alive and not a zombie
+        stat = Path(f"/proc/{int((run / 'bot.pid').read_text().strip())}/stat").read_text()
+        running = stat.rsplit(") ", 1)[1][:1] != "Z"
+    except (OSError, ValueError, IndexError):
+        running = False
+    if running:
+        state = "running"
+    elif (run / "stopped").exists():
+        state = "stopped"
+    else:
+        state = "DOWN"
+    return {"state": state, "run": run.name}
+
+
 def downsample(samples: list, max_points: int = MAX_POINTS) -> list:
     step = max(1, len(samples) // max_points)
     out = samples[::step]
@@ -409,6 +430,7 @@ def build_payload(symbol: str | None, window_min: float | None) -> dict:
             "clock_offset_ms": round(statistics.median(offsets)) if offsets else None,
             "disk_mb": round(disk_mb, 1) if disk_mb is not None else None,
             "counts": counts,
+            "live_bot": live_bot_state(),
         },
         "live": live,
         "series": series,
