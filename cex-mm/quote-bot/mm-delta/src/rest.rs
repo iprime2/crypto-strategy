@@ -91,6 +91,17 @@ fn parse_order_state(text: &str) -> Result<(String, i64)> {
     Ok((state.to_string(), unfilled))
 }
 
+/// Funding carry for the fair value in bps per 8 h. Delta's ticker `funding_rate` is a percent per 8 h
+/// (e.g. "-0.0075" is -0.0075 %), so bps = percent * 100. Only the position's sign counts: the carry
+/// used to be `-position * rate * 10_000`, which took the percent as a fraction and scaled with the
+/// raw size (+150 bps of fair shift for 2 ADA, +15,000 bps for 200).
+pub fn funding_carry_bps(position: f64, funding_rate_pct: f64) -> f64 {
+    if position == 0.0 || !funding_rate_pct.is_finite() {
+        return 0.0;
+    }
+    -position.signum() * funding_rate_pct * 100.0
+}
+
 /// `GET /v2/products/{product_id}/orders/leverage` -> `result.leverage` (a string, e.g. `"10"`, in
 /// the response ccxt's Delta adapter captured; a number is accepted too). Fails closed: a failed
 /// call, a missing or unparsable value, or a non-finite or non-positive one is an error.
@@ -265,7 +276,7 @@ impl DeltaRest {
             .and_then(|r| r.funding_rate)
             .and_then(|s| s.parse().ok())
             .unwrap_or(0.0);
-        Ok(-position * rate * 10_000.0)
+        Ok(funding_carry_bps(position, rate))
     }
 
     /// Returns the Delta order id when the response includes one.
@@ -523,6 +534,18 @@ mod tests {
         let text = r#"{"success":true,"result":{"id":7,"state":"cancelled","unfilled_size":1,"size":1}}"#;
         assert_eq!(parse_order_state(text).unwrap(), ("cancelled".to_string(), 1));
         assert!(parse_order_state(r#"{"success":false,"error":{"code":"not_found"}}"#).is_err());
+    }
+
+    #[test]
+    fn funding_carry_is_bps_per_8h_by_position_sign() {
+        // Delta's funding_rate is a percent per 8 h: "-0.0074939..." on ADAUSD on 12 Oct 2026.
+        let rate = -0.0074939453505821485;
+        assert!((funding_carry_bps(2.0, rate) - 0.749394535).abs() < 1e-9);
+        // Not scaled by the position's size: 200 ADA used to give +14,988 bps.
+        assert_eq!(funding_carry_bps(200.0, rate), funding_carry_bps(2.0, rate));
+        assert!((funding_carry_bps(-5.0, 0.01) - 1.0).abs() < 1e-12);
+        assert_eq!(funding_carry_bps(0.0, rate), 0.0);
+        assert_eq!(funding_carry_bps(1.0, f64::NAN), 0.0);
     }
 
     #[test]

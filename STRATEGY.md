@@ -184,6 +184,7 @@ Hysteresis: step down one level only after the trigger has been clear for ≥ 15
 ### 6.4 Perp-specific terms (R1 §11, R2 §7)
 
 - Funding carry: expected funding × time-to-funding is a per-unit inventory cost; add `−q·f_exp·(T_f − t)/T_interval` to the reservation price so a long book is skewed to sell before paying positive funding. Read the per-symbol settlement interval from the API (Binance can drop to 1 h when capped).
+  - Implemented in cex-mm (Delta, since 2026-10-12): a fair shift of `−sign(q) × funding rate` in bps per 8 h, not yet scaled by `q` or by time to funding. The earlier code read Delta's percent rate as a fraction and scaled it by raw contracts (+150 bps of fair shift for 2 ADA), which made the live DISM bot quote one side only. The DISM fixed-spread mode leaves funding carry out, because the shadow test it was validated on has no keys and never saw it.
 - Do not carry inventory across a funding timestamp if the sign is against us and `|q| > soft limit`.
 - On OKX, funding timestamps are also when `50004` unknown-result errors cluster — pause amends for ±5 s around them (R5 §3.3).
 
