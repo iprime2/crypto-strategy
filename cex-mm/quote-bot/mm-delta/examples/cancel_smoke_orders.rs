@@ -67,7 +67,7 @@ async fn main() -> Result<()> {
     let env = DeltaEnvironment::from_env_flag(
         &std::env::var("MM_ENV").unwrap_or_else(|_| "testnet".into()),
     );
-    let creds = DeltaCredentials::from_env().context("DELTA_API_KEY/SECRET")?;
+    let creds = DeltaCredentials::from_env().context("DELTA_DEMO_API_KEY/SECRET or DELTA_API_KEY/SECRET")?;
     let client = Client::new();
     let products = Arc::new(ProductCatalog::load(&client, env.rest_base()).await?);
     let pid = products.get(&mm_symbol)?.product_id;

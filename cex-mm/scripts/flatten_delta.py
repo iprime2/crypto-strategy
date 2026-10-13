@@ -11,14 +11,13 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "dashboard"))
-from delta_pnl import _delta_base, _load_env_file, _sign  # noqa: E402
+from delta_pnl import _delta_base, _demo_keys, _load_env_file, _sign  # noqa: E402
 
 
 def request(method: str, path: str, query: str = "", body: str = "") -> dict:
-    key = os.environ.get("DELTA_API_KEY", "")
-    secret = os.environ.get("DELTA_API_SECRET", "")
+    key, secret = _demo_keys()
     if not key or not secret:
-        return {"error": "missing DELTA_API_KEY/SECRET"}
+        return {"error": "missing DELTA_DEMO_API_KEY/SECRET (or DELTA_API_KEY/SECRET)"}
     ts, sig = _sign(secret, method, path, query, body)
     url = _delta_base() + path + (f"?{query}" if query else "")
     req = urllib.request.Request(

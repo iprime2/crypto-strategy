@@ -36,7 +36,7 @@ Contract rules: define the JSON shape first, then the handler, then the TypeScri
 
 - `strategies.env` is `demo` or `mainnet`; `strategies.profile` is an optional settings file under `cex-mm/` (migration 004). Seeded: `mm` (demo, no profile) and `dism` (mainnet, `config/dism.env`).
 - `runtime.rs` gives each strategy its own market proxy (one per environment), venue state and telemetry; `main.rs` runs sync, snapshot and log tailing per strategy. `ticks` rows carry `env`.
-- Keys per environment from `quote-bot/.env`: demo `DELTA_API_KEY/SECRET`, mainnet `DELTA_MAINNET_API_KEY/SECRET` (`DeltaClient::from_env_pairs_for`); never the other environment's. Without keys a strategy only records public ticks.
+- Keys per environment from `quote-bot/.env`: demo `DELTA_DEMO_API_KEY/SECRET` (older `DELTA_API_KEY/SECRET` as a fallback), mainnet `DELTA_MAINNET_API_KEY/SECRET` (`DeltaClient::from_env_pairs_for`); never the other environment's. Without keys a strategy only records public ticks.
 
 ### Supervisor
 

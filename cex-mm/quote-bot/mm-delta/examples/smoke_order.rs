@@ -87,7 +87,7 @@ async fn main() -> Result<()> {
     let env_flag = std::env::var("MM_ENV").unwrap_or_else(|_| "testnet".into());
     let env = DeltaEnvironment::from_env_flag(&env_flag);
 
-    let creds = DeltaCredentials::from_env().context("set DELTA_API_KEY and DELTA_API_SECRET")?;
+    let creds = DeltaCredentials::from_env().context("set DELTA_DEMO_API_KEY and DELTA_DEMO_API_SECRET (or DELTA_API_KEY and DELTA_API_SECRET)")?;
     let client = Client::new();
     let products = Arc::new(ProductCatalog::load(&client, env.rest_base()).await?);
     let rest = DeltaRest::new(env, creds, products.clone());
@@ -103,7 +103,7 @@ async fn main() -> Result<()> {
         Err(e) => {
             eprintln!("auth check failed: {e:#}");
             eprintln!(
-                "If code is Signature Mismatch, re-copy DELTA_API_SECRET from testnet.delta.exchange (India demo key)."
+                "If code is Signature Mismatch, re-copy the demo API secret from testnet.delta.exchange (India demo key)."
             );
             eprintln!("If code mentions IP, confirm this machine's public IP is whitelisted on the key.");
             bail!("cannot place orders until authenticated GET succeeds");

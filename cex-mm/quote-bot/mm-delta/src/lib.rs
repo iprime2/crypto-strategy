@@ -4,7 +4,7 @@ mod products;
 mod rest;
 mod ws;
 
-pub use auth::DeltaCredentials;
+pub use auth::{key_vars, DeltaCredentials};
 pub use book::{BookFeed, DeltaBook, OrderbookMaintainer};
 pub use products::{delta_product_symbol, mm_symbol_from_delta, ProductCatalog};
 pub use rest::{DeltaRest, FillRole};

@@ -72,7 +72,8 @@ class LiveSh(unittest.TestCase):
         bot.write_text(STUB_BOT)
         bot.chmod(0o755)
         (self.root / "quote-bot" / ".env").write_text(
-            f'DELTA_API_KEY=demo-must-not-leak\nMM_FIXED_HALF_SPREAD_BPS=99\n'
+            f'DELTA_API_KEY=demo-must-not-leak\nDELTA_DEMO_API_KEY=demo-must-not-leak\n'
+            f'DELTA_DEMO_API_SECRET=demo-must-not-leak\nMM_FIXED_HALF_SPREAD_BPS=99\n'
             f'DELTA_MAINNET_API_KEY="{KEY}"\n  DELTA_MAINNET_API_SECRET = {SECRET}\n')
         self.procs: list[int] = []
         self.env = {"PATH": os.environ["PATH"], "HOME": str(self.tmp), "LIVE_ALLOW_BINARY_MISMATCH": "1",
@@ -297,6 +298,8 @@ class LiveSh(unittest.TestCase):
         self.assertEqual(env["DELTA_MAINNET_API_KEY"], KEY)  # quotes and spaces stripped like the OEMS
         self.assertEqual(env["DELTA_MAINNET_API_SECRET"], SECRET)
         self.assertNotIn("DELTA_API_KEY", env)  # nothing else from quote-bot/.env
+        self.assertNotIn("DELTA_DEMO_API_KEY", env)
+        self.assertNotIn("DELTA_DEMO_API_SECRET", env)
         self.assertEqual(env["MM_FIXED_HALF_SPREAD_BPS"], "5")  # the profile, not the demo line
         self.assertEqual(env["MM_DMS_TTL_MS"], "15000")
         self.assertIn("MM_ORDER=info", env["RUST_LOG"])

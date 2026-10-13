@@ -47,12 +47,22 @@ impl VenueEnv {
         }
     }
 
-    /// quote-bot/.env names of this environment's API key and secret.
-    pub fn key_names(self) -> (&'static str, &'static str) {
+    /// quote-bot/.env names of this environment's API key and secret, in order of preference (as
+    /// mm-delta's `key_vars`): demo `DELTA_DEMO_API_*`, then `DELTA_API_*`; mainnet only
+    /// `DELTA_MAINNET_API_*`.
+    pub fn key_names(self) -> &'static [(&'static str, &'static str)] {
         match self {
-            Self::Demo => ("DELTA_API_KEY", "DELTA_API_SECRET"),
-            Self::Mainnet => ("DELTA_MAINNET_API_KEY", "DELTA_MAINNET_API_SECRET"),
+            Self::Demo => &[
+                ("DELTA_DEMO_API_KEY", "DELTA_DEMO_API_SECRET"),
+                ("DELTA_API_KEY", "DELTA_API_SECRET"),
+            ],
+            Self::Mainnet => &[("DELTA_MAINNET_API_KEY", "DELTA_MAINNET_API_SECRET")],
         }
+    }
+
+    /// Every key and secret name of this environment, for filtering an env file.
+    pub fn secret_names(self) -> impl Iterator<Item = &'static str> {
+        self.key_names().iter().flat_map(|(k, s)| [*k, *s])
     }
 
     pub fn other(self) -> Self {
@@ -107,8 +117,8 @@ impl DeltaClient {
 
     /// Client for `env` from quote-bot/.env pairs: that environment's keys only, never the
     /// other's. None if either is missing. Never logs secrets.
+    /// The first pair in `env.key_names()` with both values set; key and secret never mix pairs.
     pub fn from_env_pairs_for(pairs: &[(String, String)], env: VenueEnv) -> Option<Self> {
-        let (key_name, secret_name) = env.key_names();
         let get = |name: &str| {
             pairs
                 .iter()
@@ -116,7 +126,9 @@ impl DeltaClient {
                 .map(|(_, v)| v.clone())
                 .filter(|v| !v.is_empty())
         };
-        Some(Self::new(env.base(), get(key_name)?, get(secret_name)?))
+        env.key_names()
+            .iter()
+            .find_map(|(key_name, secret_name)| Some(Self::new(env.base(), get(key_name)?, get(secret_name)?)))
     }
 
     async fn signed(
@@ -530,6 +542,23 @@ mod tests {
         ]);
         let real = DeltaClient::from_env_pairs_for(&both, VenueEnv::Mainnet).unwrap();
         assert_eq!((real.base.as_str(), real.api_key.as_str()), (MAINNET_BASE, "mk"));
+    }
+
+    #[test]
+    fn demo_client_prefers_the_delta_demo_names_and_mainnet_ignores_them() {
+        let all = pairs(&[
+            ("DELTA_DEMO_API_KEY", "ndk"),
+            ("DELTA_DEMO_API_SECRET", "nds"),
+            ("DELTA_API_KEY", "dk"),
+            ("DELTA_API_SECRET", "ds"),
+        ]);
+        let demo = DeltaClient::from_env_pairs_for(&all, VenueEnv::Demo).unwrap();
+        assert_eq!((demo.api_key.as_str(), demo.api_secret.as_str()), ("ndk", "nds"));
+        assert!(DeltaClient::from_env_pairs_for(&all, VenueEnv::Mainnet).is_none());
+        // A half-set new pair falls back to the whole old pair.
+        let half = pairs(&[("DELTA_DEMO_API_KEY", "ndk"), ("DELTA_API_KEY", "dk"), ("DELTA_API_SECRET", "ds")]);
+        let demo = DeltaClient::from_env_pairs_for(&half, VenueEnv::Demo).unwrap();
+        assert_eq!((demo.api_key.as_str(), demo.api_secret.as_str()), ("dk", "ds"));
     }
 
     use super::*;

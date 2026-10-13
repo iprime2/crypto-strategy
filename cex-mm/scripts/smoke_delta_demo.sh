@@ -10,5 +10,5 @@ export RUST_LOG="${RUST_LOG:-info,mm_bot=info,MM_METRICS=info}"
 echo "Delta demo dry-run (MM_VENUE=$MM_VENUE, env=testnet -> demo API)..."
 timeout 45 cargo run -p mm-bot -- dry-run --venue delta --env testnet --symbols "${MM_SYMBOLS}" --loop-ms 500 2>&1 | head -40
 echo "If you see MM_METRICS lines above, book + quote loop OK."
-echo "Live demo orders: set DELTA_API_KEY/SECRET from testnet.delta.exchange demo account, then:"
+echo "Live demo orders: set DELTA_DEMO_API_KEY/SECRET (or DELTA_API_KEY/SECRET) from testnet.delta.exchange demo account, then:"
 echo "  cargo run -p mm-bot -- run --venue delta --env testnet --symbols BTCUSDT"

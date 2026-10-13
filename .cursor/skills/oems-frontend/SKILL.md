@@ -38,5 +38,5 @@ From `cex-mm/web`: install, typecheck, and build with the scripts in `package.js
 ## Anti-patterns
 
 - Scattered `fetch` with a second copy of API types
-- Showing or editing `DELTA_API_KEY` / `DELTA_API_SECRET`
+- Showing or editing `DELTA_DEMO_API_KEY` / `DELTA_DEMO_API_SECRET`, `DELTA_API_KEY` / `DELTA_API_SECRET` or `DELTA_MAINNET_API_*`
 - Start/stop controls that target the already-running demo bot

@@ -33,6 +33,15 @@ def _load_env_file() -> None:
             os.environ[k] = v
 
 
+def _demo_keys() -> tuple[str, str]:
+    """Demo key and secret: DELTA_DEMO_API_KEY/SECRET, else the older DELTA_API_KEY/SECRET (one pair, never mixed)."""
+    for key_var, secret_var in (("DELTA_DEMO_API_KEY", "DELTA_DEMO_API_SECRET"), ("DELTA_API_KEY", "DELTA_API_SECRET")):
+        key, secret = os.environ.get(key_var, ""), os.environ.get(secret_var, "")
+        if key and secret:
+            return key, secret
+    return "", ""
+
+
 def _delta_base() -> str:
     env_flag = os.environ.get("MM_ENV", "testnet").lower()
     if env_flag in ("mainnet", "prod", "production"):
@@ -49,10 +58,9 @@ def _sign(secret: str, method: str, path: str, query: str = "", body: str = "") 
 
 
 def _get(path: str, query: str = "") -> dict:
-    key = os.environ.get("DELTA_API_KEY", "")
-    secret = os.environ.get("DELTA_API_SECRET", "")
+    key, secret = _demo_keys()
     if not key or not secret:
-        return {"error": "missing DELTA_API_KEY/SECRET"}
+        return {"error": "missing DELTA_DEMO_API_KEY/SECRET (or DELTA_API_KEY/SECRET)"}
     ts, sig = _sign(secret, "GET", path, query)
     url = _delta_base() + path + (f"?{query}" if query else "")
     req = urllib.request.Request(

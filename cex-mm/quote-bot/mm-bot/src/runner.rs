@@ -235,10 +235,8 @@ pub async fn run_delta(args: RunArgs, dry_run: bool) -> Result<()> {
 }
 
 fn delta_credentials(env: mm_delta::DeltaEnvironment) -> Result<mm_delta::DeltaCredentials> {
-    let vars = match env {
-        mm_delta::DeltaEnvironment::IndiaMainnet => "DELTA_MAINNET_API_KEY/SECRET",
-        mm_delta::DeltaEnvironment::DemoIndia => "DELTA_API_KEY/SECRET",
-    };
+    let vars: Vec<String> = mm_delta::key_vars(env).iter().map(|(k, s)| format!("{k}/{s}")).collect();
+    let vars = vars.join(" or ");
     mm_delta::DeltaCredentials::from_env_for(env).with_context(|| format!("{vars} for a live run"))
 }
 

@@ -11,8 +11,21 @@ pub struct DeltaCredentials {
     pub api_secret: String,
 }
 
+/// Env var names of each environment's key and secret, in order of preference. Demo reads
+/// `DELTA_DEMO_API_*`, then the older `DELTA_API_*`; mainnet reads only `DELTA_MAINNET_API_*`.
+pub fn key_vars(env: DeltaEnvironment) -> &'static [(&'static str, &'static str)] {
+    match env {
+        DeltaEnvironment::DemoIndia => &[
+            ("DELTA_DEMO_API_KEY", "DELTA_DEMO_API_SECRET"),
+            ("DELTA_API_KEY", "DELTA_API_SECRET"),
+        ],
+        DeltaEnvironment::IndiaMainnet => &[("DELTA_MAINNET_API_KEY", "DELTA_MAINNET_API_SECRET")],
+    }
+}
+
 impl DeltaCredentials {
-    /// Demo keys (`DELTA_API_KEY` / `DELTA_API_SECRET`), for the demo smoke examples.
+    /// Demo keys (`DELTA_DEMO_API_KEY` / `DELTA_DEMO_API_SECRET`, or `DELTA_API_*`), for the demo
+    /// smoke examples.
     pub fn from_env() -> Option<Self> {
         Self::from_env_for(DeltaEnvironment::DemoIndia)
     }
@@ -23,14 +36,12 @@ impl DeltaCredentials {
         Self::from_lookup(env, |k| std::env::var(k).ok())
     }
 
+    /// The first pair in `key_vars(env)` with both values set; key and secret never mix pairs.
     pub fn from_lookup(env: DeltaEnvironment, get: impl Fn(&str) -> Option<String>) -> Option<Self> {
-        let (key_var, secret_var) = match env {
-            DeltaEnvironment::DemoIndia => ("DELTA_API_KEY", "DELTA_API_SECRET"),
-            DeltaEnvironment::IndiaMainnet => ("DELTA_MAINNET_API_KEY", "DELTA_MAINNET_API_SECRET"),
-        };
-        let api_key = get(key_var).filter(|v| !v.is_empty())?;
-        let api_secret = get(secret_var).filter(|v| !v.is_empty())?;
-        Some(Self { api_key, api_secret })
+        let set = |name: &str| get(name).filter(|v| !v.is_empty());
+        key_vars(env).iter().find_map(|(key_var, secret_var)| {
+            Some(Self { api_key: set(key_var)?, api_secret: set(secret_var)? })
+        })
     }
 
     pub fn sign(&self, message: &str) -> String {
@@ -75,8 +86,39 @@ mod tests {
     }
 
     #[test]
+    fn demo_prefers_the_delta_demo_names() {
+        let get = lookup(&[
+            ("DELTA_DEMO_API_KEY", "new-k"),
+            ("DELTA_DEMO_API_SECRET", "new-s"),
+            ("DELTA_API_KEY", "old-k"),
+            ("DELTA_API_SECRET", "old-s"),
+        ]);
+        let c = DeltaCredentials::from_lookup(DeltaEnvironment::DemoIndia, get).unwrap();
+        assert_eq!((c.api_key.as_str(), c.api_secret.as_str()), ("new-k", "new-s"));
+    }
+
+    #[test]
+    fn demo_takes_key_and_secret_from_one_pair() {
+        // A half-set new pair falls back to the whole old pair, never a mix of the two.
+        let get = lookup(&[
+            ("DELTA_DEMO_API_KEY", "new-k"),
+            ("DELTA_API_KEY", "old-k"),
+            ("DELTA_API_SECRET", "old-s"),
+        ]);
+        let c = DeltaCredentials::from_lookup(DeltaEnvironment::DemoIndia, get).unwrap();
+        assert_eq!((c.api_key.as_str(), c.api_secret.as_str()), ("old-k", "old-s"));
+        let half = lookup(&[("DELTA_DEMO_API_KEY", "new-k"), ("DELTA_API_SECRET", "old-s")]);
+        assert!(DeltaCredentials::from_lookup(DeltaEnvironment::DemoIndia, half).is_none());
+    }
+
+    #[test]
     fn mainnet_never_falls_back_to_the_demo_keys() {
-        let demo_only = lookup(&[("DELTA_API_KEY", "demo-k"), ("DELTA_API_SECRET", "demo-s")]);
+        let demo_only = lookup(&[
+            ("DELTA_DEMO_API_KEY", "demo-k"),
+            ("DELTA_DEMO_API_SECRET", "demo-s"),
+            ("DELTA_API_KEY", "demo-k"),
+            ("DELTA_API_SECRET", "demo-s"),
+        ]);
         assert!(DeltaCredentials::from_lookup(DeltaEnvironment::IndiaMainnet, demo_only).is_none());
         let both = lookup(&[
             ("DELTA_API_KEY", "demo-k"),
