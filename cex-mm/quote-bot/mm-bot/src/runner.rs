@@ -123,6 +123,19 @@ pub async fn run_delta(args: RunArgs, dry_run: bool) -> Result<()> {
             .context("load Delta products")?,
     );
 
+    if !dry_run {
+        // The Binance anchor is for the shadow test until its live basis source is settled (live, our own
+        // quotes are most of the Delta book the basis is read from). artifacts/research/2026-10-13-live-run-pickoff.md
+        for s in &symbols {
+            let w = env_f64_for_symbol(s, "MM_FAIR_ANCHOR_WEIGHT", 0.0);
+            if w > 0.0 && std::env::var("MM_FAIR_ANCHOR_LIVE").ok().as_deref() != Some("1") {
+                anyhow::bail!(
+                    "{s}: MM_FAIR_ANCHOR_WEIGHT={w} is for dry-runs (the shadow test); set it to 0 for a live run, \
+                     or MM_FAIR_ANCHOR_LIVE=1 once the live basis source is settled"
+                );
+            }
+        }
+    }
     let creds = if dry_run {
         None
     } else {
@@ -558,7 +571,14 @@ async fn run_symbol_loop(
     // Fair anchored to the Binance level (artifacts/research/2026-10-13-live-run-pickoff.md). Off unless
     // MM_FAIR_ANCHOR_WEIGHT > 0; the basis average is kept (and logged) either way.
     let anchor_weight = env_f64_for_symbol(&symbol, "MM_FAIR_ANCHOR_WEIGHT", 0.0).clamp(0.0, 1.0);
-    let mut basis = mm_core::fair::BasisEma::new(env_f64_for_symbol(&symbol, "MM_BASIS_HALFLIFE_SEC", 120.0).max(0.0));
+    let basis_half_life = env_f64_for_symbol(&symbol, "MM_BASIS_HALFLIFE_SEC", 120.0).max(0.0);
+    // One update covers at most two loops; each sample stays within MM_BASIS_CLAMP_BPS of the average.
+    let new_basis = || {
+        mm_core::fair::BasisEma::new(basis_half_life)
+            .with_max_step(2.0 * args.loop_ms.max(100) as f64 / 1000.0)
+            .with_clamp(env_f64_for_symbol(&symbol, "MM_BASIS_CLAMP_BPS", 5.0))
+    };
+    let mut basis = new_basis();
     let basis_warmup_sec = env_f64_for_symbol(&symbol, "MM_BASIS_WARMUP_SEC", 60.0).max(0.0);
     let basis_max_age_sec = env_f64_for_symbol(&symbol, "MM_BASIS_MAX_AGE_SEC", 300.0).max(0.0);
     let binance_stale_after =
@@ -745,8 +765,11 @@ async fn run_symbol_loop(
             last_binance_mid = binance_mid;
         }
         let lead_now = lead_clock.elapsed().as_secs_f64();
-        if binance_mid > 0.0 {
+        if binance_fresh {
             binance_hist.push_back((lead_now, binance_mid));
+        } else {
+            // A silent feed is a gap: after a reconnect the move lead starts from post-reconnect prices only.
+            binance_hist.clear();
         }
         while binance_hist
             .front()
@@ -764,6 +787,9 @@ async fn run_symbol_loop(
         // mid would feed our fair back into the basis. A dry-run has no resting orders.
         let own_touch = oms.live.bid.is_some_and(|p| (p - top.best_bid).abs() < tick * 0.5)
             || oms.live.ask.is_some_and(|p| (p - top.best_ask).abs() < tick * 0.5);
+        if basis.last_update().is_some_and(|t| lead_now - t > basis_max_age_sec) {
+            basis = new_basis(); // too old to trust: warm up again before anchoring
+        }
         if binance_fresh && !own_touch {
             if let Some(delta_mid) = top.mid() {
                 basis.update(lead_now, delta_mid, binance_mid);
@@ -1076,7 +1102,7 @@ async fn run_symbol_loop(
             continue;
         }
 
-        let (need_bid, need_ask) = oms.needs_update(plan.bid, plan.ask, tol_bps);
+        let (need_bid, need_ask) = oms.needs_update_sides(plan.bid, plan.ask, plan.place_bid, plan.place_ask, tol_bps);
         if !need_bid && !need_ask {
             continue;
         }

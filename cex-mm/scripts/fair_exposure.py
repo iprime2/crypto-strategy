@@ -46,7 +46,9 @@ class Row:
     anchored: bool
 
 
-def load(paths: list[str], symbol: str, since_ms: float = 0.0) -> list[Row]:
+def load(paths: list[str], symbol: str, since_ms: float = 0.0, max_binance_age_ms: float = 5000.0) -> list[Row]:
+    """Rows with a Binance mid, skipping those logged while the Binance feed was silent (binance_age_ms, logged
+    since 2026-10-13): the bot keeps the last price then, and it is not a reference."""
     out = []
     for path in paths:
         for line in sim.iter_lines(path):
@@ -60,6 +62,8 @@ def load(paths: list[str], symbol: str, since_ms: float = 0.0) -> list[Row]:
                 continue
             b = m.get("binance_mid") or 0.0
             if m.get("symbol") != symbol or b <= 0 or m.get("ts_ms", 0) < since_ms:
+                continue
+            if (m.get("binance_age_ms") or 0) > max_binance_age_ms:
                 continue
             out.append(Row(float(m["ts_ms"]), m["fair"], m.get("fair_delta"), m["bid"], m["ask"],
                            bool(m["place_bid"]), bool(m["place_ask"]), b,
@@ -125,10 +129,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--requote-tol-bps", type=float, default=3.0)
     ap.add_argument("--exposed-bps", type=float, default=1.0)
     ap.add_argument("--basis-window-min", type=float, default=20.0)
+    ap.add_argument("--max-binance-age-ms", type=float, default=5000.0, help="skip samples with an older Binance mid")
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args(argv)
     paths = sorted(glob.glob(os.path.join(a.run_dir, "dry-run*.log*"))) or sorted(glob.glob(os.path.join(a.run_dir, "bot*.log*")))
-    rows = load(paths, a.symbol)
+    rows = load(paths, a.symbol, max_binance_age_ms=a.max_binance_age_ms)
     if a.hours > 0 and rows:
         cut = rows[-1].ts - a.hours * 3.6e6
         rows = [r for r in rows if r.ts >= cut]

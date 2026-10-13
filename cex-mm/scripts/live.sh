@@ -63,6 +63,12 @@ check_profile() {
   local bad
   bad="$( { grep -E '^[A-Z0-9_]+=' "$PROFILE" || true; } | { grep -vE '^[A-Z0-9_]+=[^[:space:]"'"'"'#]*$' || true; } | cut -d= -f1 | tr '\n' ' ')"
   [[ -z "${bad// /}" ]] || die "$PROFILE: quotes, spaces or an inline comment in ${bad% }; the bot would ignore them"
+  # The Binance-anchored fair is for the shadow test until its live basis source is settled; the bot refuses it
+  # live too. artifacts/research/2026-10-13-live-run-pickoff.md
+  local w
+  w="$( { grep -E '^MM_FAIR_ANCHOR_WEIGHT=' "$PROFILE" || true; } | tail -n 1 | cut -d= -f2-)"
+  [[ -z "$w" || "$w" =~ ^0+(\.0*)?$ ]] \
+    || die "$PROFILE: MM_FAIR_ANCHOR_WEIGHT=$w is for the shadow test only (set it to 0 for a live run); see artifacts/research/2026-10-13-live-run-pickoff.md"
 }
 
 # Alive and not a zombie (an orphan's zombie can linger until its new parent reaps it).

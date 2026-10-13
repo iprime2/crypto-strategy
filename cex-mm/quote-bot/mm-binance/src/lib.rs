@@ -21,6 +21,8 @@ pub struct BinanceBbo {
 
 /// A reconnect when no message arrives for this long: a half-open connection otherwise blocks forever.
 const READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+/// A connect (DNS, TCP, TLS, websocket handshake) that takes longer is abandoned and retried.
+const CONNECT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
 
 /// One bookTicker message as a quote, or None if it does not parse or the book is not sane.
 fn parse_book_ticker(text: &str, seq: u64) -> Option<BinanceBbo> {
@@ -54,15 +56,18 @@ fn stream_url(base: &str, symbol: &str) -> String {
     format!("{base}/{s}@bookTicker")
 }
 
-/// Streams the symbol's bookTicker into `tx` forever. A read error, a closed stream or
-/// `READ_TIMEOUT` without a message reconnects; before 2026-10-13 a read error ended the task and the
+/// Streams the symbol's bookTicker into `tx` until every receiver is gone. A read error, a closed stream,
+/// `READ_TIMEOUT` without a message or a connect slower than `CONNECT_TIMEOUT` reconnects; before 2026-10-13 a read error ended the task and the
 /// last price stayed in `tx` for good (the 8-12 Oct 2026 freeze is consistent with that [UNVERIFIED]).
 pub async fn run_book_ticker(symbol: &str, tx: watch::Sender<BinanceBbo>) -> Result<()> {
     let url = symbol_stream(symbol);
     let mut seq: u64 = 0;
     loop {
-        match connect_async(&url).await {
-            Ok((ws, _)) => {
+        if tx.is_closed() {
+            return Ok(()); // nobody reads the quotes any more
+        }
+        match tokio::time::timeout(CONNECT_TIMEOUT, connect_async(&url)).await {
+            Ok(Ok((ws, _))) => {
                 info!(%url, "binance bookTicker connected");
                 let (_, mut read) = ws.split();
                 loop {
@@ -88,15 +93,21 @@ pub async fn run_book_ticker(symbol: &str, tx: watch::Sender<BinanceBbo>) -> Res
                     match parse_book_ticker(text, seq + 1) {
                         Some(bbo) => {
                             seq += 1;
-                            let _ = tx.send(bbo);
+                            if tx.send(bbo).is_err() {
+                                return Ok(()); // nobody reads the quotes any more
+                            }
                         }
                         None => warn!(len = text.len(), "binance bookTicker message skipped"),
                     }
                 }
                 tokio::time::sleep(std::time::Duration::from_secs(1)).await;
             }
-            Err(e) => {
+            Ok(Err(e)) => {
                 warn!(?e, "binance reconnect in 3s");
+                tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+            }
+            Err(_) => {
+                warn!(%url, "binance connect timed out, retrying in 3s");
                 tokio::time::sleep(std::time::Duration::from_secs(3)).await;
             }
         }

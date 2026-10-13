@@ -37,20 +37,59 @@ pub fn anchored_fair(binance_mid: f64, basis_bps: f64) -> Option<f64> {
 }
 
 /// Delta-over-Binance basis in bps (`delta_mid / binance_mid - 1`), as an exponential average with a
-/// half-life in seconds. Times are seconds on any monotonic clock; a sample older than the last one
-/// updates the value without decay. On ADA the basis moved several bps within hours (2026-10-13
-/// memo), so the half-life must be minutes, not hours.
+/// half-life in seconds. Times are seconds on any monotonic clock; a sample older than the last one is
+/// ignored. On ADA the basis moved several bps within hours (2026-10-13 memo), so the half-life must be
+/// minutes, not hours.
+///
+/// Warm-up is the plain mean of the samples so far (weight `max(time weight, 1/n)`), so the first,
+/// possibly lagged, sample does not dominate. `with_max_step` caps the time one update may cover, so a
+/// single sample after a gap cannot reset the average; `with_clamp` limits each sample to the average
+/// ± that many bps, so a dislocation moves it slowly. After a gap longer than the caller tolerates, call
+/// `reset` to start the warm-up again.
 #[derive(Debug, Clone)]
 pub struct BasisEma {
     half_life_sec: f64,
+    max_step_sec: f64,
+    clamp_bps: f64,
     value_bps: Option<f64>,
+    samples: u64,
     first_t: f64,
     last_t: f64,
 }
 
 impl BasisEma {
     pub fn new(half_life_sec: f64) -> Self {
-        Self { half_life_sec, value_bps: None, first_t: 0.0, last_t: 0.0 }
+        Self {
+            half_life_sec,
+            max_step_sec: f64::INFINITY,
+            clamp_bps: f64::INFINITY,
+            value_bps: None,
+            samples: 0,
+            first_t: 0.0,
+            last_t: 0.0,
+        }
+    }
+
+    /// Caps the time one update may cover (e.g. two loop intervals).
+    pub fn with_max_step(mut self, sec: f64) -> Self {
+        if sec > 0.0 {
+            self.max_step_sec = sec;
+        }
+        self
+    }
+
+    /// Limits each sample to the current average ± `bps`.
+    pub fn with_clamp(mut self, bps: f64) -> Self {
+        if bps > 0.0 {
+            self.clamp_bps = bps;
+        }
+        self
+    }
+
+    /// Forgets every sample; the next one starts a new warm-up.
+    pub fn reset(&mut self) {
+        self.value_bps = None;
+        self.samples = 0;
     }
 
     /// Adds one Delta/Binance mid pair at time `t`; returns the new average, or None for bad inputs
@@ -64,18 +103,23 @@ impl BasisEma {
         match self.value_bps {
             None => {
                 self.value_bps = Some(x);
+                self.samples = 1;
                 self.first_t = t;
                 self.last_t = t;
             }
+            Some(_) if t < self.last_t => {}
             Some(v) => {
-                let dt = (t - self.last_t).max(0.0);
-                let alpha = if self.half_life_sec > 0.0 {
+                let dt = (t - self.last_t).min(self.max_step_sec);
+                let time_w = if self.half_life_sec > 0.0 {
                     1.0 - (-std::f64::consts::LN_2 * dt / self.half_life_sec).exp()
                 } else {
                     1.0
                 };
+                self.samples += 1;
+                let alpha = time_w.max(1.0 / self.samples as f64);
+                let x = x.clamp(v - self.clamp_bps, v + self.clamp_bps);
                 self.value_bps = Some(v + alpha * (x - v));
-                self.last_t = self.last_t.max(t);
+                self.last_t = t;
             }
         }
         self.value_bps
@@ -232,6 +276,48 @@ mod tests {
         assert!((v + 7.0).abs() < 1e-9, "v={v}");
         assert!((b.warm_sec(230.0) - 130.0).abs() < 1e-9);
         assert_eq!(b.last_update(), Some(220.0));
+    }
+
+    /// `delta_mid / 1.0 - 1` in bps, for a Binance mid of 1.0.
+    fn mid(bps: f64) -> f64 {
+        1.0 + bps / 10_000.0
+    }
+
+    #[test]
+    fn basis_ema_warm_up_is_the_mean_not_the_first_sample() {
+        // Started while Delta trailed Binance by 7.5 bps: the first sample is -17.5, the basis -10.
+        let mut b = BasisEma::new(120.0);
+        b.update(0.0, mid(-17.5), 1.0);
+        for i in 1..=150 {
+            b.update(i as f64 * 0.4, mid(-10.0), 1.0);
+        }
+        // An exponential average seeded with the first sample would still read -15.3 at 60 s.
+        assert!((b.value_bps().unwrap() + 10.0).abs() < 0.1, "basis {:?}", b.value_bps());
+    }
+
+    #[test]
+    fn basis_ema_step_cap_and_clamp_stop_one_sample_resetting_it() {
+        let mut b = BasisEma::new(120.0).with_max_step(0.8).with_clamp(5.0);
+        for i in 0..1000 {
+            b.update(i as f64 * 0.4, mid(-10.0), 1.0);
+        }
+        // One sample 6 min later, during a 7.5 bps Delta lag, and one in a +50 bps dislocation.
+        b.update(400.0 + 360.0, mid(-17.5), 1.0);
+        assert!((b.value_bps().unwrap() + 10.0).abs() < 0.05, "after a gap: {:?}", b.value_bps());
+        b.update(760.4, mid(40.0), 1.0);
+        assert!((b.value_bps().unwrap() + 10.0).abs() < 0.05, "after a spike: {:?}", b.value_bps());
+    }
+
+    #[test]
+    fn basis_ema_reset_starts_the_warm_up_again() {
+        let mut b = BasisEma::new(120.0);
+        b.update(0.0, mid(-10.0), 1.0);
+        b.update(100.0, mid(-10.0), 1.0);
+        b.reset();
+        assert_eq!((b.value_bps(), b.last_update(), b.warm_sec(200.0)), (None, None, 0.0));
+        b.update(200.0, mid(-4.0), 1.0);
+        assert!((b.value_bps().unwrap() + 4.0).abs() < 1e-9);
+        assert_eq!(b.warm_sec(230.0), 30.0);
     }
 
     #[test]

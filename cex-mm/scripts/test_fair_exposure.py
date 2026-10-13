@@ -78,6 +78,14 @@ class Report(unittest.TestCase):
         with contextlib.redirect_stderr(io.StringIO()):
             self.assertEqual(fe.main(["--run-dir", str(empty)]), 2)
 
+    def test_samples_with_a_silent_binance_feed_are_skipped(self):
+        d = Path(tempfile.mkdtemp())
+        lines = [l.replace('"anchored": true', '"anchored": true, "binance_age_ms": 9000') if i % 10 == 0 else l
+                 for i, l in enumerate(run_lines())]
+        (d / "dry-run.log").write_text("".join(lines))
+        self.assertEqual(len(fe.load([str(d / "dry-run.log")], "ADAUSDT")), 540)
+        self.assertEqual(len(fe.load([str(d / "dry-run.log")], "ADAUSDT", max_binance_age_ms=1e9)), 600)
+
     def test_runs_before_fair_delta_was_logged_score_the_logged_fair_only(self):
         d = Path(tempfile.mkdtemp())
         lines = [l.replace('"fair_delta"', '"x_fair_delta"') for l in run_lines()]

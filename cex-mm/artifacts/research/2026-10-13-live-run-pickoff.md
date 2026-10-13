@@ -47,6 +47,7 @@ Measured against the Binance spot mid, which our orders cannot move. Capture use
    - The shadow measures the fill rate correctly (1.0x) but not who fills us. Any quoting change must also be judged on how often its resting quotes are exposed, not on simulated net60 alone.
 
 4. **The 600-contract cap overshoots** (operational, not PnL).
+   - Main cause, found by the review of the fix: when the plan switched a side off, its resting order was cancelled only if its price had also drifted past the 3 bps requote tolerance. At the cap, the order on the side that adds to the position could stay resting and fill. The draft fix pulls it, with a unit test.
    - Venue inventory reached −811.
    - The bot quotes a full 200 contracts whenever |q| < 600, so it can overshoot to 799.
    - Many fills reach the bot only through the venue reconcile (15–30 s later, corrections of up to 200 contracts).
@@ -80,7 +81,11 @@ Measured against the Binance spot mid, which our orders cannot move. Capture use
 - **How the fair-jump defence interacts with the anchor.** It compares the fair with the current Delta mid (12 bps). With the anchor on, it fires only when Delta's book trails the anchor by 12 bps or more, and then drops the side that book would cross. Fixed quotes are clamped inside the Delta book in any case. The shadow test counts the one-sided time.
 
 ## Next experiment (shadow only, no real money)
-- **One knob:** `MM_FAIR_ANCHOR_WEIGHT` 0 → 1 (fair = Binance mid × (1 + basis EMA)), with the basis EMA half-life at 120 s *(start)*. The Binance 3 s lead is scaled by (1 − weight), so it is not counted twice. The bot falls back to the Delta-book fair while the Binance feed is silent for more than 5 s or the basis is not yet warm.
+- **One knob:** `MM_FAIR_ANCHOR_WEIGHT` 0 → 1 (fair = Binance mid × (1 + basis EMA)), with the basis EMA half-life at 120 s *(start)*.
+  - After review, the basis warms up as a plain mean, so the first sample does not dominate.
+  - One update covers at most two loops, so a single sample after a gap cannot reset it.
+  - Each sample is clamped to ±5 bps of the average *(start)*.
+  - It warms up again after 300 s without an update. The Binance 3 s lead is scaled by (1 − weight), so it is not counted twice. The bot falls back to the Delta-book fair while the Binance feed is silent for more than 5 s or the basis is not yet warm.
 - **Metrics, from the shadow over at least 24 h:**
   - the gap between the fair and Binance × rolling-median basis (median and p90);
   - the share of time a resting quote is within 1 bp of that price;
@@ -98,5 +103,6 @@ Measured against the Binance spot mid, which our orders cannot move. Capture use
 - **Stop:** any of those missed after 24 h. Then try the basis half-life at 60 s, not a wider spread.
 - **Before any live run with the anchor:**
   - **Basis source.** In live, the Delta book mid is mostly our own quotes, so a basis EMA fed from it stops learning. The draft fix only updates the basis while neither touch is our resting order, and falls back to the Delta fair once the basis is older than 300 s *(start)*. That fallback may switch the anchor off most of the time in live. Delta's index or mark price is the candidate replacement [UNVERIFIED: not yet checked whether it leads Delta's book].
-  - **The cap overshoot.** Clip the adding quote to cap − |q|, and count fills when they happen rather than only at the reconcile.
+  - **The rest of the cap overshoot.** The resting order on the side that adds to the position is now pulled at the cap. Still to do: clip that quote to cap − |q|, and count fills when they happen rather than only at the reconcile.
+  - **Enforced:** a live start refuses the anchor. `scripts/live.sh` refuses `MM_FAIR_ANCHOR_WEIGHT` above 0, and the bot refuses it unless `MM_FAIR_ANCHOR_LIVE=1`.
   - **Size.** The next live run starts smaller than 200 contracts.

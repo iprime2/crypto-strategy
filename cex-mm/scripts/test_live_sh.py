@@ -6,6 +6,7 @@ Delta and the real quote-bot/.env is never read. Linux only (/proc, setsid). CI 
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import signal
 import subprocess
@@ -66,6 +67,8 @@ class LiveSh(unittest.TestCase):
         (self.root / "target" / "release").mkdir(parents=True)
         shutil.copy(HERE / "live.sh", self.root / "scripts" / "live.sh")
         shutil.copy(HERE.parent / "config" / "dism.env", self.root / "config" / "dism.env")
+        prof = self.root / "config" / "dism.env"  # live runs need the anchor off (see the anchor test)
+        prof.write_text(re.sub(r"(?m)^MM_FAIR_ANCHOR_WEIGHT=.*$", "MM_FAIR_ANCHOR_WEIGHT=0", prof.read_text()))
         (self.root / "scripts" / "delta_key_check.py").write_text(STUB_KEYCHECK)
         (self.root / "scripts" / "live_vs_shadow.py").write_text(STUB_VENUE)
         bot = self.root / "target" / "release" / "mm-bot"
@@ -225,6 +228,14 @@ class LiveSh(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr[-2000:])
         self.assertNotIn(SECRET, r.stdout + r.stderr)
         self.assertNotIn(KEY, r.stdout + r.stderr)
+
+    def test_start_refuses_the_shadow_only_binance_anchor(self):
+        shutil.copy(HERE.parent / "config" / "dism.env", self.root / "config" / "dism.env")  # the repo's: anchor on
+        self.start_shadow()
+        r = self.live("start", "--confirm", "START REAL")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("MM_FAIR_ANCHOR_WEIGHT=1 is for the shadow test only", r.stderr)
+        self.assertEqual(self.stub_calls("run"), [])
 
     def test_start_refuses_a_profile_value_the_bot_would_misread(self):
         self.start_shadow()

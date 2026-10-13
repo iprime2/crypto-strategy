@@ -99,7 +99,8 @@ scripts/live.sh report                         # real fills vs the simulator, la
 scripts/live.sh stop                           # kill the bot, cancel its orders, check none are left open
 ```
 
-- `start` refuses unless: the typed confirmation, no other `live.sh start`/`stop` in progress (a lock), no other
+- `start` refuses a profile with `MM_FAIR_ANCHOR_WEIGHT` above 0 (the Binance anchor is for the shadow test only; see
+  `artifacts/research/2026-10-13-live-run-pickoff.md`). It also refuses unless: the typed confirmation, no other `live.sh start`/`stop` in progress (a lock), no other
   `mm-bot run` process (the OEMS or a stray bot), the shadow dry-run is running the same binary with the same `MM_`
   settings, no profile value with quotes, spaces or an inline comment (mm-bot would fall back to its defaults: a
   $500 stop and no dead man's switch), both mainnet keys set without quotes or spaces, and
