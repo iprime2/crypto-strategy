@@ -122,6 +122,7 @@ impl DeltaClient {
         let get = |name: &str| {
             pairs
                 .iter()
+                .rev() // a name set twice: the last assignment wins, as `source` reads the file
                 .find(|(k, _)| k == name)
                 .map(|(_, v)| v.clone())
                 .filter(|v| !v.is_empty())
@@ -546,6 +547,7 @@ mod tests {
 
     #[test]
     fn demo_client_prefers_the_delta_demo_names_and_mainnet_ignores_them() {
+        use crate::supervisor::env_map_has_key;
         let all = pairs(&[
             ("DELTA_DEMO_API_KEY", "ndk"),
             ("DELTA_DEMO_API_SECRET", "nds"),
@@ -559,6 +561,18 @@ mod tests {
         let half = pairs(&[("DELTA_DEMO_API_KEY", "ndk"), ("DELTA_API_KEY", "dk"), ("DELTA_API_SECRET", "ds")]);
         let demo = DeltaClient::from_env_pairs_for(&half, VenueEnv::Demo).unwrap();
         assert_eq!((demo.api_key.as_str(), demo.api_secret.as_str()), ("dk", "ds"));
+        // A name set twice: the last assignment wins, as the bot sees it after `source`.
+        let twice = pairs(&[
+            ("DELTA_API_KEY", ""),
+            ("DELTA_API_SECRET", ""),
+            ("DELTA_DEMO_API_KEY", "k1"),
+            ("DELTA_DEMO_API_SECRET", "s1"),
+            ("DELTA_DEMO_API_KEY", "k2"),
+        ]);
+        let demo = DeltaClient::from_env_pairs_for(&twice, VenueEnv::Demo).unwrap();
+        assert_eq!((demo.api_key.as_str(), demo.api_secret.as_str()), ("k2", "s1"));
+        assert!(env_map_has_key(&twice, "DELTA_DEMO_API_KEY"));
+        assert!(!env_map_has_key(&pairs(&[("K", "v"), ("K", "")]), "K"));
     }
 
     use super::*;

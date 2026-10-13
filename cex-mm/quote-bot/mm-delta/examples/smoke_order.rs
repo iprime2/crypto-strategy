@@ -86,6 +86,10 @@ async fn main() -> Result<()> {
     let mm_symbol = std::env::var("MM_SYMBOL").unwrap_or_else(|_| "BTCUSDT".into());
     let env_flag = std::env::var("MM_ENV").unwrap_or_else(|_| "testnet".into());
     let env = DeltaEnvironment::from_env_flag(&env_flag);
+    anyhow::ensure!(
+        env == DeltaEnvironment::DemoIndia,
+        "this smoke example places demo orders with demo keys; MM_ENV must be testnet"
+    );
 
     let creds = DeltaCredentials::from_env().context("set DELTA_DEMO_API_KEY and DELTA_DEMO_API_SECRET (or DELTA_API_KEY and DELTA_API_SECRET)")?;
     let client = Client::new();

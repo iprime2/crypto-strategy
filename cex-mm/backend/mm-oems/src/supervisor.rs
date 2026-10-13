@@ -360,8 +360,9 @@ pub fn load_env_file(path: &Path) -> Vec<(String, String)> {
     out
 }
 
+/// Whether `key`'s last assignment in the env file is non-empty (a name set twice: the last one wins).
 pub fn env_map_has_key(pairs: &[(String, String)], key: &str) -> bool {
-    pairs.iter().any(|(k, v)| k == key && !v.is_empty())
+    pairs.iter().rev().find(|(k, _)| k == key).is_some_and(|(_, v)| !v.is_empty())
 }
 
 /// Legacy UI config keys → the env names mm-bot actually reads.
