@@ -44,7 +44,7 @@ start() {
     printf '%s\n' "${SHADOW_ENV[@]}"
   } >"$run/config.txt"
 
-  # env -i: no DELTA_API_KEY, no MM_OEMS_URL, nothing from the live bot's environment.
+  # env -i: no Delta API keys, no MM_OEMS_URL, nothing from the live bot's environment.
   setsid nohup env -i HOME="$HOME" PATH="/usr/bin:/bin" "${SHADOW_ENV[@]}" \
     "$BIN" dry-run --venue delta --env mainnet --symbols "$symbols" --loop-ms 400 \
     >"$run/dry-run.log" 2>&1 </dev/null &

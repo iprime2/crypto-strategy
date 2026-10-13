@@ -6,6 +6,8 @@ const FORBIDDEN_KEYS: &[&str] = &[
     "secret",
     "DELTA_API_SECRET",
     "delta_api_secret",
+    "delta_demo_api_key",
+    "delta_demo_api_secret",
 ];
 
 /// Returns the forbidden key name if `body` (object or nested) contains a secret field.
@@ -58,6 +60,8 @@ mod tests {
     fn rejects_api_key_and_secret() {
         assert!(find_forbidden_secret_key(&json!({"api_key": "k"})).is_some());
         assert!(find_forbidden_secret_key(&json!({"secret": "s"})).is_some());
+        assert!(find_forbidden_secret_key(&json!({"DELTA_DEMO_API_SECRET": "s"})).is_some());
+        assert!(find_forbidden_secret_key(&json!({"delta_demo_api_key": "k"})).is_some());
         assert!(find_forbidden_secret_key(&json!({"DELTA_API_SECRET": "s"})).is_some());
     }
 

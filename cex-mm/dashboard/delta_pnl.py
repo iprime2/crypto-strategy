@@ -23,14 +23,26 @@ def _load_env_file() -> None:
     env_path = CEX_MM / ".env"
     if not env_path.is_file():
         return
+    values: dict[str, str] = {}  # a name set twice: the last assignment wins, as `source` reads it
     for raw in env_path.read_text(encoding="utf-8").splitlines():
         line = raw.strip()
         if not line or line.startswith("#") or "=" not in line:
             continue
         k, v = line.split("=", 1)
-        k, v = k.strip(), v.strip()
-        if k and k not in os.environ:
+        if k.strip():
+            values[k.strip()] = v.strip()
+    for k, v in values.items():
+        if k not in os.environ:
             os.environ[k] = v
+
+
+def _demo_keys() -> tuple[str, str]:
+    """Demo key and secret: DELTA_DEMO_API_KEY/SECRET, else the older DELTA_API_KEY/SECRET (one pair, never mixed)."""
+    for key_var, secret_var in (("DELTA_DEMO_API_KEY", "DELTA_DEMO_API_SECRET"), ("DELTA_API_KEY", "DELTA_API_SECRET")):
+        key, secret = os.environ.get(key_var, ""), os.environ.get(secret_var, "")
+        if key and secret:
+            return key, secret
+    return "", ""
 
 
 def _delta_base() -> str:
@@ -49,10 +61,9 @@ def _sign(secret: str, method: str, path: str, query: str = "", body: str = "") 
 
 
 def _get(path: str, query: str = "") -> dict:
-    key = os.environ.get("DELTA_API_KEY", "")
-    secret = os.environ.get("DELTA_API_SECRET", "")
+    key, secret = _demo_keys()
     if not key or not secret:
-        return {"error": "missing DELTA_API_KEY/SECRET"}
+        return {"error": "missing DELTA_DEMO_API_KEY/SECRET (or DELTA_API_KEY/SECRET)"}
     ts, sig = _sign(secret, "GET", path, query)
     url = _delta_base() + path + (f"?{query}" if query else "")
     req = urllib.request.Request(

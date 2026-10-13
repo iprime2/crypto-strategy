@@ -6,6 +6,7 @@ Delta and the real quote-bot/.env is never read. Linux only (/proc, setsid). CI 
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import signal
 import subprocess
@@ -66,13 +67,16 @@ class LiveSh(unittest.TestCase):
         (self.root / "target" / "release").mkdir(parents=True)
         shutil.copy(HERE / "live.sh", self.root / "scripts" / "live.sh")
         shutil.copy(HERE.parent / "config" / "dism.env", self.root / "config" / "dism.env")
+        prof = self.root / "config" / "dism.env"  # live runs need the anchor off (see the anchor test)
+        prof.write_text(re.sub(r"(?m)^MM_FAIR_ANCHOR_WEIGHT=.*$", "MM_FAIR_ANCHOR_WEIGHT=0", prof.read_text()))
         (self.root / "scripts" / "delta_key_check.py").write_text(STUB_KEYCHECK)
         (self.root / "scripts" / "live_vs_shadow.py").write_text(STUB_VENUE)
         bot = self.root / "target" / "release" / "mm-bot"
         bot.write_text(STUB_BOT)
         bot.chmod(0o755)
         (self.root / "quote-bot" / ".env").write_text(
-            f'DELTA_API_KEY=demo-must-not-leak\nMM_FIXED_HALF_SPREAD_BPS=99\n'
+            f'DELTA_API_KEY=demo-must-not-leak\nDELTA_DEMO_API_KEY=demo-must-not-leak\n'
+            f'DELTA_DEMO_API_SECRET=demo-must-not-leak\nMM_FIXED_HALF_SPREAD_BPS=99\n'
             f'DELTA_MAINNET_API_KEY="{KEY}"\n  DELTA_MAINNET_API_SECRET = {SECRET}\n')
         self.procs: list[int] = []
         self.env = {"PATH": os.environ["PATH"], "HOME": str(self.tmp), "LIVE_ALLOW_BINARY_MISMATCH": "1",
@@ -225,6 +229,14 @@ class LiveSh(unittest.TestCase):
         self.assertNotIn(SECRET, r.stdout + r.stderr)
         self.assertNotIn(KEY, r.stdout + r.stderr)
 
+    def test_start_refuses_the_shadow_only_binance_anchor(self):
+        shutil.copy(HERE.parent / "config" / "dism.env", self.root / "config" / "dism.env")  # the repo's: anchor on
+        self.start_shadow()
+        r = self.live("start", "--confirm", "START REAL")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("MM_FAIR_ANCHOR_WEIGHT=1 is for the shadow test only", r.stderr)
+        self.assertEqual(self.stub_calls("run"), [])
+
     def test_start_refuses_a_profile_value_the_bot_would_misread(self):
         self.start_shadow()
         prof = self.root / "config" / "dism.env"
@@ -297,6 +309,8 @@ class LiveSh(unittest.TestCase):
         self.assertEqual(env["DELTA_MAINNET_API_KEY"], KEY)  # quotes and spaces stripped like the OEMS
         self.assertEqual(env["DELTA_MAINNET_API_SECRET"], SECRET)
         self.assertNotIn("DELTA_API_KEY", env)  # nothing else from quote-bot/.env
+        self.assertNotIn("DELTA_DEMO_API_KEY", env)
+        self.assertNotIn("DELTA_DEMO_API_SECRET", env)
         self.assertEqual(env["MM_FIXED_HALF_SPREAD_BPS"], "5")  # the profile, not the demo line
         self.assertEqual(env["MM_DMS_TTL_MS"], "15000")
         self.assertIn("MM_ORDER=info", env["RUST_LOG"])

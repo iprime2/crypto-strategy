@@ -171,11 +171,12 @@ impl Supervisor {
             None => None,
         };
         let env_pairs = load_env_file(&req.quote_bot_env);
-        let (key_name, secret_name) = req.env.key_names();
+        let names = req.env.key_names();
         if req.env == VenueEnv::Mainnet
-            && !(env_map_has_key(&env_pairs, key_name) && env_map_has_key(&env_pairs, secret_name))
+            && !names.iter().any(|(k, s)| env_map_has_key(&env_pairs, k) && env_map_has_key(&env_pairs, s))
         {
-            return Err(SupervisorError::MissingKeys(format!("{key_name}/{secret_name}")));
+            let names: Vec<String> = names.iter().map(|(k, s)| format!("{k}/{s}")).collect();
+            return Err(SupervisorError::MissingKeys(names.join(" or ")));
         }
 
         let bin = req.cex_mm_root.join("target/debug/mm-bot");
@@ -359,8 +360,9 @@ pub fn load_env_file(path: &Path) -> Vec<(String, String)> {
     out
 }
 
+/// Whether `key`'s last assignment in the env file is non-empty (a name set twice: the last one wins).
 pub fn env_map_has_key(pairs: &[(String, String)], key: &str) -> bool {
-    pairs.iter().any(|(k, v)| k == key && !v.is_empty())
+    pairs.iter().rev().find(|(k, _)| k == key).is_some_and(|(_, v)| !v.is_empty())
 }
 
 /// Legacy UI config keys → the env names mm-bot actually reads.
@@ -439,17 +441,17 @@ pub fn bot_env_pairs(
     profile_pairs: Option<&[(String, String)]>,
     body: Option<&Value>,
 ) -> Vec<(String, String)> {
-    let (key, secret) = env.key_names();
-    let (other_key, other_secret) = env.other().key_names();
+    let own: Vec<&str> = env.secret_names().collect();
+    let other: Vec<&str> = env.other().secret_names().collect();
     let mut out: Vec<(String, String)> = match profile_pairs {
         None => file_pairs
             .iter()
-            .filter(|(k, _)| k != other_key && k != other_secret)
+            .filter(|(k, _)| !other.contains(&k.as_str()))
             .cloned()
             .collect(),
         Some(profile) => file_pairs
             .iter()
-            .filter(|(k, _)| k == key || k == secret || k == "RUST_LOG")
+            .filter(|(k, _)| own.contains(&k.as_str()) || k == "RUST_LOG")
             .chain(profile.iter())
             .cloned()
             .collect(),
@@ -530,6 +532,8 @@ mod tests {
 
     fn file() -> Vec<(String, String)> {
         kv(&[
+            ("DELTA_DEMO_API_KEY", "ndk"),
+            ("DELTA_DEMO_API_SECRET", "nds"),
             ("DELTA_API_KEY", "dk"),
             ("DELTA_API_SECRET", "ds"),
             ("DELTA_MAINNET_API_KEY", "mk"),
@@ -550,6 +554,8 @@ mod tests {
         let env = bot_env_pairs(VenueEnv::Mainnet, &file(), Some(&profile), Some(&json!({"MM_ACCOUNT_POLL_SEC": 20})));
         assert_eq!(get(&env, "DELTA_MAINNET_API_KEY"), Some("mk"));
         assert_eq!(get(&env, "DELTA_API_KEY"), None, "demo keys never reach a real-money bot");
+        assert_eq!(get(&env, "DELTA_DEMO_API_KEY"), None);
+        assert_eq!(get(&env, "DELTA_DEMO_API_SECRET"), None);
         assert_eq!(get(&env, "MM_SYMBOLS"), Some("ADAUSDT"));
         assert_eq!(get(&env, "MM_ORDER_QTY"), None, "the demo bot's MM_* lines do not leak in");
         assert_eq!(get(&env, "MM_FIXED_HALF_SPREAD_BPS"), Some("5"));
@@ -561,9 +567,29 @@ mod tests {
     fn legacy_demo_strategy_keeps_the_env_file_but_not_mainnet_keys() {
         let env = bot_env_pairs(VenueEnv::Demo, &file(), None, Some(&json!({"symbols": "BTCUSDT"})));
         assert_eq!(get(&env, "DELTA_API_KEY"), Some("dk"));
+        assert_eq!(get(&env, "DELTA_DEMO_API_KEY"), Some("ndk"));
         assert_eq!(get(&env, "DELTA_MAINNET_API_KEY"), None);
         assert_eq!(get(&env, "MM_ORDER_QTY"), Some("0.01"));
         assert_eq!(get(&env, "MM_SYMBOLS"), Some("BTCUSDT"));
+    }
+
+    #[test]
+    fn no_demo_name_reaches_a_mainnet_bot_without_a_profile_either() {
+        let env = bot_env_pairs(VenueEnv::Mainnet, &file(), None, None);
+        assert_eq!(get(&env, "DELTA_MAINNET_API_KEY"), Some("mk"));
+        for name in ["DELTA_DEMO_API_KEY", "DELTA_DEMO_API_SECRET", "DELTA_API_KEY", "DELTA_API_SECRET"] {
+            assert_eq!(get(&env, name), None, "{name}");
+        }
+    }
+
+    #[test]
+    fn demo_profile_strategy_gets_both_demo_pairs_and_no_mainnet_keys() {
+        let profile = kv(&[("MM_SYMBOLS", "ADAUSDT")]);
+        let env = bot_env_pairs(VenueEnv::Demo, &file(), Some(&profile), None);
+        assert_eq!(get(&env, "DELTA_DEMO_API_SECRET"), Some("nds"));
+        assert_eq!(get(&env, "DELTA_API_SECRET"), Some("ds"));
+        assert_eq!(get(&env, "DELTA_MAINNET_API_KEY"), None);
+        assert_eq!(get(&env, "MM_ORDER_QTY"), None);
     }
 
     #[test]

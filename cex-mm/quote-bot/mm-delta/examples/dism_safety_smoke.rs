@@ -36,7 +36,7 @@ async fn main() -> Result<()> {
     dotenvy::dotenv().ok();
     let mm_symbol = std::env::var("MM_SYMBOL").unwrap_or_else(|_| "ADAUSDT".into());
     let env = DeltaEnvironment::DemoIndia;
-    let creds = DeltaCredentials::from_env_for(env).context("DELTA_API_KEY/SECRET (demo)")?;
+    let creds = DeltaCredentials::from_env_for(env).context("DELTA_DEMO_API_KEY/SECRET or DELTA_API_KEY/SECRET (demo)")?;
     let client = Client::new();
     let products = Arc::new(ProductCatalog::load(&client, env.rest_base()).await?);
     let rest = DeltaRest::new(env, creds, products.clone());

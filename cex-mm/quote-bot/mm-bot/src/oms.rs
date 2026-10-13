@@ -86,11 +86,39 @@ impl OmsState {
             .unwrap_or(false);
         (!bid_ok, !ask_ok)
     }
+
+    /// `needs_update`, plus: a side the plan switches off (inventory cap, fair-jump defence) that still has
+    /// a resting order always needs an update, so the loop cancels it however close its price is.
+    pub fn needs_update_sides(&self, bid: f64, ask: f64, place_bid: bool, place_ask: bool, tol_bps: f64) -> (bool, bool) {
+        let (need_bid, need_ask) = self.needs_update(bid, ask, tol_bps);
+        (
+            need_bid || (!place_bid && self.live.bid.is_some()),
+            need_ask || (!place_ask && self.live.ask.is_some()),
+        )
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_side_switched_off_is_pulled_however_close_its_price() {
+        let mut oms = OmsState::default();
+        oms.live.bid = Some(0.2400);
+        oms.live.bid_id = Some(1);
+        oms.live.ask = Some(0.2412);
+        oms.live.ask_id = Some(2);
+        // Same prices, both sides wanted: nothing to do.
+        assert_eq!(oms.needs_update_sides(0.2400, 0.2412, true, true, 3.0), (false, false));
+        // The inventory cap turns the ask off: it must be cancelled even though its price did not move
+        // (13 Oct 2026: a resting ask kept filling past the 600-contract cap).
+        assert_eq!(oms.needs_update_sides(0.2400, 0.2412, true, false, 3.0), (false, true));
+        assert_eq!(oms.needs_update_sides(0.2400, 0.2412, false, true, 3.0), (true, false));
+        // Nothing resting on a side that is off: nothing to pull.
+        oms.live.clear_ask();
+        assert_eq!(oms.needs_update_sides(0.2400, 0.2412, true, false, 3.0), (false, true));
+    }
 
     #[test]
     fn resting_order_without_id_forces_cancel_all() {

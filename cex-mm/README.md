@@ -74,7 +74,7 @@ cargo run -p mm-bot -- run --symbol BTCUSDT --env testnet
 
 # Delta India demo (same mm-core logic; keys from testnet.delta.exchange)
 export MM_VENUE=delta
-export DELTA_API_KEY=... DELTA_API_SECRET=...
+export DELTA_DEMO_API_KEY=... DELTA_DEMO_API_SECRET=...   # older names DELTA_API_KEY/SECRET also work
 cargo run -p mm-bot -- dry-run --venue delta --env testnet --symbols BTCUSDT,ETHUSDT,SOLUSDT
 cargo run -p mm-bot -- run --venue delta --env testnet --symbols BTCUSDT
 cargo run -p mm-bot -- cancel-all --venue delta --env testnet --symbol BTCUSDT

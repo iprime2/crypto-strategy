@@ -27,6 +27,21 @@ pub struct QuoteExtensions {
     pub funding_carry_bps: f64,
     pub alpha_mu_bps: f64,
     pub regime_spread_mult: f64,
+    /// Binance mid moved onto Delta's level by the basis (`fair::anchored_fair`), when fresh.
+    pub anchor_fair: Option<f64>,
+    /// Weight of `anchor_fair` against the Delta book fair, 0..=1 (`MM_FAIR_ANCHOR_WEIGHT`).
+    pub anchor_weight: f64,
+}
+
+/// The fair `compute_quote_cex` quotes around. Fixed mode (DISM) leaves funding carry out: the shadow
+/// dry-run has no venue keys, so it never sees funding carry, and live and shadow must quote the same fair.
+pub fn quote_fair(cfg: &StrategyConfig, fair_native: f64, book: Option<BookTop>, ext: QuoteExtensions) -> f64 {
+    let ext = if cfg.fixed_half_spread_bps > 0.0 {
+        QuoteExtensions { funding_carry_bps: 0.0, ..ext }
+    } else {
+        ext
+    };
+    fair::resolve_fair_cex(fair_native, book, ext)
 }
 
 /// Full quote path: adjust fair → GoDark `compute_quote` → apply regime on spread proxy.
@@ -46,14 +61,7 @@ pub fn compute_quote_cex(
     book: Option<BookTop>,
     ext: QuoteExtensions,
 ) -> Result<QuotePlan, String> {
-    // DISM quotes the shadow-tested rule. The shadow dry-run has no venue keys, so it never sees funding
-    // carry; a live bot holding inventory does. Leave it out so live and shadow quote the same fair.
-    let ext = if cfg.fixed_half_spread_bps > 0.0 {
-        QuoteExtensions { funding_carry_bps: 0.0, ..ext }
-    } else {
-        ext
-    };
-    let fair = fair::resolve_fair_cex(fair_native, book, ext);
+    let fair = quote_fair(cfg, fair_native, book, ext);
     let mut plan = compute_quote(
         cfg,
         fair,
@@ -147,6 +155,16 @@ pub struct MmMetrics {
     pub book_ask_qty: f64,
     /// Time since the venue book feed last delivered (ms, loop resolution).
     pub book_age_ms: u64,
+    /// The fair without the Binance anchor (Delta book + move lead), so one run can compare both.
+    pub fair_delta: f64,
+    /// Delta-over-Binance basis average in bps (`fair::BasisEma`), once it has a sample.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub basis_bps: Option<f64>,
+    /// True when this loop's fair used the Binance anchor (`MM_FAIR_ANCHOR_WEIGHT` > 0 and all inputs fresh).
+    pub anchored: bool,
+    /// Time since the last Binance bookTicker message (ms), once one arrived.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub binance_age_ms: Option<u64>,
 }
 
 #[cfg(test)]
@@ -196,6 +214,24 @@ mod tests {
         assert_eq!(carried.fair, flat.fair);
         assert_eq!((carried.bid, carried.ask), (flat.bid, flat.ask));
         assert!(carried.place_bid && carried.place_ask);
+    }
+
+    #[test]
+    fn fixed_mode_quotes_around_the_anchor_and_reports_the_unanchored_fair() {
+        let ext = QuoteExtensions {
+            regime_spread_mult: 1.0,
+            anchor_fair: Some(0.2501),
+            anchor_weight: 1.0,
+            ..Default::default()
+        };
+        let plan = compute_quote_cex(
+            &fixed_cfg(), 0.25, 1e-5, 0.0, 600.0, 200.0, 30.0, 1.5, 0.0, 0.0, 0.0, Some(0.2501), ada_book(), ext,
+        )
+        .unwrap();
+        assert!((plan.fair - 0.2501).abs() < 1e-12);
+        let unanchored = quote_fair(&fixed_cfg(), 0.25, ada_book(), QuoteExtensions { anchor_fair: None, ..ext });
+        assert!((unanchored - quote_fair(&fixed_cfg(), 0.25, ada_book(), QuoteExtensions::default())).abs() < 1e-12);
+        assert!(plan.place_bid && plan.place_ask);
     }
 
     #[test]
