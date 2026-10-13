@@ -1,0 +1,40 @@
+
+[9 coins (repo)] coins with data: 9
+  daily TV0.40 (repo rule)                           CAGR +24.2% vol 18.7% Sharpe  1.25 maxDD -21.9% gross 0.20x | 2020:+53% 2021:+47% 2022:-5% 2023:+16% 2024:+47% 2025:+3% 2026:+8%
+  weekly Sun-candle TV0.25 band10 (design)           CAGR +14.1% vol 12.4% Sharpe  1.12 maxDD -16.9% gross 0.12x | 2020:+29% 2021:+34% 2022:-7% 2023:+14% 2024:+23% 2025:+2% 2026:+1%
+  buy&hold EW                                        CAGR +61.5% vol 74.9% Sharpe  1.01 maxDD -80.2% gross 1.00x | 2020:+157% 2021:+608% 2022:-63% 2023:+102% 2024:+120% 2025:-17% 2026:-14%
+
+[8 = 9 minus DOGE (no perp until 2020-07-10)] coins with data: 8
+  daily TV0.40 (repo rule)                           CAGR +21.7% vol 18.9% Sharpe  1.14 maxDD -23.4% gross 0.21x | 2020:+54% 2021:+36% 2022:-8% 2023:+17% 2024:+39% 2025:+4% 2026:+8%
+  weekly Sun-candle TV0.25 band10 (design)           CAGR +12.9% vol 12.5% Sharpe  1.03 maxDD -17.0% gross 0.13x | 2020:+31% 2021:+23% 2022:-6% 2023:+15% 2024:+20% 2025:+3% 2026:+2%
+  buy&hold EW                                        CAGR +49.0% vol 71.5% Sharpe  0.92 maxDD -79.0% gross 1.00x | 2020:+170% 2021:+296% 2022:-64% 2023:+112% 2024:+102% 2025:-9% 2026:-13%
+
+[7 = 9 minus DOGE, BNB (true Jan-2020 perps on Delta)] coins with data: 7
+  daily TV0.40 (repo rule)                           CAGR +19.0% vol 18.8% Sharpe  1.02 maxDD -24.4% gross 0.19x | 2020:+58% 2021:+25% 2022:-7% 2023:+16% 2024:+35% 2025:-1% 2026:+7%
+  weekly Sun-candle TV0.25 band10 (design)           CAGR +11.1% vol 12.4% Sharpe  0.91 maxDD -17.0% gross 0.12x | 2020:+34% 2021:+15% 2022:-6% 2023:+15% 2024:+18% 2025:-1% 2026:+1%
+  buy&hold EW                                        CAGR +41.9% vol 73.5% Sharpe  0.85 maxDD -81.1% gross 1.00x | 2020:+174% 2021:+211% 2022:-66% 2023:+126% 2024:+96% 2025:-14% 2026:-14%
+
+[DOGE only] coins with data: 1
+  daily TV0.40 (repo rule)                           CAGR +37.6% vol 31.7% Sharpe  1.16 maxDD -24.8% gross 0.11x | 2020:+17% 2021:+144% 2022:+18% 2023:+9% 2024:+118% 2025:-9% 2026:+0%
+  weekly Sun-candle TV0.25 band10 (design)           CAGR +19.0% vol 24.2% Sharpe  0.83 maxDD -27.3% gross 0.06x | 2020:+0% 2021:+127% 2022:-12% 2023:+6% 2024:+51% 2025:-6% 2026:-2%
+  buy&hold EW                                        CAGR +69.5% vol 198.4% Sharpe  0.80 maxDD -92.4% gross 1.00x | 2020:+32% 2021:+3540% 2022:-59% 2023:+28% 2024:+253% 2025:-63% 2026:-20%
+
+[all 24 perps listed by 2020-02-20 (no DOGE)] coins with data: 24
+  daily TV0.40 (repo rule)                           CAGR +13.8% vol 16.7% Sharpe  0.86 maxDD -24.1% gross 0.17x | 2020:+24% 2021:+29% 2022:-8% 2023:+12% 2024:+30% 2025:+1% 2026:+8%
+  weekly Sun-candle TV0.25 band10 (design)           CAGR  +8.8% vol 11.0% Sharpe  0.82 maxDD -16.8% gross 0.11x | 2020:+16% 2021:+19% 2022:-7% 2023:+10% 2024:+14% 2025:+1% 2026:+4%
+  buy&hold EW                                        CAGR +30.0% vol 75.6% Sharpe  0.73 maxDD -82.9% gross 1.00x | 2020:+96% 2021:+310% 2022:-68% 2023:+77% 2024:+51% 2025:-20% 2026:-0%
+
+[all 25 = 24 + DOGE] coins with data: 25
+  daily TV0.40 (repo rule)                           CAGR +14.9% vol 16.6% Sharpe  0.92 maxDD -23.4% gross 0.17x | 2020:+24% 2021:+33% 2022:-7% 2023:+12% 2024:+33% 2025:+0% 2026:+7%
+  weekly Sun-candle TV0.25 band10 (design)           CAGR  +9.3% vol 11.0% Sharpe  0.87 maxDD -16.8% gross 0.10x | 2020:+16% 2021:+23% 2022:-7% 2023:+10% 2024:+16% 2025:+1% 2026:+3%
+  buy&hold EW                                        CAGR +35.0% vol 76.0% Sharpe  0.78 maxDD -82.8% gross 1.00x | 2020:+96% 2021:+413% 2022:-68% 2023:+75% 2024:+58% 2025:-23% 2026:-1%
+
+[16 extras only (not in the repo universe)] coins with data: 16
+  daily TV0.40 (repo rule)                           CAGR  +9.5% vol 16.8% Sharpe  0.62 maxDD -24.8% gross 0.15x | 2020:+9% 2021:+25% 2022:-9% 2023:+10% 2024:+25% 2025:-2% 2026:+7%
+  weekly Sun-candle TV0.25 band10 (design)           CAGR  +6.5% vol 11.2% Sharpe  0.62 maxDD -17.3% gross 0.09x | 2020:+9% 2021:+17% 2022:-7% 2023:+8% 2024:+11% 2025:+0% 2026:+5%
+  buy&hold EW                                        CAGR +19.4% vol 79.7% Sharpe  0.63 maxDD -86.1% gross 1.00x | 2020:+65% 2021:+302% 2022:-70% 2023:+60% 2024:+27% 2025:-27% 2026:+6%
+
+[Jan-2020 perps NOT chosen: EOS TRX ETC XLM] coins with data: 4
+  daily TV0.40 (repo rule)                           CAGR +15.4% vol 22.1% Sharpe  0.75 maxDD -35.1% gross 0.22x | 2020:+12% 2021:+21% 2022:-13% 2023:+17% 2024:+70% 2025:+5% 2026:+2%
+  weekly Sun-candle TV0.25 band10 (design)           CAGR +10.0% vol 15.6% Sharpe  0.68 maxDD -20.3% gross 0.14x | 2020:+9% 2021:+26% 2022:-7% 2023:+9% 2024:+38% 2025:-2% 2026:-2%
+  buy&hold EW                                        CAGR +27.6% vol 78.0% Sharpe  0.70 maxDD -84.4% gross 1.00x | 2020:+38% 2021:+218% 2022:-55% 2023:+60% 2024:+87% 2025:-24% 2026:+8%

@@ -19,6 +19,7 @@ crypto-strategy/
     ├── 04-open-source-tools-and-data.md
     ├── 05-risk-hedging-pnl-failure-modes.md
     ├── 06-godark-vanilla-mm-strategy-analysis.md   prior GoDark MM vs STRATEGY.md
+    ├── 07-trend-rule-and-prop-trading-research.md  2026-10 research: systematic trend rule for own capital and prop-firm accounts
     ├── godark-mm-bot/        export + porting guide from vanilla-mm-rust
     └── papers/               33 open-access PDFs referenced by 01-academic-papers.md
 ```
@@ -31,6 +32,7 @@ crypto-strategy/
 3. `resource/02-practitioner-articles.md` — "Cross-source consensus" and the parameter table at the end.
 4. `resource/03-exchange-apis-okx-binance-bybit.md` — comparison table and recommendations before touching any API.
 5. `resource/05-risk-hedging-pnl-failure-modes.md` — risk-control checklist and failure-mode catalogue; these are the go-live requirements.
+6. `resource/07-trend-rule-and-prop-trading-research.md` — the 2026-10-13 strategy research: why the long/flat trend rule (not market making) is the strategy for own capital and prop-firm accounts, its exact rule, the evidence and its limits, and the eight-week plan. Evidence in `cex-mm/artifacts/research/2026-10-13-prop-strategy-evidence/`.
 
 ## Conventions in the research notes
 

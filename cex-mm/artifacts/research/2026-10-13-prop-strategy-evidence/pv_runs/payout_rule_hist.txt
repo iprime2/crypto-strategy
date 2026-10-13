@@ -1,0 +1,15 @@
+--- Breakout S_b k0.5 ds1.5 HISTORICAL, payout rule reset
+historical windows: 1979 starts, 365 days each
+rules: target 10%, daily DD 3%, max DD 6% static, day stop 0.015, fee $999 acct $100,000 split 80%; payout rule reset; cap none; inactivity none d; consistency 0.4; refund False; nonpay 0.15; balance-ref False; trailing-daily False; delever 0.0
+ lev   vol |   pass <=180d dailyDD  maxDD  inact   open | med d p90 d | surv12m P(>=1 pay)  E[pay] med pay       EV EV refund EV nonpay | cons viol
+0.50   10% |  52.7%  43.9%    0.0%   3.3%   0.0%  44.1% |    82   214 |   62.2%      94.8%  11.65%  10.26%    5,135     5,135     4,215 |      0.0%
+--- Breakout S_b k0.5 ds1.5 HISTORICAL, payout rule hwm
+historical windows: 1979 starts, 365 days each
+rules: target 10%, daily DD 3%, max DD 6% static, day stop 0.015, fee $999 acct $100,000 split 80%; payout rule hwm; cap none; inactivity none d; consistency 0.4; refund False; nonpay 0.15; balance-ref False; trailing-daily False; delever 0.0
+ lev   vol |   pass <=180d dailyDD  maxDD  inact   open | med d p90 d | surv12m P(>=1 pay)  E[pay] med pay       EV EV refund EV nonpay | cons viol
+0.50   10% |  52.7%  43.9%    0.0%   3.3%   0.0%  44.1% |    82   214 |   72.8%      88.8%  11.62%   9.44%    5,120     5,120     4,202 |      0.0%
+--- Breakout S_b k0.5 ds1.5 HISTORICAL, payout rule sweep
+historical windows: 1979 starts, 365 days each
+rules: target 10%, daily DD 3%, max DD 6% static, day stop 0.015, fee $999 acct $100,000 split 80%; payout rule sweep; cap none; inactivity none d; consistency 0.4; refund False; nonpay 0.15; balance-ref False; trailing-daily False; delever 0.0
+ lev   vol |   pass <=180d dailyDD  maxDD  inact   open | med d p90 d | surv12m P(>=1 pay)  E[pay] med pay       EV EV refund EV nonpay | cons viol
+0.50   10% |  52.7%  43.9%    0.0%   3.3%   0.0%  44.1% |    82   214 |   67.5%      88.8%   9.59%   8.02%    4,048     4,048     3,291 |      0.0%

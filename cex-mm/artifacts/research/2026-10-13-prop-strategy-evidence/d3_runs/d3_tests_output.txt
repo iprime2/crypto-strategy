@@ -1,0 +1,49 @@
+Binance USDT-M perp daily data: coins ['ADA', 'BCH', 'BNB', 'BTC', 'DOGE', 'ETH', 'LINK', 'LTC', 'XRP']; BTC days 2465; window 2020-05-01..2026-10-12
+
+=== A. Benchmarks ===
+A1 BTC buy-and-hold (no costs)               CAGR +42.4% vol  57% Sharpe  0.90 xS  0.83 maxDD -76.7% CAGR/DD 0.55 worst -15.41% | fees 0.0% fund +0.0% gross 1.00x trades/yr     0 | corrBTC +1.00 beta +1.00 alpha +0.0%
+    2020-05..2021-12: +173%/S1.75/DD-53%  2022: -64%/S-1.28/DD-67%  2023: +156%/S2.35/DD-20%  2024: +121%/S1.75/DD-26%  2025: -6%/S0.05/DD-32%  2026..10-12: -6%/S0.09/DD-40%  2022..2026: +13%/S0.50/DD-67%
+A2 9-coin EW buy-and-hold (no costs)         CAGR +61.5% vol  75% Sharpe  1.01 xS  0.95 maxDD -80.2% CAGR/DD 0.77 worst -30.99% | fees 0.0% fund +0.0% gross 1.00x trades/yr     0 | corrBTC +0.83 beta +1.08 alpha +19.9%
+    2020-05..2021-12: +468%/S2.22/DD-62%  2022: -63%/S-0.90/DD-67%  2023: +102%/S1.68/DD-28%  2024: +120%/S1.58/DD-41%  2025: -17%/S0.06/DD-46%  2026..10-12: -18%/S-0.08/DD-52%  2022..2026: +4%/S0.38/DD-67%
+A3 BTC always-long vol-targeted TV0.19       CAGR +13.8% vol  20% Sharpe  0.74 xS  0.52 maxDD -35.5% CAGR/DD 0.39 worst -6.99% | fees 0.2% fund +3.8% gross 0.38x trades/yr   365 | corrBTC +0.95 beta +0.33 alpha -2.4%
+    2020-05..2021-12: +34%/S1.57/DD-16%  2022: -27%/S-1.50/DD-29%  2023: +56%/S2.23/DD-12%  2024: +37%/S1.67/DD-12%  2025: -6%/S-0.24/DD-18%  2026..10-12: -6%/S-0.17/DD-25%  2022..2026: +7%/S0.45/DD-35%
+A4 9 coins always-long vol-targeted TV0.40/N CAGR +32.6% vol  36% Sharpe  0.96 xS  0.83 maxDD -54.0% CAGR/DD 0.60 worst -10.63% | fees 0.4% fund +4.9% gross 0.57x trades/yr  3235 | corrBTC +0.82 beta +0.52 alpha +8.0%
+    2020-05..2021-12: +103%/S2.16/DD-20%  2022: -30%/S-0.87/DD-35%  2023: +81%/S1.81/DD-21%  2024: +65%/S1.58/DD-27%  2025: -0%/S0.18/DD-25%  2026..10-12: -14%/S-0.16/DD-45%  2022..2026: +14%/S0.55/DD-54%
+
+=== B. Ablations of the pre-registered rule ===
+B0 9 coins, looks 20/60/120, daily [PRE-REG] CAGR +24.2% vol  19% Sharpe  1.25 xS  1.01 maxDD -21.9% CAGR/DD 1.10 worst -7.31% | fees 1.1% fund +3.4% gross 0.20x trades/yr  1773 | corrBTC +0.57 beta +0.19 alpha +13.7%
+    2020-05..2021-12: +63%/S2.09/DD-15%  2022: -5%/S-0.56/DD-10%  2023: +16%/S0.92/DD-12%  2024: +46%/S1.88/DD-17%  2025: +3%/S0.24/DD-11%  2026..10-12: +10%/S0.96/DD-4%  2022..2026: +13%/S0.84/DD-17%
+B1 BTC only, looks 20/60/120                 CAGR +31.1% vol  25% Sharpe  1.19 xS  1.02 maxDD -23.4% CAGR/DD 1.33 worst -9.08% | fees 1.4% fund +5.4% gross 0.33x trades/yr   219 | corrBTC +0.65 beta +0.29 alpha +15.5%
+    2020-05..2021-12: +70%/S1.83/DD-18%  2022: -8%/S-1.54/DD-9%  2023: +72%/S2.01/DD-15%  2024: +51%/S1.48/DD-23%  2025: -7%/S-0.20/DD-20%  2026..10-12: +7%/S0.63/DD-6%  2022..2026: +20%/S0.90/DD-23%
+B2 BTC+ETH, looks 20/60/120                  CAGR +27.8% vol  23% Sharpe  1.18 xS  0.99 maxDD -25.6% CAGR/DD 1.09 worst -7.12% | fees 1.3% fund +5.3% gross 0.28x trades/yr   439 | corrBTC +0.65 beta +0.26 alpha +13.8%
+    2020-05..2021-12: +78%/S2.08/DD-15%  2022: -8%/S-1.38/DD-10%  2023: +36%/S1.28/DD-15%  2024: +29%/S1.11/DD-26%  2025: +8%/S0.51/DD-16%  2026..10-12: +7%/S0.63/DD-6%  2022..2026: +14%/S0.74/DD-26%
+B3 BTC+ETH, single look 120                  CAGR +30.4% vol  29% Sharpe  1.05 xS  0.90 maxDD -28.0% CAGR/DD 1.08 worst -9.24% | fees 0.7% fund +6.3% gross 0.40x trades/yr   423 | corrBTC +0.71 beta +0.36 alpha +12.1%
+    2020-05..2021-12: +84%/S1.85/DD-22%  2022: -4%/S-0.42/DD-10%  2023: +53%/S1.43/DD-17%  2024: +50%/S1.44/DD-18%  2025: -10%/S-0.19/DD-25%  2026..10-12: -0%/S0.04/DD-6%  2022..2026: +16%/S0.68/DD-28%
+B4 BTC+ETH, single look 60                   CAGR +36.6% vol  30% Sharpe  1.19 xS  1.04 maxDD -39.6% CAGR/DD 0.92 worst -9.12% | fees 1.0% fund +6.3% gross 0.41x trades/yr   441 | corrBTC +0.70 beta +0.37 alpha +16.7%
+    2020-05..2021-12: +101%/S2.17/DD-16%  2022: -28%/S-1.97/DD-32%  2023: +65%/S1.62/DD-23%  2024: +48%/S1.38/DD-27%  2025: +19%/S0.80/DD-18%  2026..10-12: +15%/S0.62/DD-20%  2022..2026: +19%/S0.77/DD-33%
+B5 9 coins, single look 120                  CAGR +29.0% vol  24% Sharpe  1.17 xS  0.98 maxDD -27.7% CAGR/DD 1.04 worst -10.23% | fees 0.8% fund +4.0% gross 0.28x trades/yr  1701 | corrBTC +0.64 beta +0.27 alpha +14.5%
+    2020-05..2021-12: +73%/S1.94/DD-23%  2022: -4%/S-0.22/DD-14%  2023: +39%/S1.54/DD-13%  2024: +53%/S1.76/DD-18%  2025: -5%/S-0.03/DD-20%  2026..10-12: +6%/S0.81/DD-4%  2022..2026: +16%/S0.80/DD-21%
+B6 9 coins, weekly rebalance                 CAGR +27.5% vol  20% Sharpe  1.33 xS  1.10 maxDD -15.6% CAGR/DD 1.77 worst -8.04% | fees 0.4% fund +3.3% gross 0.19x trades/yr   273 | corrBTC +0.57 beta +0.20 alpha +16.0%
+    2020-05..2021-12: +71%/S2.15/DD-12%  2022: -1%/S0.00/DD-11%  2023: +18%/S1.00/DD-10%  2024: +57%/S2.08/DD-13%  2025: +3%/S0.25/DD-12%  2026..10-12: +4%/S0.52/DD-4%  2022..2026: +15%/S0.92/DD-14%
+B7 BTC+ETH, weekly rebalance                 CAGR +26.6% vol  23% Sharpe  1.15 xS  0.95 maxDD -21.5% CAGR/DD 1.24 worst -7.44% | fees 0.5% fund +5.3% gross 0.28x trades/yr    66 | corrBTC +0.66 beta +0.26 alpha +12.6%
+    2020-05..2021-12: +79%/S2.10/DD-11%  2022: -6%/S-0.84/DD-9%  2023: +21%/S0.88/DD-15%  2024: +34%/S1.23/DD-22%  2025: +5%/S0.37/DD-18%  2026..10-12: +9%/S0.90/DD-4%  2022..2026: +12%/S0.68/DD-22%
+B8 9 coins, no vol targeting (sig/N)         CAGR +42.5% vol  40% Sharpe  1.08 xS  0.97 maxDD -54.1% CAGR/DD 0.79 worst -26.58% | fees 1.9% fund +7.7% gross 0.35x trades/yr  1773 | corrBTC +0.57 beta +0.41 alpha +22.8%
+    2020-05..2021-12: +183%/S1.94/DD-44%  2022: -11%/S-0.69/DD-18%  2023: +13%/S0.62/DD-18%  2024: +71%/S1.54/DD-28%  2025: -6%/S-0.08/DD-20%  2026..10-12: +8%/S0.65/DD-6%  2022..2026: +12%/S0.55/DD-28%
+B9 BTC+ETH, no vol targeting (sig/2)         CAGR +37.1% vol  37% Sharpe  1.04 xS  0.92 maxDD -35.0% CAGR/DD 1.06 worst -16.35% | fees 1.8% fund +9.1% gross 0.40x trades/yr   439 | corrBTC +0.67 beta +0.43 alpha +16.1%
+    2020-05..2021-12: +140%/S1.80/DD-27%  2022: -13%/S-1.33/DD-16%  2023: +36%/S1.13/DD-18%  2024: +24%/S0.80/DD-34%  2025: +14%/S0.67/DD-18%  2026..10-12: +6%/S0.51/DD-7%  2022..2026: +13%/S0.60/DD-34%
+
+=== C. Delta India prices and funding, 2024-08-10..2026-10-12 ===
+B0 on Delta                                  CAGR +16.5% vol  17% Sharpe  0.99 xS  0.73 maxDD -14.1% CAGR/DD 1.17 worst -5.04% | fees 1.1% fund +1.9% gross 0.19x trades/yr  1556 | corrBTC +0.49 beta +0.19 alpha +12.3%
+    2020-05..2021-12: n/a  2022: n/a  2023: n/a  2024: +102%/S3.16/DD-8%  2025: +3%/S0.25/DD-11%  2026..10-12: +4%/S0.35/DD-6%  2022..2026: +17%/S0.99/DD-14%
+    same-day correlation Delta vs Binance run over 782 days: 0.999
+B2 BTC+ETH on Delta                          CAGR +11.7% vol  18% Sharpe  0.71 xS  0.46 maxDD -18.9% CAGR/DD 0.62 worst -5.77% | fees 1.3% fund +2.7% gross 0.25x trades/yr   357 | corrBTC +0.55 beta +0.23 alpha +7.4%
+    2020-05..2021-12: n/a  2022: n/a  2023: n/a  2024: +48%/S1.76/DD-9%  2025: +7%/S0.46/DD-16%  2026..10-12: +2%/S0.23/DD-7%  2022..2026: +12%/S0.71/DD-19%
+    same-day correlation Delta vs Binance run over 782 days: 1.000
+B6 weekly on Delta                           CAGR +20.1% vol  17% Sharpe  1.15 xS  0.89 maxDD -12.0% CAGR/DD 1.67 worst -5.08% | fees 0.4% fund +1.7% gross 0.19x trades/yr   247 | corrBTC +0.47 beta +0.18 alpha +15.5%
+    2020-05..2021-12: n/a  2022: n/a  2023: n/a  2024: +137%/S3.56/DD-8%  2025: +6%/S0.42/DD-11%  2026..10-12: +0%/S0.07/DD-6%  2022..2026: +20%/S1.15/DD-12%
+    same-day correlation Delta vs Binance run over 782 days: 0.999
+B7 BTC+ETH weekly on Delta                   CAGR  +6.6% vol  18% Sharpe  0.45 xS  0.20 maxDD -21.4% CAGR/DD 0.31 worst -5.74% | fees 0.5% fund +2.6% gross 0.25x trades/yr    58 | corrBTC +0.56 beta +0.22 alpha +2.8%
+    2020-05..2021-12: n/a  2022: n/a  2023: n/a  2024: +50%/S1.87/DD-9%  2025: -5%/S-0.20/DD-19%  2026..10-12: +4%/S0.37/DD-7%  2022..2026: +7%/S0.45/DD-21%
+    same-day correlation Delta vs Binance run over 782 days: 1.000
+A1 BTC B&H (Delta)                           CAGR +14.6% vol  44% Sharpe  0.53 xS  0.43 maxDD -53.0% CAGR/DD 0.28 worst -14.05% | fees 0.0% fund +0.0% gross 1.00x trades/yr     0 | corrBTC +1.00 beta +1.00 alpha +0.0%
+    2020-05..2021-12: n/a  2022: n/a  2023: n/a  2024: +198%/S2.53/DD-16%  2025: -6%/S0.05/DD-32%  2026..10-12: -8%/S0.03/DD-40%  2022..2026: +15%/S0.53/DD-53%

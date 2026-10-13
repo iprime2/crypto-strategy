@@ -1,0 +1,124 @@
+=== T1. Design vs baseline, Binance 2020-05-01..2026-09-30 (T2 halves under each line) ===
+B  baseline daily TV0.40 band0 cap2.0    CAGR +24.2% vol 18.7% Sharpe  1.25 maxDD -21.9% hDD -22.6% fees/yr 1.14% fund/yr +3.43% swap/yr 0.00% gross avg 0.20x max 0.88x trades/yr  1773 worst -7.31% (2021-05-19) worst7d -9.51%
+    by year: 2020:+53.3%  2021:+47.0%  2022:-5.0%  2023:+15.9%  2024:+46.6%  2025:+2.7%  2026:+7.5%
+    2020-05..2023-12: CAGR +28.1% vol 19.6% Sharpe  1.36 maxDD -21.9% hDD -22.6% total +148.0% worst -7.31% worst7d -9.43%
+    2024-01..2026-09: CAGR +19.1% vol 17.4% Sharpe  1.09 maxDD -17.0% hDD -18.2% total +61.8% worst -5.05% worst7d -9.51%
+D  design weekly Mon TV0.25 band0 cap1.0 CAGR +14.1% vol 12.4% Sharpe  1.12 maxDD -17.0% hDD -17.8% fees/yr 0.26% fund/yr +2.10% swap/yr 0.00% gross avg 0.12x max 0.57x trades/yr   278 worst -5.01% (2021-05-19) worst7d -7.54%
+    by year: 2020:+28.8%  2021:+34.2%  2022:-6.8%  2023:+13.9%  2024:+23.1%  2025:+1.8%  2026:+1.3%
+    2020-05..2023-12: CAGR +18.0% vol 13.4% Sharpe  1.30 maxDD -17.0% hDD -17.8% total +83.6% worst -5.01% worst7d -7.54%
+    2024-01..2026-09: CAGR  +9.1% vol 11.0% Sharpe  0.85 maxDD  -9.4% hDD  -9.8% total +27.0% worst -3.51% worst7d -5.92%
+D+ design weekly Mon TV0.25 band10% cap1.0 CAGR +14.1% vol 12.4% Sharpe  1.12 maxDD -16.9% hDD -17.7% fees/yr 0.25% fund/yr +2.11% swap/yr 0.00% gross avg 0.12x max 0.56x trades/yr   192 worst -4.88% (2021-05-19) worst7d -7.35%
+    by year: 2020:+29.1%  2021:+33.7%  2022:-6.9%  2023:+13.6%  2024:+23.4%  2025:+2.0%  2026:+1.3%
+    2020-05..2023-12: CAGR +17.8% vol 13.4% Sharpe  1.29 maxDD -16.9% hDD -17.7% total +82.7% worst -4.88% worst7d -7.35%
+    2024-01..2026-09: CAGR  +9.2% vol 11.0% Sharpe  0.86 maxDD  -9.3% hDD  -9.7% total +27.5% worst -3.52% worst7d -5.99%
+   daily TV0.25 band0 cap2.0 (cadence isolated) CAGR +15.0% vol 11.7% Sharpe  1.25 maxDD -13.9% hDD -14.3% fees/yr 0.72% fund/yr +2.14% swap/yr 0.00% gross avg 0.12x max 0.56x trades/yr  1773 worst -4.57% (2021-05-19) worst7d -6.00%
+    by year: 2020:+31.4%  2021:+28.0%  2022:-3.1%  2023:+10.1%  2024:+27.7%  2025:+2.0%  2026:+4.7%
+    2020-05..2023-12: CAGR +17.3% vol 12.3% Sharpe  1.36 maxDD -13.9% hDD -14.3% total +79.4% worst -4.57% worst7d -5.93%
+    2024-01..2026-09: CAGR +12.0% vol 10.9% Sharpe  1.09 maxDD -10.9% hDD -11.7% total +36.4% worst -3.15% worst7d -6.00%
+   daily TV0.25 band10% cap2.0 (upgrade path) CAGR +15.0% vol 11.7% Sharpe  1.25 maxDD -14.1% hDD -14.5% fees/yr 0.67% fund/yr +2.15% swap/yr 0.00% gross avg 0.12x max 0.56x trades/yr   538 worst -4.54% (2021-05-19) worst7d -5.90%
+    by year: 2020:+30.7%  2021:+27.9%  2022:-2.8%  2023:+10.0%  2024:+27.8%  2025:+2.3%  2026:+4.9%
+    2020-05..2023-12: CAGR +17.1% vol 12.2% Sharpe  1.35 maxDD -14.1% hDD -14.5% total +78.5% worst -4.54% worst7d -5.89%
+    2024-01..2026-09: CAGR +12.2% vol 10.9% Sharpe  1.11 maxDD -10.6% hDD -11.4% total +37.1% worst -3.20% worst7d -5.90%
+   weekly Mon TV0.40 band0 cap2.0 (D3 R3a) CAGR +22.5% vol 19.8% Sharpe  1.12 maxDD -26.3% hDD -27.4% fees/yr 0.41% fund/yr +3.33% swap/yr 0.00% gross avg 0.20x max 0.88x trades/yr   278 worst -8.04% (2021-05-19) worst7d -12.07%
+    by year: 2020:+48.8%  2021:+57.4%  2022:-10.7%  2023:+22.5%  2024:+38.1%  2025:+2.4%  2026:+1.9%
+    2020-05..2023-12: CAGR +29.2% vol 21.4% Sharpe  1.30 maxDD -26.3% hDD -27.4% total +156.0% worst -8.04% worst7d -12.07%
+    2024-01..2026-09: CAGR +14.2% vol 17.5% Sharpe  0.85 maxDD -14.6% hDD -15.2% total +44.1% worst -5.57% worst7d -9.37%
+
+=== T3a. Target vol (weekly Mon, band 10%, cap 1.0) ===
+TV 0.15                                  CAGR  +8.5% vol  7.5% Sharpe  1.12 maxDD -10.5% hDD -11.0% fees/yr 0.15% fund/yr +1.27% swap/yr 0.00% gross avg 0.07x max 0.34x trades/yr   194 worst -2.97% (2021-05-19) worst7d -4.50%
+    by year: 2020:+16.9%  2021:+19.6%  2022:-4.1%  2023:+8.2%  2024:+13.9%  2025:+1.3%  2026:+0.8%
+    2020-05..2023-12: CAGR +10.6% vol  8.1% Sharpe  1.29 maxDD -10.5% hDD -11.0% total +44.9% worst -2.97% worst7d -4.50%
+    2024-01..2026-09: CAGR  +5.7% vol  6.6% Sharpe  0.87 maxDD  -5.7% hDD  -5.9% total +16.3% worst -2.14% worst7d -3.57%
+TV 0.20                                  CAGR +11.3% vol 10.0% Sharpe  1.12 maxDD -13.7% hDD -14.4% fees/yr 0.20% fund/yr +1.69% swap/yr 0.00% gross avg 0.10x max 0.45x trades/yr   193 worst -3.93% (2021-05-19) worst7d -5.94%
+    by year: 2020:+22.9%  2021:+26.6%  2022:-5.5%  2023:+10.9%  2024:+18.7%  2025:+1.7%  2026:+1.0%
+    2020-05..2023-12: CAGR +14.2% vol 10.8% Sharpe  1.29 maxDD -13.7% hDD -14.4% total +63.1% worst -3.93% worst7d -5.94%
+    2024-01..2026-09: CAGR  +7.5% vol  8.8% Sharpe  0.86 maxDD  -7.5% hDD  -7.8% total +21.9% worst -2.84% worst7d -4.73%
+TV 0.25                                  CAGR +14.1% vol 12.4% Sharpe  1.12 maxDD -16.9% hDD -17.7% fees/yr 0.25% fund/yr +2.11% swap/yr 0.00% gross avg 0.12x max 0.56x trades/yr   192 worst -4.88% (2021-05-19) worst7d -7.35%
+    by year: 2020:+29.1%  2021:+33.7%  2022:-6.9%  2023:+13.6%  2024:+23.4%  2025:+2.0%  2026:+1.3%
+    2020-05..2023-12: CAGR +17.8% vol 13.4% Sharpe  1.29 maxDD -16.9% hDD -17.7% total +82.7% worst -4.88% worst7d -7.35%
+    2024-01..2026-09: CAGR  +9.2% vol 11.0% Sharpe  0.86 maxDD  -9.3% hDD  -9.7% total +27.5% worst -3.52% worst7d -5.99%
+TV 0.30                                  CAGR +17.0% vol 15.0% Sharpe  1.13 maxDD -20.2% hDD -21.1% fees/yr 0.30% fund/yr +2.52% swap/yr 0.00% gross avg 0.15x max 0.67x trades/yr   191 worst -5.86% (2021-05-19) worst7d -8.82%
+    by year: 2020:+35.7%  2021:+42.4%  2022:-8.3%  2023:+16.4%  2024:+28.3%  2025:+2.2%  2026:+1.5%
+    2020-05..2023-12: CAGR +21.8% vol 16.2% Sharpe  1.30 maxDD -20.2% hDD -21.1% total +106.2% worst -5.86% worst7d -8.82%
+    2024-01..2026-09: CAGR +10.9% vol 13.2% Sharpe  0.85 maxDD -11.1% hDD -11.5% total +33.0% worst -4.21% worst7d -7.13%
+TV 0.40                                  CAGR +22.7% vol 19.9% Sharpe  1.13 maxDD -26.2% hDD -27.4% fees/yr 0.40% fund/yr +3.34% swap/yr 0.00% gross avg 0.20x max 0.87x trades/yr   190 worst -7.82% (2021-05-19) worst7d -11.73%
+    by year: 2020:+49.6%  2021:+58.6%  2022:-11.0%  2023:+22.1%  2024:+37.6%  2025:+2.7%  2026:+2.0%
+    2020-05..2023-12: CAGR +29.4% vol 21.5% Sharpe  1.31 maxDD -26.2% hDD -27.4% total +157.9% worst -7.82% worst7d -11.73%
+    2024-01..2026-09: CAGR +14.2% vol 17.5% Sharpe  0.85 maxDD -14.6% hDD -15.1% total +44.2% worst -5.55% worst7d -9.37%
+
+=== T3b. Cadence / decision weekday (TV 0.25, band 10%) ===
+daily                                    CAGR +15.0% vol 11.7% Sharpe  1.25 maxDD -14.1% hDD -14.5% fees/yr 0.67% fund/yr +2.15% swap/yr 0.00% gross avg 0.12x max 0.56x trades/yr   538 worst -4.54% (2021-05-19) worst7d -5.90%
+    by year: 2020:+30.7%  2021:+27.9%  2022:-2.8%  2023:+10.0%  2024:+27.8%  2025:+2.3%  2026:+4.9%
+    2020-05..2023-12: CAGR +17.1% vol 12.2% Sharpe  1.35 maxDD -14.1% hDD -14.5% total +78.5% worst -4.54% worst7d -5.89%
+    2024-01..2026-09: CAGR +12.2% vol 10.9% Sharpe  1.11 maxDD -10.6% hDD -11.4% total +37.1% worst -3.20% worst7d -5.90%
+weekly, decision candle Mon (closes Tue 00:00 UTC) CAGR +16.2% vol 12.5% Sharpe  1.26 maxDD -16.9% hDD -17.4% fees/yr 0.24% fund/yr +2.13% swap/yr 0.00% gross avg 0.13x max 0.52x trades/yr   185 worst -4.72% (2021-05-19) worst7d -7.16%
+    by year: 2020:+35.1%  2021:+35.2%  2022:-7.1%  2023:+14.4%  2024:+25.3%  2025:+4.3%  2026:+3.6%
+    2020-05..2023-12: CAGR +19.8% vol 13.5% Sharpe  1.41 maxDD -16.9% hDD -17.4% total +94.1% worst -4.72% worst7d -7.16%
+    2024-01..2026-09: CAGR +11.6% vol 11.2% Sharpe  1.04 maxDD  -9.1% hDD  -9.7% total +35.4% worst -3.44% worst7d -5.84%
+weekly, decision candle Tue (closes Wed 00:00 UTC) CAGR +14.5% vol 12.0% Sharpe  1.18 maxDD -13.2% hDD -13.9% fees/yr 0.25% fund/yr +2.08% swap/yr 0.00% gross avg 0.12x max 0.53x trades/yr   194 worst -4.59% (2020-09-03) worst7d -6.99%
+    by year: 2020:+28.0%  2021:+30.4%  2022:-5.6%  2023:+13.9%  2024:+26.0%  2025:+2.6%  2026:+2.5%
+    2020-05..2023-12: CAGR +17.3% vol 12.8% Sharpe  1.31 maxDD -13.2% hDD -13.9% total +79.5% worst -4.59% worst7d -6.99%
+    2024-01..2026-09: CAGR +10.8% vol 10.9% Sharpe  1.00 maxDD -11.8% hDD -12.7% total +32.7% worst -4.46% worst7d -6.38%
+weekly, decision candle Wed (closes Thu 00:00 UTC) CAGR +16.9% vol 12.3% Sharpe  1.34 maxDD -11.2% hDD -11.7% fees/yr 0.24% fund/yr +2.12% swap/yr 0.00% gross avg 0.13x max 0.52x trades/yr   187 worst -5.16% (2021-05-19) worst7d -6.58%
+    by year: 2020:+33.5%  2021:+33.7%  2022:-4.1%  2023:+17.8%  2024:+26.8%  2025:+4.4%  2026:+2.2%
+    2020-05..2023-12: CAGR +21.0% vol 13.0% Sharpe  1.53 maxDD -11.2% hDD -11.7% total +101.6% worst -5.16% worst7d -6.58%
+    2024-01..2026-09: CAGR +11.6% vol 11.2% Sharpe  1.04 maxDD -10.0% hDD -10.9% total +35.3% worst -3.95% worst7d -5.76%
+weekly, decision candle Thu (closes Fri 00:00 UTC) CAGR +16.8% vol 12.4% Sharpe  1.31 maxDD  -9.8% hDD -10.6% fees/yr 0.24% fund/yr +2.10% swap/yr 0.00% gross avg 0.12x max 0.50x trades/yr   187 worst -4.89% (2021-05-19) worst7d -5.93%
+    by year: 2020:+32.0%  2021:+33.8%  2022:-0.3%  2023:+10.6%  2024:+33.6%  2025:+1.9%  2026:+2.1%
+    2020-05..2023-12: CAGR +19.9% vol 13.2% Sharpe  1.44 maxDD  -9.8% hDD -10.6% total +94.8% worst -4.89% worst7d -5.57%
+    2024-01..2026-09: CAGR +12.7% vol 11.2% Sharpe  1.12 maxDD  -8.8% hDD  -9.3% total +39.0% worst -3.80% worst7d -5.93%
+weekly, decision candle Fri (closes Sat 00:00 UTC) CAGR +15.3% vol 12.2% Sharpe  1.23 maxDD -16.3% hDD -16.9% fees/yr 0.25% fund/yr +2.13% swap/yr 0.00% gross avg 0.12x max 0.50x trades/yr   190 worst -4.78% (2021-05-19) worst7d -6.30%
+    by year: 2020:+29.5%  2021:+30.3%  2022:-5.0%  2023:+9.0%  2024:+33.4%  2025:+3.5%  2026:+3.3%
+    2020-05..2023-12: CAGR +16.4% vol 12.9% Sharpe  1.25 maxDD -16.3% hDD -16.9% total +74.7% worst -4.78% worst7d -6.30%
+    2024-01..2026-09: CAGR +13.8% vol 11.3% Sharpe  1.20 maxDD  -8.6% hDD  -9.4% total +42.7% worst -3.54% worst7d -5.75%
+weekly, decision candle Sat (closes Sun 00:00 UTC) CAGR +14.5% vol 12.3% Sharpe  1.16 maxDD -17.5% hDD -18.0% fees/yr 0.25% fund/yr +2.11% swap/yr 0.00% gross avg 0.12x max 0.53x trades/yr   187 worst -4.83% (2021-05-19) worst7d -6.59%
+    by year: 2020:+28.4%  2021:+31.1%  2022:-5.7%  2023:+11.1%  2024:+32.1%  2025:-0.8%  2026:+3.1%
+    2020-05..2023-12: CAGR +16.7% vol 13.2% Sharpe  1.24 maxDD -17.5% hDD -18.0% total +76.3% worst -4.83% worst7d -6.59%
+    2024-01..2026-09: CAGR +11.6% vol 10.9% Sharpe  1.06 maxDD  -8.8% hDD  -9.5% total +35.1% worst -3.73% worst7d -5.33%
+weekly, decision candle Sun (closes Mon 00:00 UTC) [DESIGN] CAGR +14.1% vol 12.4% Sharpe  1.12 maxDD -16.9% hDD -17.7% fees/yr 0.25% fund/yr +2.11% swap/yr 0.00% gross avg 0.12x max 0.56x trades/yr   192 worst -4.88% (2021-05-19) worst7d -7.35%
+    by year: 2020:+29.1%  2021:+33.7%  2022:-6.9%  2023:+13.6%  2024:+23.4%  2025:+2.0%  2026:+1.3%
+    2020-05..2023-12: CAGR +17.8% vol 13.4% Sharpe  1.29 maxDD -16.9% hDD -17.7% total +82.7% worst -4.88% worst7d -7.35%
+    2024-01..2026-09: CAGR  +9.2% vol 11.0% Sharpe  0.86 maxDD  -9.3% hDD  -9.7% total +27.5% worst -3.52% worst7d -5.99%
+
+=== T3c. No-trade band (weekly Mon TV 0.25) + daily TV0.40 band for the record ===
+band 0%                                  CAGR +14.1% vol 12.4% Sharpe  1.12 maxDD -17.0% hDD -17.8% fees/yr 0.26% fund/yr +2.10% swap/yr 0.00% gross avg 0.12x max 0.57x trades/yr   278 worst -5.01% (2021-05-19) worst7d -7.54%
+    by year: 2020:+28.8%  2021:+34.2%  2022:-6.8%  2023:+13.9%  2024:+23.1%  2025:+1.8%  2026:+1.3%
+    2020-05..2023-12: CAGR +18.0% vol 13.4% Sharpe  1.30 maxDD -17.0% hDD -17.8% total +83.6% worst -5.01% worst7d -7.54%
+    2024-01..2026-09: CAGR  +9.1% vol 11.0% Sharpe  0.85 maxDD  -9.4% hDD  -9.8% total +27.0% worst -3.51% worst7d -5.92%
+band 5%                                  CAGR +14.1% vol 12.4% Sharpe  1.12 maxDD -17.0% hDD -17.8% fees/yr 0.25% fund/yr +2.10% swap/yr 0.00% gross avg 0.12x max 0.57x trades/yr   221 worst -5.00% (2021-05-19) worst7d -7.54%
+    by year: 2020:+28.9%  2021:+34.4%  2022:-6.8%  2023:+13.8%  2024:+23.0%  2025:+1.9%  2026:+1.3%
+    2020-05..2023-12: CAGR +18.0% vol 13.4% Sharpe  1.30 maxDD -17.0% hDD -17.8% total +83.6% worst -5.00% worst7d -7.54%
+    2024-01..2026-09: CAGR  +9.1% vol 11.0% Sharpe  0.85 maxDD  -9.4% hDD  -9.8% total +27.0% worst -3.51% worst7d -5.99%
+band 10%                                 CAGR +14.1% vol 12.4% Sharpe  1.12 maxDD -16.9% hDD -17.7% fees/yr 0.25% fund/yr +2.11% swap/yr 0.00% gross avg 0.12x max 0.56x trades/yr   192 worst -4.88% (2021-05-19) worst7d -7.35%
+    by year: 2020:+29.1%  2021:+33.7%  2022:-6.9%  2023:+13.6%  2024:+23.4%  2025:+2.0%  2026:+1.3%
+    2020-05..2023-12: CAGR +17.8% vol 13.4% Sharpe  1.29 maxDD -16.9% hDD -17.7% total +82.7% worst -4.88% worst7d -7.35%
+    2024-01..2026-09: CAGR  +9.2% vol 11.0% Sharpe  0.86 maxDD  -9.3% hDD  -9.7% total +27.5% worst -3.52% worst7d -5.99%
+band 20%                                 CAGR +14.1% vol 12.6% Sharpe  1.11 maxDD -17.2% hDD -17.9% fees/yr 0.24% fund/yr +2.14% swap/yr 0.00% gross avg 0.13x max 0.56x trades/yr   163 worst -4.64% (2021-05-19) worst7d -7.03%
+    by year: 2020:+29.6%  2021:+35.0%  2022:-7.1%  2023:+13.9%  2024:+22.6%  2025:+1.6%  2026:+1.3%
+    2020-05..2023-12: CAGR +18.3% vol 13.6% Sharpe  1.30 maxDD -17.2% hDD -17.9% total +85.2% worst -4.64% worst7d -7.03%
+    2024-01..2026-09: CAGR  +8.8% vol 11.1% Sharpe  0.82 maxDD  -9.6% hDD  -9.8% total +26.1% worst -3.44% worst7d -6.09%
+daily TV0.40 band10% cap2.0 (D2's banded daily) CAGR +24.2% vol 18.7% Sharpe  1.25 maxDD -22.4% hDD -23.1% fees/yr 1.07% fund/yr +3.42% swap/yr 0.00% gross avg 0.20x max 0.88x trades/yr   531 worst -7.36% (2021-05-19) worst7d -9.57%
+    by year: 2020:+52.1%  2021:+46.6%  2022:-4.8%  2023:+15.7%  2024:+46.8%  2025:+3.3%  2026:+7.8%
+    2020-05..2023-12: CAGR +27.7% vol 19.6% Sharpe  1.35 maxDD -22.4% hDD -23.1% total +145.6% worst -7.36% worst7d -9.57%
+    2024-01..2026-09: CAGR +19.6% vol 17.5% Sharpe  1.11 maxDD -16.9% hDD -18.1% total +63.5% worst -5.05% worst7d -9.50%
+
+=== T3d. Lookbacks (weekly Mon TV 0.25 band 10%) ===
+looks (20, 60, 120)                      CAGR +14.1% vol 12.4% Sharpe  1.12 maxDD -16.9% hDD -17.7% fees/yr 0.25% fund/yr +2.11% swap/yr 0.00% gross avg 0.12x max 0.56x trades/yr   192 worst -4.88% (2021-05-19) worst7d -7.35%
+    by year: 2020:+29.1%  2021:+33.7%  2022:-6.9%  2023:+13.6%  2024:+23.4%  2025:+2.0%  2026:+1.3%
+    2020-05..2023-12: CAGR +17.8% vol 13.4% Sharpe  1.29 maxDD -16.9% hDD -17.7% total +82.7% worst -4.88% worst7d -7.35%
+    2024-01..2026-09: CAGR  +9.2% vol 11.0% Sharpe  0.86 maxDD  -9.3% hDD  -9.7% total +27.5% worst -3.52% worst7d -5.99%
+looks (10, 30, 60)                       CAGR +13.5% vol 12.4% Sharpe  1.08 maxDD -15.6% hDD -16.7% fees/yr 0.35% fund/yr +2.10% swap/yr 0.00% gross avg 0.13x max 0.67x trades/yr   229 worst -4.48% (2021-09-07) worst7d -5.63%
+    by year: 2020:+27.0%  2021:+40.9%  2022:-9.9%  2023:+14.7%  2024:+23.7%  2025:+1.7%  2026:-2.9%
+    2020-05..2023-12: CAGR +18.2% vol 13.5% Sharpe  1.31 maxDD -15.6% hDD -16.7% total +84.9% worst -4.48% worst7d -5.63%
+    2024-01..2026-09: CAGR  +7.5% vol 10.9% Sharpe  0.72 maxDD -12.2% hDD -12.7% total +22.1% worst -4.35% worst7d -4.64%
+looks (50, 100, 200)                     CAGR +11.3% vol 12.1% Sharpe  0.95 maxDD -21.7% hDD -22.2% fees/yr 0.21% fund/yr +2.21% swap/yr 0.00% gross avg 0.13x max 0.49x trades/yr   164 worst -5.05% (2021-05-19) worst7d -7.67%
+    by year: 2020:+26.4%  2021:+33.8%  2022:-4.2%  2023:+3.1%  2024:+20.4%  2025:-2.8%  2026:+1.8%
+    2020-05..2023-12: CAGR +15.0% vol 12.7% Sharpe  1.17 maxDD -21.7% hDD -22.2% total +67.0% worst -5.05% worst7d -7.67%
+    2024-01..2026-09: CAGR  +6.6% vol 11.3% Sharpe  0.62 maxDD -11.6% hDD -11.9% total +19.1% worst -4.16% worst7d -6.04%
+  File "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/tools/qd_t1_t3.py", line 58, in <module>
+    report(f"looks {lk}", looks=lk)
+    ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/tools/qd_t1_t3.py", line 9, in report
+    p = E.P(**kw); res = E.run(close, fund, hourly, p); dr = E.daily_from_rows(res["rows"]); s = E.stats(dr, res["rows"])
+                         ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/tools/qd_engine.py", line 174, in run

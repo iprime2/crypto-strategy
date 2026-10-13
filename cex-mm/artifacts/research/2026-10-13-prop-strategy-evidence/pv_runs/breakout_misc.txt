@@ -1,0 +1,30 @@
+--- Breakout S_b k0.5 ds1.5 bootstrap, balance-ref (00:30 balance excl. open positions), payout rule sweep
+bootstrap: 3000 paths x 365 days, mean block 20 d, series 2344 days, base Sharpe 1.29 base vol 19%
+rules: target 10%, daily DD 3%, max DD 6% static, day stop 0.015, fee $999 acct $100,000 split 80%; payout rule sweep; cap none; inactivity none d; consistency none; refund False; nonpay 0.15; balance-ref True; trailing-daily False; delever 0.0
+ lev   vol |   pass <=180d dailyDD  maxDD  inact   open | med d p90 d | surv12m P(>=1 pay)  E[pay] med pay       EV EV refund EV nonpay | cons viol
+0.50   10% |  63.3%  40.7%    0.0%  16.1%   0.0%  20.6% |   136   293 |   62.1%      88.5%   9.92%   8.44%    5,281     5,281     4,339 |      0.0%
+--- Breakout $25k $275, S_b k0.5 ds1.5 bootstrap, sweep
+bootstrap: 3000 paths x 365 days, mean block 20 d, series 2344 days, base Sharpe 1.29 base vol 19%
+rules: target 10%, daily DD 3%, max DD 6% static, day stop 0.015, fee $275 acct $25,000 split 80%; payout rule sweep; cap none; inactivity none d; consistency none; refund False; nonpay 0.15; balance-ref False; trailing-daily False; delever 0.0
+ lev   vol |   pass <=180d dailyDD  maxDD  inact   open | med d p90 d | surv12m P(>=1 pay)  E[pay] med pay       EV EV refund EV nonpay | cons viol
+0.50   10% |  63.3%  39.9%    0.0%  14.8%   0.0%  22.0% |   139   296 |   67.8%      89.5%  10.10%   8.60%    1,322     1,322     1,083 |      0.0%
+--- Breakout $25k $275, S_b k0.5 ds1.5 HISTORICAL, sweep
+historical windows: 1979 starts, 365 days each
+rules: target 10%, daily DD 3%, max DD 6% static, day stop 0.015, fee $275 acct $25,000 split 80%; payout rule sweep; cap none; inactivity none d; consistency none; refund False; nonpay 0.15; balance-ref False; trailing-daily False; delever 0.0
+ lev   vol |   pass <=180d dailyDD  maxDD  inact   open | med d p90 d | surv12m P(>=1 pay)  E[pay] med pay       EV EV refund EV nonpay | cons viol
+0.50   10% |  52.7%  43.9%    0.0%   3.3%   0.0%  44.1% |    82   214 |   67.5%      88.8%   9.59%   8.02%      987       987       797 |      0.0%
+--- Breakout $25k, 2025-26, sweep
+bootstrap: 3000 paths x 365 days, mean block 20 d, series 638 days, base Sharpe 0.41 base vol 15%
+rules: target 10%, daily DD 3%, max DD 6% static, day stop 0.015, fee $275 acct $25,000 split 80%; payout rule sweep; cap none; inactivity none d; consistency none; refund False; nonpay 0.15; balance-ref False; trailing-daily False; delever 0.0
+ lev   vol |   pass <=180d dailyDD  maxDD  inact   open | med d p90 d | surv12m P(>=1 pay)  E[pay] med pay       EV EV refund EV nonpay | cons viol
+0.50    7% |  17.1%   6.7%    0.0%  27.1%   0.0%  55.8% |   206   331 |   62.0%      72.7%   2.75%   1.30%     -157      -157      -175 |      0.0%
+--- Breakout S_b k0.5, NO day stop, sweep (what happens without the watcher)
+bootstrap: 3000 paths x 365 days, mean block 20 d, series 2344 days, base Sharpe 1.29 base vol 19%
+rules: target 10%, daily DD 3%, max DD 6% static, day stop none, fee $999 acct $100,000 split 80%; payout rule sweep; cap none; inactivity none d; consistency none; refund False; nonpay 0.15; balance-ref False; trailing-daily False; delever 0.0
+ lev   vol |   pass <=180d dailyDD  maxDD  inact   open | med d p90 d | surv12m P(>=1 pay)  E[pay] med pay       EV EV refund EV nonpay | cons viol
+0.50   10% |  54.6%  36.6%   17.2%  12.0%   0.0%  16.2% |   128   290 |   35.3%      81.5%   6.59%   4.68%    2,597     2,597     2,058 |      0.0%
+--- Breakout per-position-stop series (P2 fallback), no portfolio stop, sweep
+bootstrap: 3000 paths x 365 days, mean block 20 d, series 2344 days, base Sharpe 1.24 base vol 18%
+rules: target 10%, daily DD 3%, max DD 6% static, day stop none, fee $999 acct $100,000 split 80%; payout rule sweep; cap none; inactivity none d; consistency none; refund False; nonpay 0.15; balance-ref False; trailing-daily False; delever 0.0
+ lev   vol |   pass <=180d dailyDD  maxDD  inact   open | med d p90 d | surv12m P(>=1 pay)  E[pay] med pay       EV EV refund EV nonpay | cons viol
+0.50    9% |  61.1%  38.0%    0.0%  14.4%   0.0%  24.5% |   141   295 |   68.1%      89.6%   9.35%   7.95%    4,712     4,712     3,855 |      0.0%

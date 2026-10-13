@@ -1,0 +1,20 @@
+--- Breakout S_b k0.5 ds1.5 bootstrap, inactivity 30 d, reset rule
+bootstrap: 3000 paths x 365 days, mean block 20 d, series 2344 days, base Sharpe 1.29 base vol 19%
+rules: target 10%, daily DD 3%, max DD 6% static, day stop 0.015, fee $999 acct $100,000 split 80%; payout rule reset; cap none; inactivity 30 d; consistency none; refund False; nonpay 0.0; balance-ref False; trailing-daily False; delever 0.0
+ lev   vol |   pass <=180d dailyDD  maxDD  inact   open | med d p90 d | surv12m P(>=1 pay)  E[pay] med pay       EV EV refund EV nonpay | cons viol
+0.50   10% |  55.0%  37.5%    0.0%  12.8%  17.9%  14.3% |   125   285 |   63.1%      95.8%  12.21%  10.75%    5,711     5,711     5,711 |      0.0%
+--- Breakout S_b k0.5 ds1.5 HISTORICAL, inactivity 30 d
+historical windows: 1979 starts, 365 days each
+rules: target 10%, daily DD 3%, max DD 6% static, day stop 0.015, fee $999 acct $100,000 split 80%; payout rule reset; cap none; inactivity 30 d; consistency none; refund False; nonpay 0.0; balance-ref False; trailing-daily False; delever 0.0
+ lev   vol |   pass <=180d dailyDD  maxDD  inact   open | med d p90 d | surv12m P(>=1 pay)  E[pay] med pay       EV EV refund EV nonpay | cons viol
+0.50   10% |  52.7%  43.9%    0.0%   2.3%  25.9%  19.1% |    82   214 |   62.2%      94.8%  11.65%  10.26%    5,135     5,135     5,135 |      0.0%
+--- Breakout S_b k0.5 ds1.5 HISTORICAL, inactivity 14 d
+historical windows: 1979 starts, 365 days each
+rules: target 10%, daily DD 3%, max DD 6% static, day stop 0.015, fee $999 acct $100,000 split 80%; payout rule reset; cap none; inactivity 14 d; consistency none; refund False; nonpay 0.0; balance-ref False; trailing-daily False; delever 0.0
+ lev   vol |   pass <=180d dailyDD  maxDD  inact   open | med d p90 d | surv12m P(>=1 pay)  E[pay] med pay       EV EV refund EV nonpay | cons viol
+0.50   10% |  52.7%  43.9%    0.0%   2.2%  29.6%  15.5% |    82   214 |   62.2%      94.8%  11.65%  10.26%    5,135     5,135     5,135 |      0.0%
+--- Breakout weekly S_w k0.5 ds1.5 HISTORICAL, inactivity 30 d
+historical windows: 1979 starts, 365 days each
+rules: target 10%, daily DD 3%, max DD 6% static, day stop 0.015, fee $999 acct $100,000 split 80%; payout rule reset; cap none; inactivity 30 d; consistency none; refund False; nonpay 0.0; balance-ref False; trailing-daily False; delever 0.0
+ lev   vol |   pass <=180d dailyDD  maxDD  inact   open | med d p90 d | surv12m P(>=1 pay)  E[pay] med pay       EV EV refund EV nonpay | cons viol
+0.50   10% |  50.2%  38.9%    0.0%   2.6%  31.1%  16.1% |    84   263 |   53.8%      94.7%  10.22%   8.99%    4,135     4,135     4,135 |      0.0%

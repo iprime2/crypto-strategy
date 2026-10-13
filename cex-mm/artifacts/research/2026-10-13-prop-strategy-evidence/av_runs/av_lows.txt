@@ -1,0 +1,14 @@
+days 2344; native TV 0.40 daily rule; thresholds at native = 2x the k=0.5 thresholds
+  intraday min vs 00:00 < -3%: hourly-close path  42 days | hourly-LOW path (all coins at low)  80 days
+  intraday min vs 00:00 < -4%: hourly-close path  22 days | hourly-LOW path (all coins at low)  43 days
+  intraday min vs 00:00 < -5%: hourly-close path   9 days | hourly-LOW path (all coins at low)  23 days
+  intraday min vs 00:00 < -6%: hourly-close path   4 days | hourly-LOW path (all coins at low)  17 days
+  intraday min vs 00:00 < -8%: hourly-close path   2 days | hourly-LOW path (all coins at low)   6 days
+  k=0.5 Breakout: days where the LOW path breaches -3% (native -6%) while the hourly-close path never tripped the 1.5% stop: 0
+  worst single hourly-close moves (native): 2020-08-02 -7.73%, 2024-03-05 -4.59%, 2021-05-19 -3.95%, 2020-12-01 -3.11%, 2020-11-26 -3.05%, 2023-12-11 -2.99%, 2021-01-02 -2.87%, 2021-02-23 -2.86%, 2024-11-12 -2.74%, 2023-04-19 -2.71%, 2026-08-22 -2.71%, 2024-02-28 -2.61%
+  hours worse than -2% native: 27 days with such an hour; worse than -3%: 5
+  k=0.4: days where the 3% daily limit is breached before a 1.5% hourly-close stop trips: LOW path 0, CLOSE path 0 (of 2344)
+  k=0.45: days where the 3% daily limit is breached before a 1.5% hourly-close stop trips: LOW path 0, CLOSE path 0 (of 2344)
+  k=0.5: days where the 3% daily limit is breached before a 1.5% hourly-close stop trips: LOW path 0, CLOSE path 0 (of 2344)
+  k=0.55: days where the 3% daily limit is breached before a 1.5% hourly-close stop trips: LOW path 0, CLOSE path 0 (of 2344)
+  k=0.6: days where the 3% daily limit is breached before a 1.5% hourly-close stop trips: LOW path 0, CLOSE path 0 (of 2344)

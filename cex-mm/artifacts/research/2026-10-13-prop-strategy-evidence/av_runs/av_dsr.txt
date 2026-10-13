@@ -1,0 +1,23 @@
+Sharpe figures parsed from session outputs: 383; mean 0.98 sd 0.32 min -0.57 max 1.55
+
+design weekly TV0.25 (1.12): skew 0.0 kurtosis 16.9 (raw, from T6f)
+  trials   1, sd of trial Sharpes 0.00: E[max null Sharpe] 0.00  DSR = P(true SR > 0 after selection) 99.8%
+  trials  18, sd of trial Sharpes 0.08: E[max null Sharpe] 0.15  DSR = P(true SR > 0 after selection) 99.3%
+  trials  18, sd of trial Sharpes 0.15: E[max null Sharpe] 0.28  DSR = P(true SR > 0 after selection) 98.3%
+  trials  36, sd of trial Sharpes 0.15: E[max null Sharpe] 0.32  DSR = P(true SR > 0 after selection) 97.8%
+  trials  60, sd of trial Sharpes 0.15: E[max null Sharpe] 0.35  DSR = P(true SR > 0 after selection) 97.3%
+  trials 100, sd of trial Sharpes 0.15: E[max null Sharpe] 0.38  DSR = P(true SR > 0 after selection) 96.9%
+  trials 100, sd of trial Sharpes 0.25: E[max null Sharpe] 0.63  DSR = P(true SR > 0 after selection) 89.0%
+  trials 200, sd of trial Sharpes 0.25: E[max null Sharpe] 0.69  DSR = P(true SR > 0 after selection) 86.0%
+
+pre-registered daily TV0.40 (1.25): skew -0.1 kurtosis 15.4 (raw, from T6f)
+  trials   1, sd of trial Sharpes 0.00: E[max null Sharpe] 0.00  DSR = P(true SR > 0 after selection) 99.9%
+  trials  18, sd of trial Sharpes 0.08: E[max null Sharpe] 0.15  DSR = P(true SR > 0 after selection) 99.7%
+  trials  18, sd of trial Sharpes 0.15: E[max null Sharpe] 0.28  DSR = P(true SR > 0 after selection) 99.3%
+  trials  36, sd of trial Sharpes 0.15: E[max null Sharpe] 0.32  DSR = P(true SR > 0 after selection) 99.0%
+  trials  60, sd of trial Sharpes 0.15: E[max null Sharpe] 0.35  DSR = P(true SR > 0 after selection) 98.8%
+  trials 100, sd of trial Sharpes 0.15: E[max null Sharpe] 0.38  DSR = P(true SR > 0 after selection) 98.5%
+  trials 100, sd of trial Sharpes 0.25: E[max null Sharpe] 0.63  DSR = P(true SR > 0 after selection) 93.9%
+  trials 200, sd of trial Sharpes 0.25: E[max null Sharpe] 0.69  DSR = P(true SR > 0 after selection) 91.9%
+
+reference: memo grid Sharpe range 0.99-1.25 (18 settings, all Binance full sample); qd T3 variants 0.85-1.34 (~60); D3 appendix 0.84-1.34 (~40)

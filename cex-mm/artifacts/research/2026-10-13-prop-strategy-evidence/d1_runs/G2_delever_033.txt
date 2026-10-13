@@ -1,0 +1,6 @@
+bootstrap 3000 paths x 365 d
+rules: Breakout 10%/3% daily/6% static, day stop 0.015, dd de-lever min frac 0.33 (0 = off)
+ lev |   pass  p<=180d  dailyDD  maxDD   open | med d p90 d | surv12m E[pay]/acct      EV
+0.50 |  58.7%    36.5%     0.2%   3.0%  38.2% |   141   301 |   92.5%      10.29%   5,038
+0.75 |  63.2%    46.1%     5.4%  13.5%  17.8% |   105   274 |   47.2%      10.44%   5,603
+1.00 |  55.2%    46.2%    17.6%  21.7%   5.5% |    75   221 |   16.0%       8.86%   3,887

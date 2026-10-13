@@ -1,0 +1,22 @@
+k=0.4: 205 daily-DD breaches of 3000
+  path 28 t=3523 hour=19 hourly ret -1.90% cum before hour -1.38% cum after -3.25%
+  path 38 t=7531 hour=19 hourly ret -1.90% cum before hour -1.38% cum after -3.25%
+  path 58 t=6307 hour=19 hourly ret -1.90% cum before hour -1.38% cum after -3.25%
+  path 63 t=1387 hour=19 hourly ret -1.90% cum before hour -1.38% cum after -3.25%
+  path 78 t=1387 hour=19 hourly ret -1.90% cum before hour -1.38% cum after -3.25%
+  path 80 t=5491 hour=19 hourly ret -1.90% cum before hour -1.38% cum after -3.25%
+  path 108 t=5515 hour=19 hourly ret -1.90% cum before hour -1.38% cum after -3.25%
+  path 123 t=811 hour=19 hourly ret -1.90% cum before hour -1.38% cum after -3.25%
+  most common source hours of the breach: [('2024-03-05T19:00:00', 205)]
+k=0.5: 0 daily-DD breaches of 3000
+  most common source hours of the breach: []
+k=0.6: 245 daily-DD breaches of 3000
+  path 1 t=6243 hour=3 hourly ret -1.86% cum before hour -1.18% cum after -3.01%
+  path 4 t=1779 hour=3 hourly ret -1.86% cum before hour -1.18% cum after -3.01%
+  path 7 t=4208 hour=8 hourly ret -1.77% cum before hour -1.30% cum after -3.04%
+  path 10 t=128 hour=8 hourly ret -1.77% cum before hour -1.30% cum after -3.04%
+  path 17 t=1328 hour=8 hourly ret -1.77% cum before hour -1.30% cum after -3.04%
+  path 30 t=200 hour=8 hourly ret -1.77% cum before hour -1.30% cum after -3.04%
+  path 33 t=3680 hour=8 hourly ret -1.77% cum before hour -1.30% cum after -3.04%
+  path 44 t=4467 hour=3 hourly ret -1.86% cum before hour -1.18% cum after -3.01%
+  most common source hours of the breach: [('2021-02-23T08:00:00', 164), ('2020-11-26T03:00:00', 81)]

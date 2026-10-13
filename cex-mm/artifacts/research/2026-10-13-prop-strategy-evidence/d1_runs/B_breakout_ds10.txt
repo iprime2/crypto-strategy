@@ -1,0 +1,5 @@
+bootstrap: 3000 paths x 365 days, mean block 20 d, series 2344 days, base Sharpe 1.21 base vol 19%
+rules: target 10%, daily DD 3% vs 00:00 equity, max DD 6% static, time limit none d/phase, min days 0, day stop 0.01
+ lev   vol |   pass pass<=180d  dailyDD  maxDD  timeout   open | med days p90 days | funded surv E[payout]/acct EV per challenge
+0.50   10% |  60.5%      36.5%     0.0%  13.5%     0.0%  26.0% |      145      304 |       63.8%         10.98%            5,647
+0.75   15% |  64.3%      47.4%     2.0%  24.8%     0.0%   9.0% |      108      268 |       36.2%         11.35%            6,297

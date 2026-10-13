@@ -1,0 +1,27 @@
+Delta India 2024-08-10..2026-10-12, weekly Monday 00:00 UTC decision, taker 5.31 + 2 bps, Delta funding
+-- TV 0.25 band 10%
+  $  500 whole contracts: CAGR  +6.8% vol  9.8% Sharpe  0.72 maxDD  -9.1% worst -2.61% gross avg 0.09x max 0.56x trades/yr  101 fees/yr 0.23% final $577 ($500) 2024:+16.1% 2025:+1.1% 2026:-1.7%
+  $1,000 whole contracts: CAGR  +8.3% vol 10.5% Sharpe  0.81 maxDD  -9.5% worst -4.14% gross avg 0.11x max 0.50x trades/yr  131 fees/yr 0.25% final $1,188 ($1,000) 2024:+14.5% 2025:+4.5% 2026:-0.6%
+  $2,500 whole contracts: CAGR  +7.0% vol 10.4% Sharpe  0.70 maxDD  -9.2% worst -3.11% gross avg 0.12x max 0.49x trades/yr  152 fees/yr 0.24% final $2,896 ($2,500) 2024:+15.3% 2025:+2.5% 2026:-1.9%
+  $5,000 whole contracts: CAGR  +6.8% vol 10.4% Sharpe  0.69 maxDD  -9.1% worst -3.28% gross avg 0.12x max 0.49x trades/yr  159 fees/yr 0.24% final $5,775 ($5,000) 2024:+15.6% 2025:+1.7% 2026:-1.8%
+  unrounded          : CAGR  +7.0% vol 10.4% Sharpe  0.70 maxDD  -9.1% worst -3.20% gross avg 0.12x max 0.48x trades/yr  165 fees/yr 0.24% final $1 ($1) 2024:+15.5% 2025:+2.1% 2026:-1.9%
+-- TV 0.25 band 0%
+  $  500 whole contracts: CAGR  +6.8% vol  9.8% Sharpe  0.72 maxDD  -9.1% worst -2.61% gross avg 0.09x max 0.56x trades/yr  103 fees/yr 0.23% final $577 ($500) 2024:+16.1% 2025:+1.1% 2026:-1.7%
+  $1,000 whole contracts: CAGR  +8.0% vol 10.5% Sharpe  0.78 maxDD  -9.5% worst -4.15% gross avg 0.11x max 0.50x trades/yr  138 fees/yr 0.25% final $1,183 ($1,000) 2024:+14.5% 2025:+4.1% 2026:-0.8%
+  $2,500 whole contracts: CAGR  +6.9% vol 10.4% Sharpe  0.70 maxDD  -9.2% worst -3.11% gross avg 0.12x max 0.49x trades/yr  168 fees/yr 0.24% final $2,893 ($2,500) 2024:+15.3% 2025:+2.4% 2026:-1.9%
+  $5,000 whole contracts: CAGR  +6.9% vol 10.4% Sharpe  0.69 maxDD  -9.0% worst -3.28% gross avg 0.12x max 0.49x trades/yr  187 fees/yr 0.24% final $5,779 ($5,000) 2024:+15.7% 2025:+1.7% 2026:-1.8%
+  unrounded          : CAGR  +6.9% vol 10.3% Sharpe  0.70 maxDD  -9.1% worst -3.15% gross avg 0.12x max 0.48x trades/yr  243 fees/yr 0.24% final $1 ($1) 2024:+15.5% 2025:+1.9% 2026:-1.8%
+-- TV 0.40 band 10%
+  $  500 whole contracts: CAGR +12.6% vol 16.3% Sharpe  0.81 maxDD -15.8% worst -5.92% gross avg 0.17x max 0.78x trades/yr  117 fees/yr 0.38% final $647 ($500) 2024:+25.7% 2025:+5.2% 2026:-2.0%
+  $1,000 whole contracts: CAGR +11.2% vol 16.9% Sharpe  0.71 maxDD -15.1% worst -5.57% gross avg 0.19x max 0.84x trades/yr  146 fees/yr 0.40% final $1,261 ($1,000) 2024:+27.4% 2025:+3.0% 2026:-3.9%
+  $2,500 whole contracts: CAGR +10.5% vol 16.5% Sharpe  0.69 maxDD -14.2% worst -5.29% gross avg 0.19x max 0.76x trades/yr  156 fees/yr 0.38% final $3,105 ($2,500) 2024:+24.9% 2025:+2.7% 2026:-3.2%
+  $5,000 whole contracts: CAGR +10.6% vol 16.5% Sharpe  0.69 maxDD -14.5% worst -5.18% gross avg 0.19x max 0.75x trades/yr  164 fees/yr 0.38% final $6,227 ($5,000) 2024:+25.3% 2025:+2.5% 2026:-3.0%
+  unrounded          : CAGR +10.6% vol 16.5% Sharpe  0.69 maxDD -14.6% worst -5.11% gross avg 0.19x max 0.78x trades/yr  163 fees/yr 0.38% final $1 ($1) 2024:+24.6% 2025:+3.0% 2026:-3.1%
+-- TV 0.40 band 0%
+  $  500 whole contracts: CAGR +12.7% vol 16.3% Sharpe  0.81 maxDD -15.7% worst -5.87% gross avg 0.17x max 0.78x trades/yr  122 fees/yr 0.38% final $648 ($500) 2024:+25.8% 2025:+5.1% 2026:-2.0%
+  $1,000 whole contracts: CAGR +11.2% vol 16.9% Sharpe  0.71 maxDD -15.0% worst -5.58% gross avg 0.19x max 0.83x trades/yr  156 fees/yr 0.40% final $1,259 ($1,000) 2024:+27.5% 2025:+2.8% 2026:-3.9%
+  $2,500 whole contracts: CAGR +10.5% vol 16.5% Sharpe  0.69 maxDD -14.2% worst -5.17% gross avg 0.19x max 0.76x trades/yr  179 fees/yr 0.38% final $3,108 ($2,500) 2024:+25.0% 2025:+2.8% 2026:-3.2%
+  $5,000 whole contracts: CAGR +10.8% vol 16.5% Sharpe  0.70 maxDD -14.5% worst -5.17% gross avg 0.19x max 0.77x trades/yr  200 fees/yr 0.39% final $6,244 ($5,000) 2024:+25.3% 2025:+2.8% 2026:-3.0%
+  unrounded          : CAGR +10.6% vol 16.5% Sharpe  0.69 maxDD -14.3% worst -5.04% gross avg 0.19x max 0.77x trades/yr  243 fees/yr 0.39% final $1 ($1) 2024:+25.1% 2025:+2.6% 2026:-3.1%
+-- daily cadence TV 0.40 band 0 (repo rule) unrounded, for reference: CAGR +16.5% vol 16.8% Sharpe  0.99 maxDD -14.1% worst -5.04% gross avg 0.19x max 0.80x trades/yr 1556 fees/yr 1.08% final $1 ($1) 2024:+32.0% 2025:+2.8% 2026:+2.7%
+-- daily cadence TV 0.25 band 10% $1,000: CAGR +12.9% vol 10.5% Sharpe  1.21 maxDD  -8.3% worst -3.32% gross avg 0.11x max 0.54x trades/yr  399 fees/yr 0.70% final $1,302 ($1,000) 2024:+19.4% 2025:+5.6% 2026:+3.2%

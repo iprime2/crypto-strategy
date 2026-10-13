@@ -1,0 +1,15 @@
+$ python3 /home/user/crypto-strategy/cex-mm/scripts/trend_backtest.py --source delta --cache /tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/trend-cache --start 2024-08-10 --end 2026-10-12 --capital 500 1000 2500 5000
+
+=== delta  2024-08-10 .. 2026-10-12  coins: BTC, ETH, XRP, BNB, ADA, LTC, LINK, DOGE, BCH
+trend long-only                    CAGR  +16.5%  vol  17%  Sharpe  0.99  maxDD -14.1%  fees/yr 1.1%  funding/yr +1.9%  avg gross 0.19x
+    by year: 2024:+32%  2025:+3%  2026:+3%
+trend long/short                   CAGR  +18.1%  vol  25%  Sharpe  0.80  maxDD -17.3%  fees/yr 2.5%  funding/yr +0.3%  avg gross 0.43x
+    by year: 2024:+16%  2025:-2%  2026:+26%
+buy & hold, equal weight           CAGR  +13.1%  vol  62%  Sharpe  0.51  maxDD -66.3%  fees/yr 0.0%  funding/yr +0.0%  avg gross 1.00x
+    by year: 2024:+100%  2025:-17%  2026:-21%
+  whole Delta contracts (contract values {'BTC': 0.001, 'ETH': 0.01, 'XRP': 1.0, 'BNB': 0.1, 'ADA': 1.0, 'LTC': 0.1, 'LINK': 1.0, 'DOGE': 100.0, 'BCH': 0.01}):
+  long-only, $500 capital            CAGR  +18.5%  vol  17%  Sharpe  1.09  maxDD -14.4%  fees/yr 1.2%  funding/yr +1.9%  avg gross 0.18x
+  long-only, $1,000 capital          CAGR  +15.3%  vol  17%  Sharpe  0.93  maxDD -15.2%  fees/yr 1.1%  funding/yr +1.9%  avg gross 0.20x
+  long-only, $2,500 capital          CAGR  +16.1%  vol  17%  Sharpe  0.97  maxDD -14.6%  fees/yr 1.1%  funding/yr +1.9%  avg gross 0.19x
+  long-only, $5,000 capital          CAGR  +16.5%  vol  17%  Sharpe  1.00  maxDD -13.7%  fees/yr 1.1%  funding/yr +1.9%  avg gross 0.19x
+exit 0

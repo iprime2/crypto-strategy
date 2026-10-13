@@ -1,0 +1,6 @@
+native TV 0.40: max single-coin weight: max 17.5% p99 14.9% p90 11.2% median 5.0%; days > 25%: 0 of 2344; days > 10%: 418; gross max 0.87x mean 0.20x
+prop leg k=0.5 (TV 0.20): max single-coin weight: max 8.7% p99 7.5% p90 5.6% median 2.5%; days > 25%: 0 of 2344; days > 10%: 0; gross max 0.44x mean 0.10x
+own leg TV 0.25: max single-coin weight: max 10.9% p99 9.3% p90 7.0% median 3.1%; days > 25%: 0 of 2344; days > 10%: 6; gross max 0.55x mean 0.12x
+largest single-coin weights (native): [('2023-11-04', 'BNB', '17.5%', 'gross 0.81'), ('2023-11-05', 'BNB', '16.9%', 'gross 0.87'), ('2025-08-12', 'BTC', '16.9%', 'gross 0.70'), ('2025-08-10', 'BTC', '16.4%', 'gross 0.62'), ('2025-08-13', 'BTC', '16.4%', 'gross 0.73'), ('2026-08-11', 'BNB', '16.3%', 'gross 0.22'), ('2026-08-20', 'BNB', '15.7%', 'gross 0.44'), ('2023-11-06', 'BNB', '15.6%', 'gross 0.83')]
+k=0.5, 25% stop: risk per trade = weight x 25%: max 2.18% p99 1.87%; 3% rule breached on 0 days
+positions per day (count of coins long): {0: 399, 1: 267, 2: 193, 3: 161, 4: 142, 5: 157, 6: 148, 7: 154, 8: 262, 9: 461}

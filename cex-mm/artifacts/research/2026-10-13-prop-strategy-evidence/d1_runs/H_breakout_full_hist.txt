@@ -1,0 +1,7 @@
+historical windows: 1979 starts, 365 days each
+rules: target 10%, daily DD 3% vs 00:00 equity, max DD 6% static, time limit none d/phase, min days 0, day stop 0.015
+ lev   vol |   pass pass<=180d  dailyDD  maxDD  timeout   open | med days p90 days | funded surv E[payout]/acct EV per challenge
+0.35    7% |  45.4%      26.9%     0.0%   0.5%     0.0%  54.2% |      147      316 |       79.5%          8.28%            2,757
+0.50   10% |  49.7%      39.0%     0.0%   3.3%     0.0%  47.0% |       83      245 |       58.7%         10.79%            4,359
+0.60   12% |  56.0%      44.8%     1.4%   6.5%     0.0%  36.2% |       77      246 |       34.8%          9.95%            4,572
+0.75   15% |  58.5%      49.2%     0.6%  12.8%     0.0%  28.0% |       73      235 |       24.6%         10.40%            5,085

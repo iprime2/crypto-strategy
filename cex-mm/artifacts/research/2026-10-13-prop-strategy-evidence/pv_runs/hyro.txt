@@ -1,0 +1,25 @@
+--- HyroTrader static 10/4/6, S_d, k0.5 ds2.0, split 70%, fee 749 (1-step affiliate price), reset rule, consistency 40%, refund
+bootstrap: 3000 paths x 365 days, mean block 20 d, series 2344 days, base Sharpe 1.21 base vol 19%
+rules: target 10%, daily DD 4%, max DD 6% static, day stop 0.02, fee $749 acct $100,000 split 70%; payout rule reset; cap none; inactivity none d; consistency 0.4; refund True; nonpay 0.15; balance-ref False; trailing-daily False; delever 0.0
+ lev   vol |   pass <=180d dailyDD  maxDD  inact   open | med d p90 d | surv12m P(>=1 pay)  E[pay] med pay       EV EV refund EV nonpay | cons viol
+0.50   10% |  61.0%  38.3%    0.0%  16.4%   0.0%  22.6% |   140   296 |   66.1%      95.2%  10.01%   8.81%    5,352     5,787     4,437 |      0.0%
+--- same, hwm rule + 5% payout cap
+bootstrap: 3000 paths x 365 days, mean block 20 d, series 2344 days, base Sharpe 1.21 base vol 19%
+rules: target 10%, daily DD 4%, max DD 6% static, day stop 0.02, fee $749 acct $100,000 split 70%; payout rule hwm; cap 0.05; inactivity none d; consistency 0.4; refund True; nonpay 0.15; balance-ref False; trailing-daily False; delever 0.0
+ lev   vol |   pass <=180d dailyDD  maxDD  inact   open | med d p90 d | surv12m P(>=1 pay)  E[pay] med pay       EV EV refund EV nonpay | cons viol
+0.50   10% |  61.0%  38.3%    0.0%  16.4%   0.0%  22.6% |   140   296 |   72.8%      88.8%  10.50%   8.45%    5,654     6,059     4,694 |      0.0%
+--- same, sweep rule + 5% cap + trailing intraday daily ref
+bootstrap: 3000 paths x 365 days, mean block 20 d, series 2344 days, base Sharpe 1.21 base vol 19%
+rules: target 10%, daily DD 4%, max DD 6% static, day stop 0.02, fee $749 acct $100,000 split 70%; payout rule sweep; cap 0.05; inactivity none d; consistency 0.4; refund True; nonpay 0.15; balance-ref False; trailing-daily True; delever 0.0
+ lev   vol |   pass <=180d dailyDD  maxDD  inact   open | med d p90 d | surv12m P(>=1 pay)  E[pay] med pay       EV EV refund EV nonpay | cons viol
+0.50   10% |  57.8%  36.5%    4.0%  16.1%   0.0%  22.1% |   138   296 |   53.5%      85.6%   6.15%   5.00%    2,801     3,171     2,268 |      0.0%
+--- same, TRAILING max loss, sweep + cap + trailing daily
+bootstrap: 3000 paths x 365 days, mean block 20 d, series 2344 days, base Sharpe 1.21 base vol 19%
+rules: target 10%, daily DD 4%, max DD 6% trailing, day stop 0.02, fee $749 acct $100,000 split 70%; payout rule sweep; cap 0.05; inactivity none d; consistency 0.4; refund True; nonpay 0.15; balance-ref False; trailing-daily True; delever 0.0
+ lev   vol |   pass <=180d dailyDD  maxDD  inact   open | med d p90 d | surv12m P(>=1 pay)  E[pay] med pay       EV EV refund EV nonpay | cons viol
+0.50   10% |  49.0%  34.5%    3.0%  40.0%   0.0%   8.0% |   120   276 |    4.0%      81.8%   3.12%   3.05%      781     1,081       551 |      0.0%
+--- HyroTrader on the WEEKLY series (D3 as written), static, sweep + cap, consistency 40%
+bootstrap: 3000 paths x 365 days, mean block 20 d, series 2344 days, base Sharpe 1.10 base vol 20%
+rules: target 10%, daily DD 4%, max DD 6% static, day stop 0.02, fee $749 acct $100,000 split 70%; payout rule sweep; cap 0.05; inactivity none d; consistency 0.4; refund True; nonpay 0.15; balance-ref False; trailing-daily False; delever 0.0
+ lev   vol |   pass <=180d dailyDD  maxDD  inact   open | med d p90 d | surv12m P(>=1 pay)  E[pay] med pay       EV EV refund EV nonpay | cons viol
+0.50   10% |  54.6%  34.9%    5.1%  20.2%   0.0%  20.1% |   136   293 |   45.4%      83.4%   5.96%   5.00%    2,501     2,841     2,013 |      3.0%

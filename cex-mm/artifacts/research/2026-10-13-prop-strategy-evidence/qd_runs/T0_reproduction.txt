@@ -1,0 +1,7 @@
+daily archive close vs hourly 23:00 bar close: 21885 pairs, 2 differ by >1e-9; examples: [('XRP', datetime.date(2020, 1, 16), 0.227, 0.229), ('XRP', datetime.date(2020, 1, 17), 0.2284, 0.2393)]
+T0a daily TV0.40 band0 cap2 (repo baseline) CAGR +24.2% vol 18.7% Sharpe  1.25 maxDD -21.9% hDD -22.6% fees/yr 1.14% fund/yr +3.43% swap/yr 0.00% gross avg 0.20x max 0.88x trades/yr  1773 worst -7.31% (2021-05-19) worst7d -9.51%
+    by year: 2020:+53.3%  2021:+47.0%  2022:-5.0%  2023:+15.9%  2024:+46.6%  2025:+2.7%  2026:+7.5%
+    expect Sharpe 1.25 DD -21.9% hDD -22.6%  by year 53/47/-5/16/47/3/8
+T0b weekly Sun-candle TV0.40 band0 cap2 (D3 R3a) CAGR +22.5% vol 19.8% Sharpe  1.12 maxDD -26.3% hDD -27.4% fees/yr 0.41% fund/yr +3.33% swap/yr 0.00% gross avg 0.20x max 0.88x trades/yr   278 worst -8.04% (2021-05-19) worst7d -12.07%
+    by year: 2020:+48.8%  2021:+57.4%  2022:-10.7%  2023:+22.5%  2024:+38.1%  2025:+2.4%  2026:+1.9%
+    expect Sharpe 1.12 DD -26.3%  by year 48.8/57.4/-10.7/22.5/38.1/2.4/1.9
