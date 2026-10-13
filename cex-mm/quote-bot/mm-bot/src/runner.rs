@@ -555,6 +555,16 @@ async fn run_symbol_loop(
     let lead_max_bps = env_f64_for_symbol(&symbol, "MM_LEAD_MAX_BPS", 15.0);
     let lead_clock = Instant::now();
     let mut binance_hist: VecDeque<(f64, f64)> = VecDeque::new();
+    // Fair anchored to the Binance level (artifacts/research/2026-10-13-live-run-pickoff.md). Off unless
+    // MM_FAIR_ANCHOR_WEIGHT > 0; the basis average is kept (and logged) either way.
+    let anchor_weight = env_f64_for_symbol(&symbol, "MM_FAIR_ANCHOR_WEIGHT", 0.0).clamp(0.0, 1.0);
+    let mut basis = mm_core::fair::BasisEma::new(env_f64_for_symbol(&symbol, "MM_BASIS_HALFLIFE_SEC", 120.0).max(0.0));
+    let basis_warmup_sec = env_f64_for_symbol(&symbol, "MM_BASIS_WARMUP_SEC", 60.0).max(0.0);
+    let basis_max_age_sec = env_f64_for_symbol(&symbol, "MM_BASIS_MAX_AGE_SEC", 300.0).max(0.0);
+    let binance_stale_after =
+        Duration::from_millis(env_f64_for_symbol(&symbol, "MM_BINANCE_STALE_MS", 5000.0).max(0.0) as u64);
+    let mut binance_seq: u64 = 0;
+    let mut binance_msg_at: Option<Instant> = None;
     let warm_samples = env_f64_for_symbol(&symbol, "MM_WARMUP_SAMPLES", 32.0) as usize;
 
     if !dry_run {
@@ -715,7 +725,14 @@ async fn run_symbol_loop(
             g.on_loop_decay(env_f64_for_symbol(&symbol, "MM_MARKOUT_DECAY", 0.85));
         }
 
-        let binance_mid = bbo_rx.borrow().mid;
+        let bbo = *bbo_rx.borrow();
+        let binance_mid = bbo.mid;
+        if bbo.seq != binance_seq {
+            binance_seq = bbo.seq;
+            binance_msg_at = Some(Instant::now());
+        }
+        // A silent feed counts as stale even if the price would not have moved.
+        let binance_fresh = binance_mid > 0.0 && binance_msg_at.is_some_and(|t| t.elapsed() <= binance_stale_after);
         if binance_mid > 0.0 && last_binance_mid > 0.0 {
             let jump_bps = (binance_mid - last_binance_mid) / last_binance_mid * 10_000.0;
             if jump_bps.abs() > 5.0 {
@@ -741,6 +758,23 @@ async fn run_symbol_loop(
             mm_core::fair::move_bps(binance_hist.make_contiguous(), lead_now, lead_lookback_sec)
         } else {
             0.0
+        };
+
+        // Basis from the Delta book, skipped while our own resting quote is the touch (live only): that
+        // mid would feed our fair back into the basis. A dry-run has no resting orders.
+        let own_touch = oms.live.bid.is_some_and(|p| (p - top.best_bid).abs() < tick * 0.5)
+            || oms.live.ask.is_some_and(|p| (p - top.best_ask).abs() < tick * 0.5);
+        if binance_fresh && !own_touch {
+            if let Some(delta_mid) = top.mid() {
+                basis.update(lead_now, delta_mid, binance_mid);
+            }
+        }
+        let basis_fresh = basis.warm_sec(lead_now) >= basis_warmup_sec
+            && basis.last_update().is_some_and(|t| lead_now - t <= basis_max_age_sec);
+        let anchor_fair = if anchor_weight > 0.0 && binance_fresh && basis_fresh {
+            basis.value_bps().and_then(|b| mm_core::fair::anchored_fair(binance_mid, b))
+        } else {
+            None
         };
 
         let jump_bps = last_fair
@@ -819,6 +853,8 @@ async fn run_symbol_loop(
             funding_carry_bps: funding_bps,
             alpha_mu_bps,
             regime_spread_mult: regime_mult,
+            anchor_fair,
+            anchor_weight,
         };
 
         // Update before kill/L3 continue so the next loop measures a fresh jump.
@@ -951,6 +987,10 @@ async fn run_symbol_loop(
             book_bid_qty: top.bid_qty,
             book_ask_qty: top.ask_qty,
             book_age_ms: book_watch.age_ms(Instant::now()),
+            fair_delta: mm_core::quote_fair(&cfg, fair_native, Some(top), QuoteExtensions { anchor_fair: None, ..ext }),
+            basis_bps: basis.value_bps(),
+            anchored: anchor_fair.is_some(),
+            binance_age_ms: binance_msg_at.map(|t| t.elapsed().as_millis() as u64),
         };
         tracing::info!(target: "MM_METRICS", "{}", serde_json::to_string(&metrics)?);
 

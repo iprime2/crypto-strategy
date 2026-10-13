@@ -1,6 +1,6 @@
 //! Binance public market data (reference fair for CEX MM).
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use futures_util::StreamExt;
 use serde::Deserialize;
 use tokio::sync::watch;
@@ -14,6 +14,20 @@ pub struct BinanceBbo {
     pub bid: f64,
     pub ask: f64,
     pub mid: f64,
+    /// Messages received so far. A count that stops changing means the feed went silent, even when the
+    /// price would not have moved (ADA's mid can sit unchanged for minutes).
+    pub seq: u64,
+}
+
+/// A reconnect when no message arrives for this long: a half-open connection otherwise blocks forever.
+const READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+
+/// One bookTicker message as a quote, or None if it does not parse or the book is not sane.
+fn parse_book_ticker(text: &str, seq: u64) -> Option<BinanceBbo> {
+    let parsed: BookTickerMsg = serde_json::from_str(text).ok()?;
+    let bid: f64 = parsed.bid.parse().ok()?;
+    let ask: f64 = parsed.ask.parse().ok()?;
+    (bid > 0.0 && ask > bid).then(|| BinanceBbo { bid, ask, mid: (bid + ask) / 2.0, seq })
 }
 
 #[derive(Debug, Deserialize)]
@@ -40,32 +54,46 @@ fn stream_url(base: &str, symbol: &str) -> String {
     format!("{base}/{s}@bookTicker")
 }
 
+/// Streams the symbol's bookTicker into `tx` forever. A read error, a closed stream or
+/// `READ_TIMEOUT` without a message reconnects; before 2026-10-13 a read error ended the task and the
+/// last price stayed in `tx` for good (the 8-12 Oct 2026 freeze is consistent with that [UNVERIFIED]).
 pub async fn run_book_ticker(symbol: &str, tx: watch::Sender<BinanceBbo>) -> Result<()> {
     let url = symbol_stream(symbol);
+    let mut seq: u64 = 0;
     loop {
         match connect_async(&url).await {
             Ok((ws, _)) => {
                 info!(%url, "binance bookTicker connected");
                 let (_, mut read) = ws.split();
-                while let Some(msg) = read.next().await {
-                    let msg = msg.context("binance ws read")?;
+                loop {
+                    let msg = match tokio::time::timeout(READ_TIMEOUT, read.next()).await {
+                        Err(_) => {
+                            warn!(%url, "binance bookTicker silent for 30 s, reconnecting");
+                            break;
+                        }
+                        Ok(None) => {
+                            warn!(%url, "binance bookTicker stream ended, reconnecting");
+                            break;
+                        }
+                        Ok(Some(Err(e))) => {
+                            warn!(?e, "binance ws read error, reconnecting");
+                            break;
+                        }
+                        Ok(Some(Ok(m))) => m,
+                    };
                     if !msg.is_text() {
                         continue;
                     }
-                    let parsed: BookTickerMsg = match serde_json::from_str(msg.to_text()?) {
-                        Ok(p) => p,
-                        Err(e) => {
-                            warn!(?e, "binance parse");
-                            continue;
+                    let Ok(text) = msg.to_text() else { continue };
+                    match parse_book_ticker(text, seq + 1) {
+                        Some(bbo) => {
+                            seq += 1;
+                            let _ = tx.send(bbo);
                         }
-                    };
-                    let bid: f64 = parsed.bid.parse().unwrap_or(0.0);
-                    let ask: f64 = parsed.ask.parse().unwrap_or(0.0);
-                    if bid > 0.0 && ask > bid {
-                        let mid = (bid + ask) / 2.0;
-                        let _ = tx.send(BinanceBbo { bid, ask, mid });
+                        None => warn!(len = text.len(), "binance bookTicker message skipped"),
                     }
                 }
+                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
             }
             Err(e) => {
                 warn!(?e, "binance reconnect in 3s");
@@ -78,6 +106,17 @@ pub async fn run_book_ticker(symbol: &str, tx: watch::Sender<BinanceBbo>) -> Res
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn book_ticker_parses_and_numbers_messages() {
+        let m = r#"{"u":1,"s":"ADAUSDT","b":"0.2400","B":"10","a":"0.2401","A":"5"}"#;
+        let bbo = parse_book_ticker(m, 7).unwrap();
+        assert_eq!((bbo.bid, bbo.ask, bbo.seq), (0.24, 0.2401, 7));
+        assert!((bbo.mid - 0.24005).abs() < 1e-12);
+        assert!(parse_book_ticker(r#"{"b":"0.25","a":"0.24"}"#, 1).is_none(), "crossed");
+        assert!(parse_book_ticker(r#"{"b":"x","a":"0.24"}"#, 1).is_none());
+        assert!(parse_book_ticker("not json", 1).is_none());
+    }
 
     #[test]
     fn stream_url_uses_given_base() {
