@@ -3,10 +3,10 @@
 //! One JSONL file per UTC day: `{"recv_us": <local unix µs>, "msg": <raw message>}`. Trades and everything
 //! else go to `delta_<env>_public_<day>.jsonl` (what the shadow fill simulation replays). Book frames
 //! (`ob_l2`, `mark_price`) go to `delta_<env>_book_<day>.jsonl`, for the live-basis replay
-//! (`plans/live-basis.plan.md`). `ob_l2` re-sends an unchanged book every 500 ms; such a repeat is skipped
-//! unless the last frame written for that symbol is `BOOK_KEEP_EVERY_US` old, which cuts the 4-symbol
-//! shadow's book volume from about 464 to 179 MB a day while a replay can still tell a quiet book from a
-//! dead feed.
+//! (`plans/live-basis.plan.md`). `ob_l2` re-sends an unchanged book every 500 ms; such a repeat (same levels
+//! and same `lts`, the venue's last-change time) is skipped unless the last frame written for that symbol is
+//! `BOOK_KEEP_EVERY_US` old, which cuts the 4-symbol shadow's book volume from about 464 to 179 MB a day while
+//! a replay can still tell a quiet book from a dead feed. Each day's file starts with a full book per symbol.
 
 use anyhow::{Context, Result};
 use chrono::Utc;
@@ -81,28 +81,34 @@ pub enum Sink {
     Skip,
 }
 
-/// Routes frames and drops `ob_l2` repeats (same `b` and `a` as the last book written for the symbol, and
-/// that one younger than `BOOK_KEEP_EVERY_US`).
+/// Routes frames and drops `ob_l2` repeats (same `b`, `a` and `lts` as the last book written for the symbol,
+/// and that one younger than `BOOK_KEEP_EVERY_US`). `mono_us` is a monotonic clock, so a wall-clock step cannot
+/// stretch the keep-alive.
 #[derive(Default)]
 pub struct BookFilter {
     last: HashMap<String, (String, i64)>,
 }
 
 impl BookFilter {
-    pub fn route(&mut self, recv_us: i64, msg: &serde_json::Value) -> Sink {
+    /// Forget what was written, so the next book of every symbol is written (a new day's file).
+    pub fn reset(&mut self) {
+        self.last.clear();
+    }
+
+    pub fn route(&mut self, mono_us: i64, msg: &serde_json::Value) -> Sink {
         match msg.get("type").and_then(|t| t.as_str()) {
             Some("mark_price") => Sink::Book,
             Some("ob_l2") => {
                 let Some(sym) = msg.get("sy").and_then(|s| s.as_str()) else {
                     return Sink::Book;
                 };
-                let book = serde_json::json!([msg.get("b"), msg.get("a")]).to_string();
+                let book = serde_json::json!([msg.get("b"), msg.get("a"), msg.get("lts")]).to_string();
                 if let Some((prev, at)) = self.last.get(sym) {
-                    if *prev == book && recv_us - at < BOOK_KEEP_EVERY_US {
+                    if *prev == book && mono_us - at < BOOK_KEEP_EVERY_US {
                         return Sink::Skip;
                     }
                 }
-                self.last.insert(sym.to_string(), (book, recv_us));
+                self.last.insert(sym.to_string(), (book, mono_us));
                 Sink::Book
             }
             _ => Sink::Public,
@@ -118,8 +124,8 @@ struct DailyFile {
 }
 
 impl DailyFile {
-    fn write_line(&mut self, line: &str) -> Result<()> {
-        let day = Utc::now().format("%Y%m%d").to_string();
+    /// Appends to the file for `day` (`%Y%m%d`, UTC), opening a new one when the day changes.
+    fn write_line(&mut self, day: &str, line: &str) -> Result<()> {
         if self.file.is_none() || day != self.day {
             let path = self.dir.join(format!("{}_{day}.jsonl", self.prefix));
             self.file = Some(
@@ -129,7 +135,7 @@ impl DailyFile {
                     .open(&path)
                     .with_context(|| format!("open {}", path.display()))?,
             );
-            self.day = day;
+            self.day = day.to_string();
         }
         let file = self.file.as_mut().expect("file opened above");
         writeln!(file, "{line}")?;
@@ -163,6 +169,8 @@ pub async fn run(args: RecordDeltaArgs) -> Result<()> {
         file: None,
     };
     let mut books = BookFilter::default();
+    let mut books_day = String::new();
+    let mono_start = std::time::Instant::now();
     let deadline = (args.duration_sec > 0)
         .then(|| tokio::time::Instant::now() + Duration::from_secs(args.duration_sec));
     let sub = subscribe_message(&args.channels, &delta_symbols);
@@ -203,13 +211,19 @@ pub async fn run(args: RecordDeltaArgs) -> Result<()> {
                             break;
                         }
                     };
-                    let recv_us = Utc::now().timestamp_micros();
+                    let now = Utc::now();
+                    let recv_us = now.timestamp_micros();
                     match msg {
                         Message::Text(text) => {
                             let frame = parse_frame(&text);
-                            match books.route(recv_us, &frame) {
-                                Sink::Public => out.write_line(&record_line(recv_us, &frame))?,
-                                Sink::Book => book_out.write_line(&record_line(recv_us, &frame))?,
+                            let day = now.format("%Y%m%d").to_string();
+                            if day != books_day {
+                                books.reset();
+                                books_day = day;
+                            }
+                            match books.route(mono_start.elapsed().as_micros() as i64, &frame) {
+                                Sink::Public => out.write_line(&books_day, &record_line(recv_us, &frame))?,
+                                Sink::Book => book_out.write_line(&books_day, &record_line(recv_us, &frame))?,
                                 Sink::Skip => {}
                             }
                         }
@@ -286,5 +300,22 @@ mod tests {
         // Another symbol has its own history.
         let other = parse_frame(r#"{"type":"ob_l2","sy":"KITEUSD","b":[["0.1","1"]],"a":[["0.2","1"]]}"#);
         assert_eq!(f.route(12_100_000, &other), Sink::Book);
+        // A new day's file starts with a full book.
+        f.reset();
+        assert_eq!(f.route(12_200_000, &l2("0.23180", 7)), Sink::Book);
+    }
+
+    #[test]
+    fn a_change_beyond_the_visible_levels_is_kept() {
+        // Same 15 levels, but the venue's last-change time moved: the book changed out of view.
+        let frame = |lts: u64| {
+            parse_frame(&format!(
+                r#"{{"type":"ob_l2","sy":"KITEUSD","lts":{lts},"b":[["0.1","1"]],"a":[["0.2","1"]]}}"#
+            ))
+        };
+        let mut f = BookFilter::default();
+        assert_eq!(f.route(0, &frame(1)), Sink::Book);
+        assert_eq!(f.route(500_000, &frame(1)), Sink::Skip);
+        assert_eq!(f.route(1_000_000, &frame(2)), Sink::Book);
     }
 }
