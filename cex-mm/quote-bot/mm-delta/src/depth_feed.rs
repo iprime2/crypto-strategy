@@ -80,6 +80,35 @@ fn refusal(v: &Value) -> Option<String> {
         .map(|e| e.as_str().map(str::to_string).unwrap_or_else(|| e.to_string()))
 }
 
+/// A frame that is not an `ob_l2` book we could parse.
+#[derive(Debug, PartialEq)]
+enum OtherFrame {
+    /// The venue refused the subscription, with its reason.
+    Refused(String),
+    /// The subscription ack (it names the channel, so it is not a broken book).
+    Ack,
+    /// Mentions `ob_l2` but did not parse as a book.
+    Unparsed,
+    /// Heartbeats and anything else.
+    Ignore,
+}
+
+fn classify_other(text: &str) -> OtherFrame {
+    if let Ok(v) = serde_json::from_str::<Value>(text) {
+        if let Some(why) = refusal(&v) {
+            return OtherFrame::Refused(why);
+        }
+        if v.get("type").and_then(|t| t.as_str()) == Some("subscriptions") {
+            return OtherFrame::Ack;
+        }
+    }
+    if text.contains(DEPTH_CHANNEL) {
+        OtherFrame::Unparsed
+    } else {
+        OtherFrame::Ignore
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct DepthFeedTimings {
     pub connect_timeout: Duration,
@@ -197,15 +226,18 @@ async fn session(url: &str, senders: &HashMap<String, DepthTx>, t: DepthFeedTimi
             }
             continue;
         }
-        if let Some(why) = serde_json::from_str::<Value>(&text).ok().as_ref().and_then(refusal) {
-            warn!(reason = %why, "delta ob_l2 subscription refused");
-            break;
-        }
-        if text.contains(DEPTH_CHANNEL) {
-            skipped += 1;
-            if skipped == 1 || skipped % 1000 == 0 {
-                warn!(skipped, "delta ob_l2 frame did not parse; skipped");
+        match classify_other(&text) {
+            OtherFrame::Refused(why) => {
+                warn!(reason = %why, "delta ob_l2 subscription refused");
+                break;
             }
+            OtherFrame::Unparsed => {
+                skipped += 1;
+                if skipped == 1 || skipped % 1000 == 0 {
+                    warn!(skipped, "delta ob_l2 frame did not parse; skipped");
+                }
+            }
+            OtherFrame::Ack | OtherFrame::Ignore => {}
         }
     }
     if delivered {
@@ -247,6 +279,16 @@ mod tests {
         // An empty side is a valid book; depth_mid reports it.
         let (_, s) = parse_ob_l2(r#"{"type":"ob_l2","sy":"ADAUSD","a":[],"b":[["1","2"]]}"#, now).unwrap();
         assert!(s.asks.is_empty());
+    }
+
+    #[test]
+    fn the_subscription_ack_is_not_counted_as_a_broken_book() {
+        let ack = json!({"type": "subscriptions", "channels": [{"name": "ob_l2", "symbols": ["ADAUSD"]}]});
+        assert_eq!(classify_other(&ack.to_string()), OtherFrame::Ack);
+        let refused = json!({"type": "subscriptions", "channels": [{"name": "ob_l2", "error": "forbidden"}]});
+        assert_eq!(classify_other(&refused.to_string()), OtherFrame::Refused("forbidden".into()));
+        assert_eq!(classify_other(r#"{"type":"ob_l2","sy":"ADAUSD","b":"oops"}"#), OtherFrame::Unparsed);
+        assert_eq!(classify_other(r#"{"type":"heartbeat"}"#), OtherFrame::Ignore);
     }
 
     #[test]
