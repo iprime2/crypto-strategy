@@ -4,13 +4,13 @@ overview: Make the Binance-anchored fair safe to run live. Its basis must come f
 todos:
   - id: p0-readonly-checks
     content: "P0 (read-only, VM): confirm why fills arrived 15-30 s late on 13 Oct; 10-min ob_l2 probe on all four shadow symbols"
-    status: pending
+    status: completed
   - id: pr-a-live-path
     content: "PR A: live-path robustness: private fill feed reconnects; ticker off the hot path (background poller with timeout); clip the adding quote to cap - |q|"
-    status: pending
+    status: in_progress
   - id: pr-b-depth-logging
     content: "PR B: ob_l2 depth feed + depth price (mm-core) + candidate logging (depth, mark/index, Binance qty) + raw ob_l2/mark recording; no behaviour change"
-    status: pending
+    status: in_progress
   - id: pr-c-source-safety
     content: "PR C: MM_BASIS_SOURCE=book|depth; OFI out of the anchored fair; one live-anchor check with an allowlist across live.sh, the bot and the OEMS; anchor-off pulls quotes live"
     status: pending
@@ -59,7 +59,8 @@ isProject: false
   - Pure function in `mm-core`. It returns a reason with `None`: thin (X not reached within 15 levels), stale, crossed, or an empty side.
   - X is set per symbol in **base units** (`MM_BASIS_DEPTH_QTY_<SYM>`) and converted with `contract_value`, following the base-units rule for `mm-core`.
   - The default sits in a **gap** of each symbol's inside-size distribution. ADA: 10,000 contracts, between the 3,850 order and the 28k ladder. The other symbols are chosen from the P0 probe.
-  - Startup refuses X ≤ 2 × our order.
+    - Chosen (PR B, `config/dism.env`): ADA and BERA 10,000, DUSK 300,000 (3,000 contracts), KITE 100,000 (1,000 contracts) base units. On the 14 Oct probe each is reached on every snapshot within 8 levels. Others' inside size never fell in [X − Q, X) for Q up to 200 contracts (KITE: up to 50).
+  - Startup refuses X ≤ 2 × our order. PR B (logging only) warns; PR C refuses once the depth book is a source.
 - **Immunity, stated exactly.** Our order of size Q cannot move the depth price unless the other orders priced better than it total between X − Q and X. The replay counts how often that band is hit (the pivot share), using the logged inner size and price.
   - Immunity to **other makers reacting to us** (repricing or pegging to our quote) cannot be shown by any shadow. It is checked on the first live run (below).
 - **Feeds.**
@@ -70,16 +71,19 @@ isProject: false
   - A background public ticker poller in `mm-delta`: every 3 s, with a 2 s timeout, lenient parsing, missing → `None`. It runs in dry-runs and live alike.
   - It replaces the per-loop awaited REST call and also feeds funding carry.
   - The mark stays **logged only**; it is not a source until it is scored.
-- **Logging (new MM_METRICS fields, no renames, bps rounded to 3 decimals, `None` skipped):**
-  - `depth_mid`;
-  - per side: `depth_px`, `depth_lvl`, `depth_inner_cum`, `depth_inner_px`;
-  - `depth_age_ms`, `depth_none`;
-  - `mark_price`, `spot_price`, `mark_age_ms`;
-  - `binance_bid`, `binance_ask`, `binance_bid_qty`, `binance_ask_qty` (B and A parsed as optional);
-  - `basis_src`, `basis_updated`, `anchor_off_reason`, and the OFI term.
+- **Logging (new MM_METRICS fields, no renames, `None` skipped).** Shipped names:
+  - PR B:
+    - `depth_mid`, `depth_qty` (X in contracts);
+    - per side (`bid`/`ask`): `depth_<side>_px`, `_lvl`, `_inner` (size priced better), `_inner_px` (the level just inside), `_nlvl` (levels in the snapshot);
+    - `depth_age_ms` (local clock), `depth_ts_us` (venue time: the join key to the book file);
+    - `depth_none`: `no_feed`, `stale`, `invalid`, `crossed`, or per side, e.g. `ask_thin`;
+    - `binance_bid`, `binance_ask`, `binance_bid_qty`, `binance_ask_qty` (B and A parsed as optional).
+  - PR A: `mark_price`, `spot_price`, `ticker_age_ms` (the plan's `mark_age_ms`), `fills_feed_up`, `fills_feed_fills`.
+  - PR C: `basis_src`, `basis_updated`, `anchor_off_reason`. The OFI term is rebuilt from logged fields: clamp(`ofi_beta` × `ofi` / (`book_bid_qty` + `book_ask_qty`), ±50 bps).
+  - A pivot cannot be read from a live row (`_inner` includes our own size). Count it on clean rows or on the replay's synthetic book, and size the move with the depth price at X − Q.
   
   One EMA, the source in use, stays `basis_bps`; the replay can rebuild any other EMA.
-- **Raw recording.** The shadow recorder also writes raw `ob_l2` (ADA) and `mark_price`, about 100 MB a day before gzip. This needs per-channel symbol mapping (`MARK:` prefix).
+- **Raw recording.** The shadow recorder also writes raw `ob_l2` and `mark_price` for all four symbols to `delta_<env>_book_<day>.jsonl`, apart from the trade files. The `MARK:` prefix is mapped per channel. Unchanged books are skipped (same levels and `lts`) unless 10 s old. Measured 14 Oct: about 190 MB a day before gzip.
 - **Source knob.** `MM_BASIS_SOURCE=book|depth`, resolved per symbol. An unknown value fails the start, in a dry-run as well as live.
 - **No self-reference while anchored.** With an anchor weight above 0, OFI is computed on the `ob_l2` depth (depth-size denominator), or off, never on our own L1.
 - **Live safety.**
