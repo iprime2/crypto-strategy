@@ -1152,6 +1152,7 @@ mod tests {
         assert!(should_taker_flatten(-0.03, 0.01, 0.01));
     }
 
+    #[test]
     fn hard_cap_reduce_none_inside_cap() {
         assert!(hard_cap_reduce(0.0, 1.0, 0.1, 0.001).is_none());
         assert!(hard_cap_reduce(1.04, 1.0, 0.1, 0.001).is_none());
