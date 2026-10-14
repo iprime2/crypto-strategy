@@ -2,6 +2,7 @@
 
 mod strategy;
 
+pub mod depth;
 pub mod economics;
 pub mod eval;
 pub mod fair;
