@@ -33,5 +33,5 @@ done
 sudo loginctl enable-linger "$USER"
 systemctl --user daemon-reload
 systemctl --user enable --now cex-mm-shadow.service cex-mm-shadow-dashboard.service cex-mm-shadow-watchdog.timer \
-  cex-mm-trend-paper.timer
+  cex-mm-trend-paper.timer cex-mm-trend-paper-weekly.timer
 "$CEX_MM/scripts/shadow.sh" status

@@ -24,7 +24,7 @@ The user asked for a robust, systematic crypto strategy to make money with their
 | 10 | `prop_sim.py` v1 measured the daily limit from the 01:00 UTC equity (lenient by about $300 of EV on $100k); fixed in `scripts/prop_sim.py` and `evidence/tools/prop_sim2.py`. `trend_backtest.py`'s Binance-vs-Delta correlation pairs the series by trailing count, so the two sources ending on different dates read −0.04 instead of 0.999 | tooling, not strategy | `backtest_results.md` §1; this session |
 
 ## What the code actually does (vs the design)
-- Signal and sizing exist in `scripts/trend_backtest.py` and `scripts/trend_paper.py` (daily, TV 0.40). The design needs a `--weekly` decision flag and a print-only order-list mode in `trend_paper.py`, run in a second state directory at TV 0.25 so the paper gate measures the configuration that will trade. Not built yet.
+- Signal and sizing exist in `scripts/trend_backtest.py` and `scripts/trend_paper.py` (daily, TV 0.40). Built 2026-10-14: `trend_paper.py --weekly --target-vol 0.25 --band 0.10 --state-dir artifacts/trend/paper-weekly` runs the design's configuration as a second book (unit `cex-mm-trend-paper-weekly.timer`, dashboard `/trend?book=weekly`), and `--orders-only` prints the Monday order list from the same sizing code for hand execution. A state directory refuses a run with different settings. Tests: `python3 -m unittest test_trend_paper` in `scripts/`.
 - `mm-bot`, `mm-oems`, the DISM profile and the Binance anchor are not used by this strategy. The bot's post-only invariant is untouched.
 
 ## Next experiment (one knob, metric, success, stop)

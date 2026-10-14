@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
 """Paper trader for the trend-following rule in scripts/trend_backtest.py, on Delta India mainnet data.
 
-Once per UTC day, after the 00:00 close: compute the backtest's long-only target weights from Delta daily
-closes, size them off paper equity in whole contracts, and fill the difference as taker orders walked
-through Delta's live L2 book, so slippage is measured rather than assumed. Funding is charged from
-Delta's FUNDING:<sym> rates. A "model" equity holds the rule's unrounded weights between the same
-rebalances (mid to mid) with the backtest's modelled costs, so the two can be compared. Public data only: no API keys, no orders. Safe to run hourly; it rebalances at most
-once per UTC day and exits non-zero when data is missing, so the next run retries.
+Once per UTC day, after the 00:00 close (or once per ISO week with --weekly, on the first run after the
+Monday 00:00 UTC close): compute the backtest's long-only target weights from Delta daily closes, size them
+off paper equity in whole contracts, and fill the difference as taker orders walked through Delta's live L2
+book, so slippage is measured rather than assumed. Funding is charged from Delta's FUNDING:<sym> rates. A
+"model" equity holds the rule's unrounded weights between the same rebalances (mid to mid) with the
+backtest's modelled costs, so the two can be compared. Public data only: no API keys, no orders. Safe to
+run hourly; it rebalances at most once per day (or week) and exits non-zero when data is missing, so the
+next run retries. A state directory remembers its settings and refuses a run with different ones.
 
-    python3 scripts/trend_paper.py --capital 1000     # state in artifacts/trend/paper/
+    python3 scripts/trend_paper.py --capital 1000     # daily book, TV 0.40, state in artifacts/trend/paper/
+    python3 scripts/trend_paper.py --weekly --target-vol 0.25 --band 0.10 --capital 1000 \
+        --state-dir artifacts/trend/paper-weekly       # the weekly book from resource/07 (Monday 00:00 UTC close)
+    python3 scripts/trend_paper.py --weekly --target-vol 0.25 --band 0.10 \
+        --state-dir artifacts/trend/paper-weekly --orders-only   # print the order list for hand execution; writes nothing
     python3 scripts/trend_paper.py --selftest
 """
 from __future__ import annotations
@@ -24,6 +30,29 @@ import trend_backtest as tb
 
 STATE_DIR = Path(__file__).resolve().parent.parent / "artifacts" / "trend" / "paper"
 MODEL_COST = (tb.TAKER_BPS + tb.SLIPPAGE_BPS) / 1e4  # the backtest's cost per unit of turnover
+DEFAULT_CONFIG = {"weekly": False, "target_vol": tb.TARGET_VOL, "band": 0.0}  # the daily book, as before
+
+
+def due(state: dict, today: dt.date, weekly: bool) -> bool:
+    """Daily: one rebalance per UTC day. Weekly: one per ISO week (Monday to Sunday), so the normal run is
+    Monday 00:05 UTC on the Sunday candle and a missed Monday is caught up later that week, never twice."""
+    last = state.get("last_rebalance")
+    if not last:
+        return True
+    last_day = dt.date.fromisoformat(last)
+    if weekly:
+        return last_day.isocalendar()[:2] != today.isocalendar()[:2]
+    return last_day != today
+
+
+def check_config(state: dict, config: dict) -> None:
+    """A state directory belongs to one configuration; refuse to continue it with another one."""
+    have = state.get("config") or DEFAULT_CONFIG
+    diff = {k: (have.get(k), config[k]) for k in DEFAULT_CONFIG if have.get(k) != config[k]}
+    if diff:
+        raise SystemExit("state directory was created with different settings: "
+                         + ", ".join(f"{k}={a!r} (run asks {b!r})" for k, (a, b) in diff.items())
+                         + ". Use another --state-dir for a different configuration.")
 
 
 # ---------------------------------------------------------------- Delta public data
@@ -79,37 +108,70 @@ def walk_book(levels: list[tuple[float, float]], qty: float) -> float:
     raise ValueError(f"book too thin for {qty} contracts")
 
 
-def init_state(capital: float, now: dt.datetime) -> dict:
+def init_state(capital: float, now: dt.datetime, config: dict | None = None) -> dict:
     return {"started": now.isoformat(), "capital": capital, "cash": capital, "positions": {},
             "model_equity": capital, "model_weights": {}, "model_mids": {}, "signal_day": None,
-            "last_rebalance": None, "last_rebalance_ts": None}
+            "last_rebalance": None, "last_rebalance_ts": None, "config": dict(config or DEFAULT_CONFIG)}
 
 
 def equity(state: dict, mids: dict, cvals: dict) -> float:
     return state["cash"] + sum(q * cvals[c] * mids[c] for c, q in state["positions"].items())
 
 
-def step(state: dict, closes: dict, books: dict, funding: dict, cvals: dict, now: dt.datetime) -> dict:
-    """One daily rebalance on fetched data (no I/O). Mutates `state`, returns the journal record."""
+def plan_orders(pos: dict, w: dict, eq: float, mids: dict, cvals: dict, band: float = 0.0) -> tuple[list, list]:
+    """Whole-contract targets and the trades that reach them. A trade smaller than `band` of its target (in
+    contracts) is skipped as noise; closing a position is never skipped. Returns (plan, skipped)."""
+    plan, skipped = [], []
+    for c in tb.COINS:
+        target = round(w.get(c, 0.0) * eq / (mids[c] * cvals[c]))
+        held = pos.get(c, 0)
+        qty = target - held
+        if not qty:
+            continue
+        row = {"coin": c, "held": held, "target": target, "contracts": qty, "notional": abs(qty) * cvals[c] * mids[c]}
+        if target and abs(qty) < band * abs(target):
+            skipped.append(row)
+        else:
+            plan.append(row)
+    return plan, skipped
+
+
+def mark(state: dict, closes: dict, books: dict, funding: dict, cvals: dict, now: dt.datetime, target_vol: float) -> dict:
+    """What a rebalance at `now` sees, without changing anything: the signal day (yesterday's close), mids,
+    funding owed since the last rebalance, equity after that funding, and the rule's weights."""
     signal_day = now.date() - dt.timedelta(1)
     missing = [c for c in tb.COINS if signal_day not in closes.get(c, {})]
     if missing:
         raise RuntimeError(f"no {signal_day} close yet for {', '.join(missing)}")
     mids = {c: (books[c][0][0][0] + books[c][1][0][0]) / 2 for c in tb.COINS}
     pos = state["positions"]
-
     # Funding over the holding period (positions were constant since the last rebalance).
     fund_paid = sum(q * cvals[c] * mids[c] * funding.get(c, 0.0) for c, q in pos.items())
-    state["cash"] -= fund_paid
-    eq_before = equity(state, mids, cvals)
+    eq = equity(state, mids, cvals) - fund_paid
+    w = tb.target_weights(closes, signal_day, tb.LOOKS, tb.VOL_WIN, target_vol, long_only=True)
+    return {"signal_day": signal_day, "mids": mids, "funding": fund_paid, "equity": eq, "weights": w}
 
-    w = tb.target_weights(closes, signal_day, tb.LOOKS, tb.VOL_WIN, tb.TARGET_VOL, long_only=True)
+
+def order_list(state: dict, closes: dict, books: dict, funding: dict, cvals: dict, now: dt.datetime, *,
+               target_vol: float = tb.TARGET_VOL, band: float = 0.0) -> dict:
+    """The orders a rebalance at `now` would send, from the same sizing as step(). Read-only."""
+    m = mark(state, closes, books, funding, cvals, now, target_vol)
+    plan, skipped = plan_orders(state["positions"], m["weights"], m["equity"], m["mids"], cvals, band)
+    return {**m, "plan": plan, "skipped": skipped}
+
+
+def step(state: dict, closes: dict, books: dict, funding: dict, cvals: dict, now: dt.datetime, *,
+         target_vol: float = tb.TARGET_VOL, band: float = 0.0) -> dict:
+    """One rebalance on fetched data (no I/O). Mutates `state`, returns the journal record."""
+    m = mark(state, closes, books, funding, cvals, now, target_vol)
+    signal_day, mids, fund_paid, eq_before, w = m["signal_day"], m["mids"], m["funding"], m["equity"], m["weights"]
+    pos = state["positions"]
+    state["cash"] -= fund_paid
+
+    plan, skipped = plan_orders(pos, w, eq_before, mids, cvals, band)
     orders, fees = [], 0.0
-    for c in tb.COINS:
-        target = round(w.get(c, 0.0) * eq_before / (mids[c] * cvals[c]))
-        qty = target - pos.get(c, 0)
-        if not qty:
-            continue
+    for row in plan:
+        c, target, qty = row["coin"], row["target"], row["contracts"]
         bids, asks = books[c]
         px = walk_book(asks if qty > 0 else bids, abs(qty))
         notional = abs(qty) * cvals[c] * px
@@ -137,7 +199,7 @@ def step(state: dict, closes: dict, books: dict, funding: dict, cvals: dict, now
                  last_rebalance=now.date().isoformat(), last_rebalance_ts=int(now.timestamp()))
     return {"time": now.isoformat(), "signal_day": signal_day.isoformat(), "equity_before": eq_before,
             "equity": eq_after, "model_equity": state["model_equity"], "cash": state["cash"], "funding": fund_paid,
-            "fees": fees, "orders": orders, "weights": w, "positions": dict(pos), "mids": mids,
+            "fees": fees, "orders": orders, "skipped": skipped, "weights": w, "positions": dict(pos), "mids": mids,
             "values": {c: q * cvals[c] * mids[c] for c, q in pos.items()},
             "gross": sum(abs(q) * cvals[c] * mids[c] for c, q in pos.items()) / eq_after}
 
@@ -183,27 +245,51 @@ def selftest() -> None:
 
 # ---------------------------------------------------------------- main
 
+def print_order_list(listed: dict, config: dict, now: dt.datetime) -> None:
+    sd = listed["signal_day"]
+    print(f"{now:%Y-%m-%d %H:%M} UTC  signal {sd} ({sd:%A} close)  equity ${listed['equity']:,.2f} after "
+          f"${listed['funding']:.2f} funding  target vol {config['target_vol']:.2f}  band {config['band']:.0%}"
+          f"{'  weekly' if config['weekly'] else ''}")
+    print(f"{'coin':<5} {'held':>6} {'target':>7} {'trade':>6} {'notional':>10} {'mid':>12}")
+    for r in listed["plan"]:
+        print(f"{r['coin']:<5} {r['held']:>6} {r['target']:>7} {r['contracts']:>+6} {r['notional']:>10,.2f} {listed['mids'][r['coin']]:>12,.4f}")
+    if not listed["plan"]:
+        print("(nothing to trade)")
+    for r in listed["skipped"]:
+        print(f"skipped inside the band: {r['coin']} {r['contracts']:+d} of {r['target']} contracts")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--capital", type=float, default=1000.0, help="starting paper equity in USD (first run only)")
     ap.add_argument("--state-dir", type=Path, default=STATE_DIR)
+    ap.add_argument("--weekly", action="store_true", help="rebalance once per ISO week, on the first run after the Monday 00:00 UTC close")
+    ap.add_argument("--target-vol", type=float, default=tb.TARGET_VOL, help="annualized target vol for the whole book (the backtest's TARGET_VOL)")
+    ap.add_argument("--band", type=float, default=0.0, help="skip a trade smaller than this share of its target, e.g. 0.10 (closes always trade)")
+    ap.add_argument("--orders-only", action="store_true", help="print the order list a rebalance now would send; change nothing")
     ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args()
     if args.selftest:
         return selftest()
-    args.state_dir.mkdir(parents=True, exist_ok=True)
+    config = {"weekly": args.weekly, "target_vol": args.target_vol, "band": args.band}
     path = args.state_dir / "state.json"
     now = dt.datetime.now(dt.timezone.utc)
-    state = json.loads(path.read_text()) if path.exists() else init_state(args.capital, now)
-    if state["last_rebalance"] == now.date().isoformat():
-        print(f"already rebalanced for {state['last_rebalance']} UTC")
+    state = json.loads(path.read_text()) if path.exists() else init_state(args.capital, now, config)
+    check_config(state, config)
+    state.setdefault("config", dict(config))  # a book written before this field existed is the daily default
+    if not args.orders_only and not due(state, now.date(), args.weekly):
+        print(f"already rebalanced for {'the week of ' if args.weekly else ''}{state['last_rebalance']} UTC")
         return
     cvals = tb.contract_values()
     closes = fetch_closes(now.date())
     books = {c: fetch_book(c) for c in tb.COINS}
     since = state["last_rebalance_ts"]
     funding = fetch_funding(since, int(now.timestamp())) if since else {}
-    rec = step(state, closes, books, funding, cvals, now)
+    if args.orders_only:
+        print_order_list(order_list(state, closes, books, funding, cvals, now, target_vol=args.target_vol, band=args.band), config, now)
+        return
+    rec = step(state, closes, books, funding, cvals, now, target_vol=args.target_vol, band=args.band)
+    args.state_dir.mkdir(parents=True, exist_ok=True)
     with open(args.state_dir / "journal.jsonl", "a") as f:
         f.write(json.dumps(rec) + "\n")
     tmp = path.with_suffix(".tmp")
@@ -211,8 +297,8 @@ def main() -> None:
     os.replace(tmp, path)
     held = ", ".join(f"{c} {q:+d}" for c, q in sorted(rec["positions"].items())) or "flat"
     print(f"{now:%Y-%m-%d %H:%M} UTC  signal {rec['signal_day']}  equity ${rec['equity']:,.2f}  "
-          f"model ${rec['model_equity']:,.2f}  orders {len(rec['orders'])}  fees ${rec['fees']:.2f}  "
-          f"funding ${rec['funding']:.2f}  gross {rec['gross']:.2f}x  holding {held}")
+          f"model ${rec['model_equity']:,.2f}  orders {len(rec['orders'])}  skipped {len(rec['skipped'])}  "
+          f"fees ${rec['fees']:.2f}  funding ${rec['funding']:.2f}  gross {rec['gross']:.2f}x  holding {held}")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,12 @@
+# User unit, rendered by infra/vm/setup.sh. Hourly, so a failed or missed run retries; the weekly book
+# rebalances at most once per ISO week (normally Monday 00:05 UTC, right after the Sunday candle closes;
+# a missed Monday is caught up on the next successful run that week).
+[Unit]
+Description=Run the weekly trend paper trader every hour
+
+[Timer]
+OnCalendar=*-*-* *:05:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

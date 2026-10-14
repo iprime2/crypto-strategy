@@ -9,9 +9,10 @@
 <body>
 <main>
   <header>
-    <h1>Trend paper trader</h1>
+    <h1 id="title">Trend paper trader</h1>
     <span class="sub" id="runInfo">Loading…</span>
     <span class="spacer"></span>
+    <a id="otherBook" href="/trend?book=weekly">Weekly book</a>
     <a href="/">Shadow test</a>
     <button id="themeBtn" type="button" aria-label="Toggle dark mode">Theme</button>
   </header>
@@ -40,12 +41,12 @@
   </div>
 
   <section class="card full">
-    <h2>Daily log</h2>
+    <h2>Rebalance log</h2>
     <div class="sub">One row per rebalance, newest first. Returns are since the previous rebalance.</div>
     <div class="scroll"><table id="dayTable"></table></div>
   </section>
 
-  <p class="foot">Rule (fixed before testing, <code>scripts/trend_backtest.py</code>): long-only, signal = mean sign of the 20, 60 and 120-day returns, each coin sized to 40% target vol over 9 coins, gross exposure capped at 2x, rebalanced once a day after the 00:00 UTC close. Backtest on Delta prices, Aug 2024 to Sep 2026: +19.4% a year, Sharpe 1.15, worst drawdown −14.1%. Paper test passes after 4 weeks if every rebalance runs and costs stay within 2x of the modelled 7.31 bps per unit traded. Public data only: no API keys, no orders.</p>
+  <p class="foot">Rule (fixed before testing, <code>scripts/trend_backtest.py</code>): long-only, signal = mean sign of the 20, 60 and 120-day returns, each coin sized to the book's target vol over 9 coins, gross exposure capped at 2x. Daily book: target vol 0.40, rebalanced once a day after the 00:00 UTC close (the 2026-10-08 memo's reference; Delta prices Aug 2024 to Sep 2026: +19.4% a year, Sharpe 1.15, worst drawdown −14.1%). Weekly book: target vol 0.25, 10% no-trade band, rebalanced once a week on the Monday 00:00 UTC close (the configuration <code>resource/07</code> says to trade; forward expectation Sharpe 0.3 to 0.8). A paper test passes after 4 weeks if every rebalance runs and costs stay within 2x of the modelled 7.31 bps per unit traded. Public data only: no API keys, no orders.</p>
 </main>
 
 <script src="/charts.js"></script>
@@ -53,6 +54,8 @@
 "use strict";
 const state = { data: null };
 const DAY = 86400e3;
+const BOOK = new URLSearchParams(location.search).get("book") === "weekly" ? "weekly" : "daily";
+const WEEKLY = BOOK === "weekly";
 
 function fmtPct(v, d = 2) { return v === null || v === undefined ? "–" : fmtSigned(v * 100, d) + "%"; }
 function fmtDate(ms) { return new Date(ms).toLocaleDateString([], { month: "short", day: "numeric" }); }
@@ -83,7 +86,14 @@ function maxDrawdown(xs) {
 
 function nextRebalance(lastTs) {
   const day = Math.floor(lastTs * 1000 / DAY) * DAY;
-  return day + DAY + 5 * 60e3;  // 00:05 UTC the next day
+  if (!WEEKLY) return day + DAY + 5 * 60e3;  // 00:05 UTC the next day
+  const dow = (new Date(day).getUTCDay() + 6) % 7;  // Monday = 0
+  return day + (7 - dow) * DAY + 5 * 60e3;  // 00:05 UTC next Monday
+}
+
+function configText(s) {
+  const c = s.config || { weekly: false, target_vol: 0.4, band: 0 };
+  return `${c.weekly ? "weekly, Monday 00:00 UTC close" : "daily, 00:00 UTC close"} · target vol ${c.target_vol} · band ${Math.round(c.band * 100)}%`;
 }
 
 function renderHeader(d) {
@@ -97,10 +107,12 @@ function renderHealth(d) {
   h.replaceChildren();
   const s = d.state, last = s.last_rebalance_ts * 1000;
   const age = (d.server_time - last) / 3600e3;
-  h.appendChild(statusPill(age < 26, "Daily rebalance", `last ${fmtDateTime(last)}, ${fmtNum(age, 1)} h ago`));
+  h.appendChild(statusPill(age < (WEEKLY ? 7 * 24 + 2 : 26), WEEKLY ? "Weekly rebalance" : "Daily rebalance",
+    `last ${fmtDateTime(last)}, ${fmtNum(age, 1)} h ago`));
   h.appendChild(infoPill("Next", fmtDateTime(nextRebalance(s.last_rebalance_ts))));
   h.appendChild(infoPill("Rebalances", fmtNum(d.journal.length, 0)));
   h.appendChild(infoPill("Signal day", s.signal_day));
+  h.appendChild(infoPill("Settings", configText(s)));
 }
 
 
@@ -251,7 +263,7 @@ function render() {
 
 async function refresh() {
   try {
-    const res = await fetch("/api/trend", { cache: "no-store" });
+    const res = await fetch(`/api/trend?book=${BOOK}`, { cache: "no-store" });
     state.data = await res.json();
     render();
   } catch (e) {
@@ -260,6 +272,11 @@ async function refresh() {
 }
 
 (function init() {
+  document.getElementById("title").textContent = WEEKLY ? "Trend paper trader, weekly book" : "Trend paper trader, daily book";
+  document.title = WEEKLY ? "Trend Paper Trader (weekly)" : "Trend Paper Trader (daily)";
+  const other = document.getElementById("otherBook");
+  other.textContent = WEEKLY ? "Daily book" : "Weekly book";
+  other.href = WEEKLY ? "/trend" : "/trend?book=weekly";
   const themeBtn = document.getElementById("themeBtn");
   try { const saved = localStorage.getItem("shadow-theme"); if (saved) document.documentElement.dataset.theme = saved; } catch (e) {}
   themeBtn.addEventListener("click", () => {
