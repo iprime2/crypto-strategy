@@ -8,12 +8,14 @@
 //! Exceptions, by construction (`Q` = all of our resting size on that side, which can exceed one order while a
 //! cancel is unconfirmed):
 //! - Pivot: when other orders priced better than the depth price already sum to between `X - Q` and `X`,
-//!   adding our `Q` moves the depth price inward, to the level just inside it (`inner_px`). On a clean (shadow)
-//!   book `inner_size` counts this band directly. On a live book `inner_size` includes our own order, so a
-//!   pivot shows as `inner_size` of about `Q`; count pivots on shadow rows or on the replay's synthetic book.
+//!   adding our `Q` moves the depth price inward: at least to the level just inside it (`inner_px`), exactly to
+//!   the clean book's depth price at `X - Q`, or to our own price if that is further out. On a clean (shadow)
+//!   book `inner_size` tests the band directly. On a live book `inner_size` includes our own resting size, so
+//!   count pivots on shadow rows or on the replay's synthetic book, and measure the move there with
+//!   `side_depth_price(levels, X - Q)`.
 //! - Level cap: `ob_l2` carries 15 levels a side. Our quote inside the touch adds a level and pushes the 15th
-//!   out of view, so a side that reaches `X` only at the last level can turn `Thin`. `levels` (the count we
-//!   saw) and `level` let a replay find those rows.
+//!   out of view, so a side that reaches `X` only at the last level can turn `Thin`. The logged
+//!   `depth_{bid,ask}_nlvl` (levels in the snapshot) and `depth_{bid,ask}_lvl` let a replay find those rows.
 
 /// One side of the book, best level first: `(price, size)`. Sizes are in contracts.
 pub type Levels = [(f64, f64)];
@@ -26,7 +28,7 @@ pub struct SidePrice {
     pub level: usize,
     /// Size priced better than `price`: the sum of the levels before it.
     pub inner_size: f64,
-    /// Price of the level just inside `price` (where a pivot would move it); `None` at the touch.
+    /// Price of the level just inside `price`: the nearest a pivot can move it to; `None` at the touch.
     pub inner_px: Option<f64>,
 }
 
@@ -189,6 +191,21 @@ mod tests {
         let moved = side_depth_price(&with_us, 2_000.0, true).unwrap();
         assert_eq!((moved.price, moved.level, moved.inner_size), (0.23210, 1, 200.0));
         assert_eq!(moved.price, clean.inner_px.unwrap());
+    }
+
+    #[test]
+    fn a_pivot_past_dust_moves_further_than_the_inner_level() {
+        // X = 10,000, Q = 200. Others hold 9,810 then 2 contracts of dust inside the ladder: the clean inner
+        // size (9,812) is in the band, and our 200 moves the price past the dust level (inner_px) to the
+        // clean book's depth price at X - Q.
+        let others = vec![(0.23212, 9_810.0), (0.23210, 2.0), (0.23200, 47_081.0)];
+        let clean = side_depth_price(&others, 10_000.0, true).unwrap();
+        assert_eq!((clean.price, clean.inner_size, clean.inner_px), (0.23200, 9_812.0, Some(0.23210)));
+        let mut live = vec![(0.23220, 200.0)];
+        live.extend(others.clone());
+        let moved = side_depth_price(&live, 10_000.0, true).unwrap();
+        assert_eq!(moved.price, 0.23212);
+        assert_eq!(moved.price, side_depth_price(&others, 10_000.0 - 200.0, true).unwrap().price);
     }
 
     #[test]

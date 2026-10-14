@@ -190,8 +190,9 @@ pub struct MmMetrics {
     pub binance_ask_qty: Option<f64>,
     /// Delta depth book (`depth::depth_sides`, from `ob_l2`): the price where cumulative size reaches `depth_qty`
     /// contracts (`MM_BASIS_DEPTH_QTY` base units) per side, and the mid of the two. Per side: the depth price,
-    /// its level (0 = touch), the size priced better and that inside level's price (where a pivot would move
-    /// it), and how many levels the snapshot had. Each side is logged when priced, even if the other is not.
+    /// its level (0 = touch), the size priced better, the price of the level just inside (the nearest a pivot
+    /// can move it to; see `depth.rs`), and how many levels the snapshot had. Each side is logged when priced,
+    /// even if the other is not.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub depth_mid: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]

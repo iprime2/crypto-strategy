@@ -101,7 +101,7 @@ for s, m in sorted(last.items()):
     print("depth %s: %s" % (s, "mid %s age %s ms" % (d, age) if d is not None else "none (%s)" % why))
 ' 2>/dev/null || true
   local book
-  book="$(ls -1 "$CURRENT"/delta_mainnet_book_*.jsonl 2>/dev/null | tail -1)"
+  book="$(ls -1 "$CURRENT"/delta_mainnet_book_*.jsonl 2>/dev/null | tail -1)" || true # runs before 14 Oct have none
   if [[ -n "$book" ]]; then
     echo "book file: $(basename "$book") $(du -h "$book" | cut -f1)"
   else
