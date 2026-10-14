@@ -2,13 +2,15 @@ mod auth;
 mod book;
 mod products;
 mod rest;
+mod ticker;
 mod ws;
 
 pub use auth::{key_vars, DeltaCredentials};
 pub use book::{BookFeed, DeltaBook, OrderbookMaintainer};
 pub use products::{delta_product_symbol, mm_symbol_from_delta, ProductCatalog};
-pub use rest::{DeltaRest, FillRole};
-pub use ws::DeltaPrivateWs;
+pub use rest::{funding_carry_bps, DeltaRest, FillRole};
+pub use ticker::{parse_ticker, spawn_ticker_poller, TickerPoller, TickerSnapshot};
+pub use ws::{DeltaPrivateWs, PrivateFeedState, PrivateWsTimings};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DeltaEnvironment {

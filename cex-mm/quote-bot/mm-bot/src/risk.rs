@@ -73,6 +73,60 @@ impl BookWatch {
     }
 }
 
+/// What the loop should do about the private fills feed on this iteration.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FeedHealth {
+    /// Subscribed, or down for no longer than the grace period (a normal reconnect).
+    Up,
+    /// Down past the grace period, first time: switch the adding side off. Carries how long it has been down.
+    WentDown(Duration),
+    /// Still down: keep the adding side off.
+    Down,
+    /// Subscribed again after `WentDown`; carries how long the feed was down.
+    Recovered(Duration),
+}
+
+/// Watches the private fills feed in a run with keys. While it is down, fills reach the bot only through
+/// the venue reconcile every few seconds (the 13 Oct 2026 failure: the cap overshot to -811 against 600),
+/// so after `pull_after` the side that adds to the position is switched off and the reducing side keeps
+/// quoting.
+#[derive(Debug, Clone)]
+pub struct FeedWatch {
+    pull_after: Duration,
+    down_since: Option<Instant>,
+    pulled: bool,
+}
+
+impl FeedWatch {
+    pub fn new(pull_after: Duration) -> Self {
+        Self {
+            pull_after,
+            down_since: None,
+            pulled: false,
+        }
+    }
+
+    /// `subscribed`: the venue confirms the fills subscription on the current connection.
+    pub fn check(&mut self, subscribed: bool, now: Instant) -> FeedHealth {
+        if subscribed {
+            let since = self.down_since.take();
+            if std::mem::take(&mut self.pulled) {
+                return FeedHealth::Recovered(since.map_or(Duration::ZERO, |t| now.saturating_duration_since(t)));
+            }
+            return FeedHealth::Up;
+        }
+        let down_for = now.saturating_duration_since(*self.down_since.get_or_insert(now));
+        if down_for <= self.pull_after {
+            FeedHealth::Up
+        } else if self.pulled {
+            FeedHealth::Down
+        } else {
+            self.pulled = true;
+            FeedHealth::WentDown(down_for)
+        }
+    }
+}
+
 impl Default for RiskState {
     fn default() -> Self {
         Self {
@@ -251,6 +305,31 @@ mod tests {
         assert!(taker_fill_unexpected(true, 100_000, None, 60_000));
         assert!(!taker_fill_unexpected(true, 100_000, Some(95_000), 60_000));
         assert!(taker_fill_unexpected(true, 100_000, Some(10_000), 60_000));
+    }
+
+    #[test]
+    fn a_short_feed_drop_is_a_reconnect_not_an_outage() {
+        let t0 = Instant::now();
+        let mut w = FeedWatch::new(ms(30_000));
+        assert_eq!(w.check(true, t0), FeedHealth::Up);
+        assert_eq!(w.check(false, t0 + ms(1_000)), FeedHealth::Up);
+        assert_eq!(w.check(false, t0 + ms(31_000)), FeedHealth::Up, "at the limit is still up");
+        assert_eq!(w.check(true, t0 + ms(32_000)), FeedHealth::Up, "no pull, so nothing to recover");
+        // The next drop starts its own clock.
+        assert_eq!(w.check(false, t0 + ms(40_000)), FeedHealth::Up);
+        assert_eq!(w.check(false, t0 + ms(69_000)), FeedHealth::Up);
+    }
+
+    #[test]
+    fn a_long_feed_outage_pulls_once_and_reports_the_recovery() {
+        let t0 = Instant::now();
+        let mut w = FeedWatch::new(ms(30_000));
+        assert_eq!(w.check(false, t0), FeedHealth::Up);
+        assert_eq!(w.check(false, t0 + ms(30_400)), FeedHealth::WentDown(ms(30_400)));
+        assert_eq!(w.check(false, t0 + ms(30_800)), FeedHealth::Down);
+        assert_eq!(w.check(false, t0 + ms(90_000)), FeedHealth::Down);
+        assert_eq!(w.check(true, t0 + ms(95_000)), FeedHealth::Recovered(ms(95_000)));
+        assert_eq!(w.check(true, t0 + ms(95_400)), FeedHealth::Up);
     }
 
     #[test]

@@ -43,7 +43,7 @@ curl -s -X POST localhost:8791/api/strategies/mm/stop     # stops the pid the OE
 curl -s -X POST localhost:8791/api/strategies/mm/start    # cancels open orders, then quotes with quote-bot/.env + latest config
 ```
 
-Restart after a code change only after `cargo build -p mm-bot` (the OEMS runs `target/debug/mm-bot`). Confirm afterwards: the pid is alive, and open orders on Delta look as intended. Never signal a process the OEMS did not start.
+Restart after a code change only after `cargo build -p mm-bot` (the OEMS runs `target/debug/mm-bot`). Confirm afterwards: about 30 s later the pid is still alive and the bot log (`artifacts/logs/mm-bot-<id>-*.log`) has `delta fills feed confirmed` (a run with keys exits if Delta does not confirm the private fills feed), and open orders on Delta look as intended. Never signal a process the OEMS did not start.
 
 ## Real-money DISM pilot (ask first, every time)
 

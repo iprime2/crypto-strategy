@@ -51,7 +51,7 @@ ssh -i ~/.ssh/dism-tokyo -N -L 8788:127.0.0.1:8788 ubuntu@<elastic-ip>   # dashb
 rsync -az -e 'ssh -i ~/.ssh/dism-tokyo' ubuntu@<elastic-ip>:crypto-strategy/cex-mm/artifacts/shadow/ artifacts/shadow-vm/
 ```
 
-Four symbols write about 0.5 GB a day; the 30 GB disk holds about 50 days. Copy runs off with the `rsync` line
+Four symbols write about 0.55 GB a day; the 30 GB disk holds about 45 days. Copy runs off with the `rsync` line
 above (it has no `--delete`, so local copies survive), then let the housekeeping timer delete old run directories.
 
 ### Housekeeping

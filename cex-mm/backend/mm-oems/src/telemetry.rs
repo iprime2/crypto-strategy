@@ -156,6 +156,7 @@ pub fn parse_line(raw: &str) -> Parsed {
         || line.contains("mm universe")
         || line.contains("instrument")
         || line.contains("account guards on")
+        || line.contains("fills feed")
     {
         ("lifecycle", body)
     } else {
@@ -308,6 +309,10 @@ mod tests {
             ("2026-10-05T23:42:00Z ERROR mm_bot::account: unexpected taker fill on a post-only quote symbol=ADAUSDT fill_id=9", "error", "account_halt"),
             ("2026-10-05T23:42:00Z ERROR mm_bot::runner: account halt — orders cancelled, quoting stopped symbol=ADAUSDT", "error", "account_halt"),
             ("2026-10-05T23:39:00Z  INFO mm_bot::runner: account guards on limit_usd=15 poll_sec=30 dms_ttl_ms=15000", "info", "lifecycle"),
+            ("2026-10-14T09:00:00Z  INFO mm_bot::runner: delta fills feed confirmed", "info", "lifecycle"),
+            ("2026-10-14T09:00:00Z ERROR mm_bot::runner: delta fills feed refused 2 times; not starting reason=login refused", "error", "log"),
+            ("2026-10-14T09:00:00Z  WARN mm_bot::runner: fills feed down; adding side off until the venue confirms it again symbol=ADAUSDT down_s=30.4", "warn", "log"),
+            ("2026-10-14T09:01:00Z  INFO mm_bot::runner: fills feed back; adding side on symbol=ADAUSDT down_s=65.0", "info", "lifecycle"),
         ];
         for (line, want_level, want_kind) in cases {
             match parse_line(line) {

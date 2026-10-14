@@ -7,8 +7,8 @@ use mm_bybit::{
 };
 use mm_core::{
     BookTop,
-    clip_reducing_qty, compute_quote_cex, economics::FillEconomics, hard_cap_reduce,
-    should_taker_flatten, horizon_vol_bps,
+    compute_quote_cex, economics::FillEconomics, hard_cap_reduce,
+    should_taker_flatten, horizon_vol_bps, side_order_qty, adds_to_position,
     ofi::{AlphaMuEstimator, OfiTracker, SnipeTracker},
     queue::should_place_limit,
     regime::{RegimeEngine, RegimeLevel, RegimeThresholds},
@@ -18,7 +18,7 @@ use crate::exchange::QuotingRest;
 use crate::markout::MarkoutRuntime;
 use crate::oms::OmsState;
 use crate::account::{AccountConfig, AccountFlags};
-use crate::risk::{counts_toward_reject_kill, BookAge, BookWatch, DailyLossGuard};
+use crate::risk::{counts_toward_reject_kill, BookAge, BookWatch, DailyLossGuard, FeedHealth, FeedWatch};
 use crate::symbols::{env_f64_for_symbol, normalize_symbol, resolve_symbols_from_env};
 use crate::universe::{UniverseOptions, resolve_universe};
 use std::collections::{HashMap, VecDeque};
@@ -136,6 +136,13 @@ pub async fn run_delta(args: RunArgs, dry_run: bool) -> Result<()> {
             }
         }
     }
+    if !dry_run {
+        // Every symbol needs an inventory cap of at least one contract before any symbol starts quoting.
+        for s in &symbols {
+            let lot = products.get(s).map(|m| m.contract_value).unwrap_or(1.0);
+            size_clip_cap(s, env_f64_for_symbol(s, "MM_MAX_INVENTORY", 0.01), lot, false)?;
+        }
+    }
     let creds = if dry_run {
         None
     } else {
@@ -189,24 +196,47 @@ pub async fn run_delta(args: RunArgs, dry_run: bool) -> Result<()> {
         );
     }
 
+    let mut fill_feed: Option<watch::Receiver<mm_delta::PrivateFeedState>> = None;
     if let Some(c) = creds.clone() {
         let map = exec_map.clone();
         let syms = symbols.clone();
         let prod = products_fill;
+        let (feed_tx, feed_rx) = watch::channel(mm_delta::PrivateFeedState::default());
         tokio::spawn(async move {
             let ws = mm_delta::DeltaPrivateWs {
                 env: delta_env,
                 creds: c,
             };
-            let _ = ws
-                .run_user_trades(&syms, move |delta_sym, row| {
-                    let mm_sym = normalize_symbol(&mm_delta::mm_symbol_from_delta(delta_sym));
-                    let Ok(guard) = map.lock() else { return };
-                    let Some(ctx) = guard.get(&mm_sym) else { return };
-                    handle_delta_fill_row(row, &prod, &mm_sym, &ctx.economics, &ctx.markout, &ctx.economics_path, &ctx.snipe, &ctx.last_jump);
-                })
-                .await;
+            ws.run_user_trades(&syms, feed_tx, move |delta_sym, row| {
+                let mm_sym = normalize_symbol(&mm_delta::mm_symbol_from_delta(delta_sym));
+                let Ok(guard) = map.lock() else { return };
+                let Some(ctx) = guard.get(&mm_sym) else { return };
+                handle_delta_fill_row(row, &prod, &mm_sym, &ctx.economics, &ctx.markout, &ctx.economics_path, &ctx.snipe, &ctx.last_jump);
+            })
+            .await;
         });
+        let checked = require_fill_feed(
+            feed_rx.clone(),
+            secs_knob(env_f64_global("MM_FILL_FEED_WAIT_SEC", 20.0), 20.0, 1.0, 600.0),
+            fill_feed_required(),
+        )
+        .await;
+        if let Err(e) = checked {
+            // No symbol loop has started, so the startup cancel-all has not run: clear what a previous
+            // instance left resting (the OEMS supervisor does not cancel after a failed start).
+            if let Some(r) = &delta_rest {
+                for s in &symbols {
+                    if let Err(ce) = r.cancel_all(s).await {
+                        tracing::warn!(symbol = %s, error = %ce, "cancel-all after the refused start failed");
+                    }
+                }
+                if let Some(id) = &heartbeat {
+                    crate::account::disarm_dead_mans_switch(r, id).await;
+                }
+            }
+            return Err(e);
+        }
+        fill_feed = Some(feed_rx);
     }
 
     let mut tasks = JoinSet::new();
@@ -215,6 +245,7 @@ pub async fn run_delta(args: RunArgs, dry_run: bool) -> Result<()> {
         let rest = rest.clone();
         let exec_map = exec_map.clone();
         let account = account.clone();
+        let fill_feed = fill_feed.clone();
         // Public catalog: dry-run has no REST client but still needs the real tick.
         let instrument = products
             .get(&symbol)
@@ -230,6 +261,7 @@ pub async fn run_delta(args: RunArgs, dry_run: bool) -> Result<()> {
                 BookFeedKind::Delta(delta_env),
                 instrument,
                 account,
+                fill_feed,
             )
             .await
         });
@@ -352,6 +384,78 @@ fn persist_economics(path: &PathBuf, eco: &FillEconomics) -> Result<()> {
 
 fn economics_path_for(symbol: &str) -> PathBuf {
     PathBuf::from(format!("artifacts/economics/{}.json", normalize_symbol(symbol)))
+}
+
+/// The cap the size clip uses. A cap below one lot leaves no room to quote at all: the 0.01 default is below
+/// a Delta contract, so a symbol without MM_MAX_INVENTORY_<SYM> would quote nothing. A dry-run keeps quoting
+/// without the clip (as before 2026-10-14) and says so; a live run refuses.
+fn size_clip_cap(symbol: &str, max_inv: f64, min_qty: f64, dry_run: bool) -> Result<f64> {
+    if max_inv.is_finite() && (max_inv <= 0.0 || max_inv >= min_qty) {
+        return Ok(max_inv);
+    }
+    if dry_run {
+        tracing::warn!(%symbol, max_inv, min_qty, "MM_MAX_INVENTORY is below one lot; this dry-run quotes without the size clip");
+        return Ok(0.0);
+    }
+    anyhow::bail!(
+        "{symbol}: MM_MAX_INVENTORY={max_inv} is below one order lot ({min_qty}); set MM_MAX_INVENTORY_{symbol} for a live run"
+    )
+}
+
+/// Explicit venue refusals (login or subscription) after which a start stops waiting for the fills feed.
+const FILL_FEED_REFUSALS_TO_FAIL: u64 = 2;
+
+/// Start check for a run with keys. Without the private fill feed, inventory is only corrected by the venue
+/// reconcile every few seconds: on 13 Oct 2026 no fill arrived over the feed for a whole live run, and the
+/// cap overshot to -811 against 600. The run therefore waits for the venue to confirm the subscription, and
+/// gives up early after repeated explicit refusals.
+async fn require_fill_feed(
+    mut feed: watch::Receiver<mm_delta::PrivateFeedState>,
+    wait: Duration,
+    required: bool,
+) -> Result<()> {
+    let waited = tokio::time::timeout(
+        wait,
+        feed.wait_for(|s| s.subscribed || s.refusals >= FILL_FEED_REFUSALS_TO_FAIL),
+    )
+    .await;
+    let confirmed = matches!(&waited, Ok(Ok(s)) if s.subscribed);
+    drop(waited);
+    if confirmed {
+        tracing::info!("delta fills feed confirmed");
+        return Ok(());
+    }
+    let (why, refusals) = {
+        let s = feed.borrow();
+        (s.last_error.clone().unwrap_or_else(|| "no reply from the venue".into()), s.refusals)
+    };
+    if !required {
+        tracing::warn!(reason = %why, "delta fills feed not confirmed; starting anyway (MM_FILL_FEED_REQUIRED=0)");
+        return Ok(());
+    }
+    let what = if refusals >= FILL_FEED_REFUSALS_TO_FAIL {
+        format!("refused {refusals} times")
+    } else {
+        format!("not confirmed within {:.1} s", wait.as_secs_f64())
+    };
+    // Logged as well as returned: the OEMS event feed and live.sh status read ERROR lines, not the exit error.
+    tracing::error!(reason = %why, "delta fills feed {what}; not starting");
+    anyhow::bail!(
+        "delta fills feed {what} ({why}); fills would reach the bot only through the venue reconcile. Fix the \
+         login, or waive the check with MM_FILL_FEED_REQUIRED=0 (live.sh: in the profile; OEMS: a config override)"
+    )
+}
+
+/// `MM_FILL_FEED_REQUIRED` (default on; "0" waives the start check and the mid-run pull).
+fn fill_feed_required() -> bool {
+    std::env::var("MM_FILL_FEED_REQUIRED").map(|v| v.trim() != "0").unwrap_or(true)
+}
+
+/// A duration knob given in seconds: `default` when it is not finite, then clamped to `[lo, hi]`.
+/// `Duration::from_secs_f64` panics on an infinite or negative value, and "inf" parses as an f64.
+fn secs_knob(value: f64, default: f64, lo: f64, hi: f64) -> Duration {
+    let v = if value.is_finite() { value } else { default };
+    Duration::from_secs_f64(v.clamp(lo, hi))
 }
 
 /// Exchange is source of truth for open size; keeps economics + quoting in sync when WS fills lag.
@@ -505,6 +609,7 @@ pub async fn run(args: RunArgs, dry_run: bool) -> Result<()> {
                 BookFeedKind::Bybit(bybit_env),
                 None,
                 None,
+                None,
             )
                 .await
         });
@@ -525,6 +630,7 @@ async fn run_symbol_loop(
     book_kind: BookFeedKind,
     instrument: Option<(f64, f64, f64)>,
     account: Option<Arc<AccountFlags>>,
+    fill_feed: Option<watch::Receiver<mm_delta::PrivateFeedState>>,
 ) -> Result<()> {
     let cfg = StrategyConfig::from_env_for_symbol(&symbol, env_f64_global);
 
@@ -537,8 +643,21 @@ async fn run_symbol_loop(
         let _ = mm_binance::run_book_ticker(&sym, bbo_tx).await;
     });
 
+    // Delta funding, mark and spot index come from a background poller (public, so dry-runs get it too).
+    // The loop only reads the latest snapshot, so a slow venue cannot stall it.
+    let ticker_rx = match book_kind {
+        BookFeedKind::Delta(env) => Some(mm_delta::spawn_ticker_poller(
+            env,
+            mm_delta::delta_product_symbol(&symbol),
+            secs_knob(env_f64_for_symbol(&symbol, "MM_TICKER_POLL_MS", 3000.0) / 1000.0, 3.0, 0.5, 3600.0),
+            Duration::from_millis(2000),
+        )),
+        BookFeedKind::Bybit(_) => None,
+    };
+    let ticker_stale_after = secs_knob(env_f64_for_symbol(&symbol, "MM_TICKER_STALE_SEC", 30.0), 30.0, 1.0, 3600.0);
+
     let fallback_instrument = instrument.unwrap_or((0.01, 0.001, 0.001));
-    let (tick, _step, min_qty) = if let Some(r) = &rest {
+    let (tick, step, min_qty) = if let Some(r) = &rest {
         r.get_instrument(&symbol).await.unwrap_or(fallback_instrument)
     } else {
         fallback_instrument
@@ -546,6 +665,7 @@ async fn run_symbol_loop(
     tracing::info!(%symbol, tick, min_qty, "instrument");
 
     let max_inv = env_f64_for_symbol(&symbol, "MM_MAX_INVENTORY", 0.01);
+    let clip_cap = size_clip_cap(&symbol, max_inv, min_qty, dry_run)?;
     let base_qty = env_f64_for_symbol(&symbol, "MM_ORDER_QTY", min_qty.max(0.001));
 
     let mut vol_tracker = VolTracker::new(96);
@@ -653,7 +773,14 @@ async fn run_symbol_loop(
         env_f64_for_symbol(&symbol, "MM_VENUE_RECONCILE_SEC", 5.0).max(0.5),
     );
     let mut last_reconcile = Instant::now() - reconcile_every;
+    // The venue's last reported position. The private fills feed and the reconcile both move the bot's
+    // inventory, and either can lag the other, so the adding side is sized against both readings.
+    let mut last_venue_pos: Option<f64> = None;
     let mut last_reduce_only = Instant::now() - Duration::from_secs(2);
+    // Only with the check on: a waived start (MM_FILL_FEED_REQUIRED=0) chose to run on the reconcile alone.
+    let mut feed_watch = (fill_feed.is_some() && fill_feed_required()).then(|| {
+        FeedWatch::new(secs_knob(env_f64_for_symbol(&symbol, "MM_FILL_FEED_DOWN_PULL_SEC", 30.0), 30.0, 5.0, 3600.0))
+    });
     let mut l3_pause_until: Option<Instant> = None;
     let mut reject_over_since: Option<Instant> = None;
 
@@ -668,6 +795,7 @@ async fn run_symbol_loop(
                     reconcile_tol,
                 )
                 .await;
+                last_venue_pos = Some(inv);
                 tracing::info!(%symbol, inventory = inv, "startup venue inventory");
             }
         }
@@ -824,14 +952,16 @@ async fn run_symbol_loop(
             if let Some(r) = &rest {
                 if last_reconcile.elapsed() >= reconcile_every {
                     last_reconcile = Instant::now();
-                    sync_inventory_from_venue(
+                    let v = sync_inventory_from_venue(
                         r,
                         &symbol,
                         &economics_arc,
                         &economics_path,
                         reconcile_tol,
                     )
-                    .await
+                    .await;
+                    last_venue_pos = Some(v);
+                    v
                 } else {
                     economics_arc
                         .lock()
@@ -851,12 +981,21 @@ async fn run_symbol_loop(
                 .unwrap_or(0.0)
         };
 
-        let funding_bps = if let Some(r) = &rest {
-            r.get_funding_carry_bps(&symbol, inventory)
-                .await
-                .unwrap_or(0.0)
-        } else {
-            0.0
+        let ticker = ticker_rx
+            .as_ref()
+            .and_then(|rx| rx.borrow().clone())
+            .filter(|t| t.received_at.elapsed() <= ticker_stale_after);
+        // A dry-run's inventory is whatever the economics file held at start and is never reconciled, so
+        // it gets no carry: dry-runs stay comparable with each other and with the shadow.
+        let funding_bps = match (&ticker_rx, &rest) {
+            _ if dry_run => 0.0,
+            (Some(_), _) => ticker
+                .as_ref()
+                .and_then(|t| t.funding_rate_pct)
+                .map(|rate| mm_delta::funding_carry_bps(inventory, rate))
+                .unwrap_or(0.0),
+            (None, Some(r)) => r.get_funding_carry_bps(&symbol, inventory).await.unwrap_or(0.0),
+            (None, None) => 0.0,
         };
 
         let ofi_beta = env_f64_for_symbol(&symbol, "MM_OFI_BETA", 0.01);
@@ -958,7 +1097,7 @@ async fn run_symbol_loop(
             .map(|g| g.rolling_adverse_bps())
             .unwrap_or(0.0);
 
-        let plan = compute_quote_cex(
+        let mut plan = compute_quote_cex(
             &cfg,
             fair_native,
             tick,
@@ -975,6 +1114,53 @@ async fn run_symbol_loop(
             ext,
         )
         .map_err(|e| anyhow::anyhow!(e))?;
+        // The side that adds to the position only quotes the room left under the cap, by both the bot's and
+        // the venue's last position (whichever leaves less). No room switches the side off, so
+        // needs_update_sides pulls any order still resting there.
+        let size = |side_is_sell: bool| {
+            let q = side_order_qty(inventory, side_is_sell, plan.order_qty, min_qty, clip_cap, step);
+            match last_venue_pos {
+                Some(v) => q.min(side_order_qty(v, side_is_sell, plan.order_qty, min_qty, clip_cap, step)),
+                None => q,
+            }
+        };
+        let bid_qty = size(false);
+        let ask_qty = size(true);
+        if bid_qty <= 0.0 {
+            plan.place_bid = false;
+        }
+        if ask_qty <= 0.0 {
+            plan.place_ask = false;
+        }
+        let feed_state = fill_feed.as_ref().map(|f| {
+            let s = f.borrow();
+            (s.subscribed, s.fills, s.last_error.clone())
+        });
+        if let (Some(w), Some((up, _, why))) = (feed_watch.as_mut(), &feed_state) {
+            let health = w.check(*up, Instant::now());
+            match health {
+                FeedHealth::WentDown(d) => tracing::warn!(
+                    %symbol,
+                    down_s = d.as_secs_f64(),
+                    reason = why.as_deref().unwrap_or("none given"),
+                    "fills feed down; adding side off until the venue confirms it again"
+                ),
+                FeedHealth::Recovered(d) => {
+                    tracing::info!(%symbol, down_s = d.as_secs_f64(), "fills feed back; adding side on")
+                }
+                FeedHealth::Up | FeedHealth::Down => {}
+            }
+            if matches!(health, FeedHealth::WentDown(_) | FeedHealth::Down) {
+                // A side is pulled when it adds by either reading of the position; flat pulls both.
+                let venue = last_venue_pos.unwrap_or(inventory);
+                if adds_to_position(inventory, false) || adds_to_position(venue, false) {
+                    plan.place_bid = false;
+                }
+                if adds_to_position(inventory, true) || adds_to_position(venue, true) {
+                    plan.place_ask = false;
+                }
+            }
+        }
 
         let tol_bps = env_f64_for_symbol(&symbol, "MM_REQUOTE_TOL_BPS", 3.0);
 
@@ -1017,6 +1203,11 @@ async fn run_symbol_loop(
             basis_bps: basis.value_bps(),
             anchored: anchor_fair.is_some(),
             binance_age_ms: binance_msg_at.map(|t| t.elapsed().as_millis() as u64),
+            mark_price: ticker.as_ref().and_then(|t| t.mark_price),
+            spot_price: ticker.as_ref().and_then(|t| t.spot_price),
+            ticker_age_ms: ticker.as_ref().map(|t| t.received_at.elapsed().as_millis() as u64),
+            fills_feed_up: feed_state.as_ref().map(|s| s.0),
+            fills_feed_fills: feed_state.as_ref().map(|s| s.1),
         };
         tracing::info!(target: "MM_METRICS", "{}", serde_json::to_string(&metrics)?);
 
@@ -1119,8 +1310,6 @@ async fn run_symbol_loop(
                 need_bid = true;
                 need_ask = true;
             } else {
-                let bid_qty = clip_reducing_qty(inventory, false, plan.order_qty, min_qty);
-                let ask_qty = clip_reducing_qty(inventory, true, plan.order_qty, min_qty);
                 if need_bid {
                     if let Some(id) = oms.live.bid_id {
                         let crosses = top.best_ask > 0.0 && plan.bid >= top.best_ask;
@@ -1166,7 +1355,6 @@ async fn run_symbol_loop(
         let queue_front_frac = env_f64_for_symbol(&symbol, "MM_QUEUE_MAX_FRONT_FRAC", 0.9);
 
         if need_bid && plan.place_bid {
-            let bid_qty = clip_reducing_qty(inventory, false, plan.order_qty, min_qty);
             let bid_reduces = inventory < 0.0;
             if bid_reduces && plan.bid >= top.best_ask && top.best_ask > 0.0 && bid_qty > 0.0 {
                 let price = (top.best_ask - tick).max(top.best_bid);
@@ -1257,7 +1445,6 @@ async fn run_symbol_loop(
         }
 
         if need_ask && plan.place_ask {
-            let ask_qty = clip_reducing_qty(inventory, true, plan.order_qty, min_qty);
             let ask_reduces = inventory > 0.0;
             if ask_reduces && plan.ask <= top.best_bid && top.best_bid > 0.0 && ask_qty > 0.0 {
                 let price = (top.best_bid + tick).min(top.best_ask);
@@ -1477,5 +1664,87 @@ fn handle_execution_row(
         .unwrap_or(u64::MAX);
     if let Ok(mut s) = snipe.lock() {
         s.record_fill(ms);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn a_live_start_waits_for_the_fills_feed() {
+        let (tx, rx) = watch::channel(mm_delta::PrivateFeedState::default());
+        tokio::spawn(async move {
+            tokio::time::sleep(Duration::from_millis(50)).await;
+            tx.send_modify(|s| s.subscribed = true);
+            tokio::time::sleep(Duration::from_secs(5)).await; // keep the sender alive
+        });
+        require_fill_feed(rx, Duration::from_secs(2), true).await.expect("confirmed in time");
+    }
+
+    #[tokio::test]
+    async fn a_live_start_refuses_without_the_fills_feed_and_says_why() {
+        let (tx, rx) = watch::channel(mm_delta::PrivateFeedState::default());
+        tx.send_modify(|s| {
+            s.last_error = Some("subscription refused: subscription forbidden on this channel. Unauthorized user".into())
+        });
+        let err = require_fill_feed(rx, Duration::from_millis(100), true).await.unwrap_err().to_string();
+        assert!(err.contains("Unauthorized user"), "{err}");
+        assert!(err.contains("MM_FILL_FEED_REQUIRED=0"), "{err}");
+        drop(tx);
+    }
+
+    #[test]
+    fn a_cap_below_one_lot_disables_the_clip_in_a_dry_run_and_refuses_a_live_run() {
+        assert_eq!(size_clip_cap("ADAUSDT", 600.0, 1.0, false).unwrap(), 600.0);
+        assert_eq!(size_clip_cap("ADAUSDT", 0.0, 1.0, false).unwrap(), 0.0); // no cap configured
+        // KITE in the shadow: the 0.01 default against a 1-contract lot (100 KITE).
+        assert_eq!(size_clip_cap("KITEUSDT", 0.01, 100.0, true).unwrap(), 0.0);
+        let err = size_clip_cap("KITEUSDT", 0.01, 100.0, false).unwrap_err().to_string();
+        assert!(err.contains("MM_MAX_INVENTORY_KITEUSDT"), "{err}");
+        assert!(size_clip_cap("ADAUSDT", f64::NAN, 1.0, false).is_err());
+    }
+
+    #[tokio::test]
+    async fn repeated_refusals_end_the_wait_early() {
+        let (tx, rx) = watch::channel(mm_delta::PrivateFeedState::default());
+        tokio::spawn(async move {
+            for _ in 0..2 {
+                tokio::time::sleep(Duration::from_millis(20)).await;
+                tx.send_modify(|s| {
+                    s.refusals += 1;
+                    s.last_error = Some("login refused: {\"success\":false}".into());
+                });
+            }
+            tokio::time::sleep(Duration::from_secs(30)).await; // keep the sender alive
+        });
+        let started = Instant::now();
+        let err = require_fill_feed(rx, Duration::from_secs(20), true).await.unwrap_err().to_string();
+        assert!(started.elapsed() < Duration::from_secs(2), "waited {:?}", started.elapsed());
+        assert!(err.contains("refused 2 times"), "{err}");
+        assert!(err.contains("login refused"), "{err}");
+    }
+
+    #[tokio::test]
+    async fn a_timeout_reports_the_wait_to_a_tenth_of_a_second() {
+        let (_tx, rx) = watch::channel(mm_delta::PrivateFeedState::default());
+        let err = require_fill_feed(rx, Duration::from_millis(150), true).await.unwrap_err().to_string();
+        assert!(err.contains("not confirmed within 0.1 s (no reply from the venue)"), "{err}");
+    }
+
+    #[test]
+    fn duration_knobs_never_panic() {
+        assert_eq!(secs_knob(20.0, 20.0, 1.0, 600.0), Duration::from_secs(20));
+        assert_eq!(secs_knob(f64::INFINITY, 20.0, 1.0, 600.0), Duration::from_secs(20));
+        assert_eq!(secs_knob(f64::NAN, 20.0, 1.0, 600.0), Duration::from_secs(20));
+        assert_eq!(secs_knob(-5.0, 20.0, 1.0, 600.0), Duration::from_secs(1));
+        assert_eq!(secs_knob(1e12, 20.0, 1.0, 600.0), Duration::from_secs(600));
+        assert_eq!(secs_knob(0.25, 3.0, 0.5, 3600.0), Duration::from_millis(500));
+    }
+
+    #[tokio::test]
+    async fn the_check_can_be_waived() {
+        let (_tx, rx) = watch::channel(mm_delta::PrivateFeedState::default());
+        require_fill_feed(rx, Duration::from_millis(50), false).await.expect("waived");
     }
 }
