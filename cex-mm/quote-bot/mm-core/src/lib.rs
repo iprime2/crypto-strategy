@@ -33,8 +33,8 @@ pub struct QuoteExtensions {
     pub anchor_weight: f64,
 }
 
-/// The fair `compute_quote_cex` quotes around. Fixed mode (DISM) leaves funding carry out: the shadow
-/// dry-run has no venue keys, so it never sees funding carry, and live and shadow must quote the same fair.
+/// The fair `compute_quote_cex` quotes around. Fixed mode (DISM) leaves funding carry out: its shadow
+/// gate was measured without it, and live and shadow must quote the same fair.
 pub fn quote_fair(cfg: &StrategyConfig, fair_native: f64, book: Option<BookTop>, ext: QuoteExtensions) -> f64 {
     let ext = if cfg.fixed_half_spread_bps > 0.0 {
         QuoteExtensions { funding_carry_bps: 0.0, ..ext }
@@ -165,6 +165,13 @@ pub struct MmMetrics {
     /// Time since the last Binance bookTicker message (ms), once one arrived.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub binance_age_ms: Option<u64>,
+    /// Delta mark price and spot index from the ticker poller (Delta only), and that snapshot's age (ms).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mark_price: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub spot_price: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ticker_age_ms: Option<u64>,
 }
 
 #[cfg(test)]
@@ -199,7 +206,7 @@ mod tests {
 
     #[test]
     fn fixed_mode_ignores_funding_carry_like_the_shadow() {
-        // The shadow dry-run has no keys, so its funding carry is always 0. A live DISM bot holding
+        // The shadow holds no inventory, so its funding carry is always 0. A live DISM bot holding
         // inventory gets one from the venue (12 Oct: +150 bps with 2 ADA, from a units bug); it must
         // move neither the fair nor the quotes, nor trip the fair-jump defence and drop a side.
         let run = |carry: f64| {

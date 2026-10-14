@@ -537,6 +537,20 @@ async fn run_symbol_loop(
         let _ = mm_binance::run_book_ticker(&sym, bbo_tx).await;
     });
 
+    // Delta funding, mark and spot index come from a background poller (public, so dry-runs get it too).
+    // The loop only reads the latest snapshot, so a slow venue cannot stall it.
+    let ticker_rx = match book_kind {
+        BookFeedKind::Delta(env) => Some(mm_delta::spawn_ticker_poller(
+            env,
+            mm_delta::delta_product_symbol(&symbol),
+            Duration::from_millis(env_f64_for_symbol(&symbol, "MM_TICKER_POLL_MS", 3000.0).max(500.0) as u64),
+            Duration::from_millis(2000),
+        )),
+        BookFeedKind::Bybit(_) => None,
+    };
+    let ticker_stale_after =
+        Duration::from_secs_f64(env_f64_for_symbol(&symbol, "MM_TICKER_STALE_SEC", 30.0).max(1.0));
+
     let fallback_instrument = instrument.unwrap_or((0.01, 0.001, 0.001));
     let (tick, _step, min_qty) = if let Some(r) = &rest {
         r.get_instrument(&symbol).await.unwrap_or(fallback_instrument)
@@ -851,12 +865,18 @@ async fn run_symbol_loop(
                 .unwrap_or(0.0)
         };
 
-        let funding_bps = if let Some(r) = &rest {
-            r.get_funding_carry_bps(&symbol, inventory)
-                .await
-                .unwrap_or(0.0)
-        } else {
-            0.0
+        let ticker = ticker_rx
+            .as_ref()
+            .and_then(|rx| rx.borrow().clone())
+            .filter(|t| t.received_at.elapsed() <= ticker_stale_after);
+        let funding_bps = match (&ticker_rx, &rest) {
+            (Some(_), _) => ticker
+                .as_ref()
+                .and_then(|t| t.funding_rate_pct)
+                .map(|rate| mm_delta::funding_carry_bps(inventory, rate))
+                .unwrap_or(0.0),
+            (None, Some(r)) => r.get_funding_carry_bps(&symbol, inventory).await.unwrap_or(0.0),
+            (None, None) => 0.0,
         };
 
         let ofi_beta = env_f64_for_symbol(&symbol, "MM_OFI_BETA", 0.01);
@@ -1027,6 +1047,9 @@ async fn run_symbol_loop(
             basis_bps: basis.value_bps(),
             anchored: anchor_fair.is_some(),
             binance_age_ms: binance_msg_at.map(|t| t.elapsed().as_millis() as u64),
+            mark_price: ticker.as_ref().and_then(|t| t.mark_price),
+            spot_price: ticker.as_ref().and_then(|t| t.spot_price),
+            ticker_age_ms: ticker.as_ref().map(|t| t.received_at.elapsed().as_millis() as u64),
         };
         tracing::info!(target: "MM_METRICS", "{}", serde_json::to_string(&metrics)?);
 
