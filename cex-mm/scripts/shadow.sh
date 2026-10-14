@@ -50,7 +50,7 @@ start() {
     >"$run/dry-run.log" 2>&1 </dev/null &
   echo $! >"$run/dry-run.pid"
   setsid nohup env -i HOME="$HOME" PATH="/usr/bin:/bin" RUST_LOG=info NO_COLOR=1 \
-    "$BIN" record-delta --symbols "$symbols" --env mainnet --out-dir "$run" --channels trades \
+    "$BIN" record-delta --symbols "$symbols" --env mainnet --out-dir "$run" --channels trades,ob_l2,mark_price \
     >"$run/recorder.log" 2>&1 </dev/null &
   echo $! >"$run/recorder.pid"
   sleep 3
