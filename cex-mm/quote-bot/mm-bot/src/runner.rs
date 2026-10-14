@@ -239,8 +239,13 @@ pub async fn run_delta(args: RunArgs, dry_run: bool) -> Result<()> {
         fill_feed = Some(feed_rx);
     }
 
-    // One public ob_l2 connection for every symbol (dry-runs too).
-    let mut depth_rxs = mm_delta::spawn_depth_feed(delta_env, &symbols);
+    // One public ob_l2 connection for every symbol (dry-runs too), unless MM_DEPTH_FEED=0.
+    let mut depth_rxs = if std::env::var("MM_DEPTH_FEED").map(|v| v.trim() == "0").unwrap_or(false) {
+        tracing::info!("depth feed off (MM_DEPTH_FEED=0)");
+        HashMap::new()
+    } else {
+        mm_delta::spawn_depth_feed(delta_env, &symbols)
+    };
 
     let mut tasks = JoinSet::new();
     for symbol in symbols {
@@ -456,6 +461,18 @@ fn fill_feed_required() -> bool {
     std::env::var("MM_FILL_FEED_REQUIRED").map(|v| v.trim() != "0").unwrap_or(true)
 }
 
+/// `x` to 10 significant digits, so a logged value carries no float noise (0.23215000000000002 -> 0.23215).
+fn sig10(x: f64) -> f64 {
+    if x == 0.0 || !x.is_finite() {
+        return x;
+    }
+    let m = 10f64.powi(9 - x.abs().log10().floor() as i32);
+    if !m.is_finite() || m == 0.0 {
+        return x;
+    }
+    (x * m).round() / m
+}
+
 /// A duration knob given in seconds: `default` when it is not finite, then clamped to `[lo, hi]`.
 /// `Duration::from_secs_f64` panics on an infinite or negative value, and "inf" parses as an f64.
 fn secs_knob(value: f64, default: f64, lo: f64, hi: f64) -> Duration {
@@ -662,9 +679,10 @@ async fn run_symbol_loop(
         BookFeedKind::Bybit(_) => None,
     };
     let ticker_stale_after = secs_knob(env_f64_for_symbol(&symbol, "MM_TICKER_STALE_SEC", 30.0), 30.0, 1.0, 3600.0);
-    // Delta depth mid: where cumulative size reaches MM_BASIS_DEPTH_USD per side (ob_l2). Logged only for now;
-    // it is the candidate live basis source our own quotes cannot move (plans/live-basis.plan.md).
-    let depth_usd = env_f64_for_symbol(&symbol, "MM_BASIS_DEPTH_USD", 2000.0);
+    // Delta depth mid: where cumulative size reaches MM_BASIS_DEPTH_QTY base units per side (ob_l2). A fixed
+    // size, so nothing our quotes move can shift it. Logged only for now; it is the candidate live basis source
+    // (plans/live-basis.plan.md). The default is ADA's: a size between its 3,850 order and its 28k ladder.
+    let depth_base_qty = env_f64_for_symbol(&symbol, "MM_BASIS_DEPTH_QTY", 10_000.0);
     let depth_stale_after = secs_knob(env_f64_for_symbol(&symbol, "MM_DEPTH_STALE_MS", 2000.0) / 1000.0, 2.0, 0.1, 3600.0);
 
     let fallback_instrument = instrument.unwrap_or((0.01, 0.001, 0.001));
@@ -679,6 +697,15 @@ async fn run_symbol_loop(
     let max_inv = env_f64_for_symbol(&symbol, "MM_MAX_INVENTORY", 0.01);
     let clip_cap = size_clip_cap(&symbol, max_inv, min_qty, dry_run)?;
     let base_qty = env_f64_for_symbol(&symbol, "MM_ORDER_QTY", min_qty.max(0.001));
+    let depth_qty = mm_core::depth::contracts_for_qty(depth_base_qty, contract_value);
+    if depth_rx.is_some() {
+        if depth_qty.is_none() {
+            tracing::warn!(%symbol, depth_base_qty, contract_value, "MM_BASIS_DEPTH_QTY is not a positive size; no depth mid");
+        } else if depth_base_qty <= 2.0 * base_qty {
+            // Our own order alone could set the depth price. PR C refuses this once the depth book is a source.
+            tracing::warn!(%symbol, depth_base_qty, base_qty, "MM_BASIS_DEPTH_QTY is not above twice the order size");
+        }
+    }
 
     let mut vol_tracker = VolTracker::new(96);
     let kappa_est = KappaEstimator::default();
@@ -691,6 +718,7 @@ async fn run_symbol_loop(
     let book_stale_after =
         Duration::from_millis(env_f64_for_symbol(&symbol, "MM_BOOK_STALE_MS", 2000.0).max(100.0) as u64);
     let mut book_watch = BookWatch::new(book_stale_after);
+    let mut depth_seen = false;
     let mut stale_cancel_pending = false;
     let mut oms = OmsState::default();
     let mut last_fair: Option<f64> = None;
@@ -998,18 +1026,21 @@ async fn run_symbol_loop(
             .and_then(|rx| rx.borrow().clone())
             .filter(|t| t.received_at.elapsed() <= ticker_stale_after);
         let depth = depth_rx.as_ref().map(|rx| rx.borrow().clone());
-        let depth_qty = top
-            .mid()
-            .and_then(|m| mm_core::depth::contracts_for_notional(depth_usd, m, contract_value));
-        let depth_read: Option<Result<mm_core::depth::DepthMid, &'static str>> = depth.as_ref().map(|d| match d {
-            None => Err("no_feed"),
-            Some(d) if d.received_at.elapsed() > depth_stale_after => Err("stale"),
-            Some(d) => {
-                let q = depth_qty.ok_or("invalid")?;
-                mm_core::depth::depth_mid(&d.bids, &d.asks, q, q).map_err(|e| e.as_str())
-            }
+        let depth_snap = depth.as_ref().and_then(|d| d.as_deref());
+        if depth_snap.is_some() && !depth_seen {
+            depth_seen = true;
+            tracing::info!(%symbol, "depth book streaming (ob_l2)");
+        }
+        let depth_read: Option<Result<mm_core::depth::DepthSides, String>> = depth.as_ref().map(|d| match d {
+            None => Err("no_feed".into()),
+            Some(d) if d.received_at.elapsed() > depth_stale_after => Err("stale".into()),
+            Some(d) => match depth_qty {
+                None => Err("invalid".into()),
+                Some(q) => mm_core::depth::depth_sides(&d.bids, &d.asks, q, q).map_err(|e| e.as_str().into()),
+            },
         });
         let depth_ok = depth_read.as_ref().and_then(|r| r.as_ref().ok());
+        let (depth_bid, depth_ask) = (depth_ok.and_then(|s| s.bid.ok()), depth_ok.and_then(|s| s.ask.ok()));
         // A dry-run's inventory is whatever the economics file held at start and is never reconciled, so
         // it gets no carry: dry-runs stay comparable with each other and with the shadow.
         let funding_bps = match (&ticker_rx, &rest) {
@@ -1237,16 +1268,24 @@ async fn run_symbol_loop(
             binance_ask: (bbo.ask > 0.0).then_some(bbo.ask),
             binance_bid_qty: bbo.bid_qty,
             binance_ask_qty: bbo.ask_qty,
-            depth_mid: depth_ok.map(|d| d.mid),
-            depth_bid_px: depth_ok.map(|d| d.bid.price),
-            depth_ask_px: depth_ok.map(|d| d.ask.price),
-            depth_bid_lvl: depth_ok.map(|d| d.bid.level as u32),
-            depth_ask_lvl: depth_ok.map(|d| d.ask.level as u32),
-            depth_bid_inner: depth_ok.map(|d| d.bid.inner_size),
-            depth_ask_inner: depth_ok.map(|d| d.ask.inner_size),
-            depth_qty: depth.as_ref().and(depth_qty),
-            depth_age_ms: depth.as_ref().and_then(|d| d.as_ref()).map(|d| d.received_at.elapsed().as_millis() as u64),
-            depth_none: depth_read.as_ref().and_then(|r| r.as_ref().err().copied()),
+            depth_mid: depth_ok.and_then(|s| s.mid()).map(|d| sig10(d.mid)),
+            depth_bid_px: depth_bid.map(|s| s.price),
+            depth_ask_px: depth_ask.map(|s| s.price),
+            depth_bid_lvl: depth_bid.map(|s| s.level as u32),
+            depth_ask_lvl: depth_ask.map(|s| s.level as u32),
+            depth_bid_inner: depth_bid.map(|s| sig10(s.inner_size)),
+            depth_ask_inner: depth_ask.map(|s| sig10(s.inner_size)),
+            depth_bid_inner_px: depth_bid.and_then(|s| s.inner_px),
+            depth_ask_inner_px: depth_ask.and_then(|s| s.inner_px),
+            depth_bid_nlvl: depth_snap.map(|d| d.bids.len() as u32),
+            depth_ask_nlvl: depth_snap.map(|d| d.asks.len() as u32),
+            depth_qty: depth.as_ref().and(depth_qty).map(|q| (q * 100.0).round() / 100.0),
+            depth_age_ms: depth_snap.map(|d| d.received_at.elapsed().as_millis() as u64),
+            depth_ts_us: depth_snap.and_then(|d| d.venue_ts_us),
+            depth_none: depth_read.as_ref().and_then(|r| match r {
+                Err(e) => Some(e.clone()),
+                Ok(sides) => mm_core::depth::side_reasons(sides),
+            }),
         };
         tracing::info!(target: "MM_METRICS", "{}", serde_json::to_string(&metrics)?);
 
@@ -1769,6 +1808,16 @@ mod tests {
         let (_tx, rx) = watch::channel(mm_delta::PrivateFeedState::default());
         let err = require_fill_feed(rx, Duration::from_millis(150), true).await.unwrap_err().to_string();
         assert!(err.contains("not confirmed within 0.1 s (no reply from the venue)"), "{err}");
+    }
+
+    #[test]
+    fn logged_values_lose_their_float_noise() {
+        assert_eq!(sig10((0.23200 + 0.23230) / 2.0).to_string(), "0.23215");
+        assert_eq!(sig10(8614.933988068316), 8614.933988);
+        assert_eq!(sig10(47_081.0), 47_081.0);
+        assert_eq!(sig10(0.0), 0.0);
+        assert!(sig10(f64::NAN).is_nan());
+        assert_eq!(sig10(1e-300), 1e-300); // the scale overflows; the value is kept as is
     }
 
     #[test]

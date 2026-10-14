@@ -188,8 +188,10 @@ pub struct MmMetrics {
     pub binance_bid_qty: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub binance_ask_qty: Option<f64>,
-    /// Delta depth mid (`depth::depth_mid`): where cumulative size reaches `depth_qty` contracts per side
-    /// (`MM_BASIS_DEPTH_USD`). Per side: the depth price, its level (0 = touch) and the size priced better.
+    /// Delta depth book (`depth::depth_sides`, from `ob_l2`): the price where cumulative size reaches `depth_qty`
+    /// contracts (`MM_BASIS_DEPTH_QTY` base units) per side, and the mid of the two. Per side: the depth price,
+    /// its level (0 = touch), the size priced better and that inside level's price (where a pivot would move
+    /// it), and how many levels the snapshot had. Each side is logged when priced, even if the other is not.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub depth_mid: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -205,13 +207,25 @@ pub struct MmMetrics {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub depth_ask_inner: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub depth_bid_inner_px: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub depth_ask_inner_px: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub depth_bid_nlvl: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub depth_ask_nlvl: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub depth_qty: Option<f64>,
-    /// Age of the last ob_l2 snapshot (ms).
+    /// Age of the last ob_l2 snapshot on the local clock (ms), and its venue timestamp (µs): the key to join a
+    /// row to the recorded book file (`delta_<env>_book_<day>.jsonl`) on one clock.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub depth_age_ms: Option<u64>,
-    /// Why there is no depth mid this loop: no_feed, stale, empty_side, thin, crossed, invalid.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub depth_none: Option<&'static str>,
+    pub depth_ts_us: Option<i64>,
+    /// Why there is no depth mid this loop: no_feed, stale, invalid (threshold), crossed, or per side, e.g.
+    /// `ask_thin` or `bid_empty_side,ask_thin`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub depth_none: Option<String>,
 }
 
 #[cfg(test)]

@@ -5,9 +5,15 @@
 //! (`artifacts/research/2026-10-13-shadow-anchor-interim.md`). A threshold much larger than our quote skips
 //! our order and the 1-4 contract dust, and lands on the real liquidity (`plans/live-basis.plan.md`).
 //!
-//! Exception, by construction: when other orders priced better than the depth price already sum to between
-//! `X - Q` and `X`, adding our quote of size `Q` moves the depth price inward. `inner_size` lets a replay
-//! count how often that happens.
+//! Exceptions, by construction (`Q` = all of our resting size on that side, which can exceed one order while a
+//! cancel is unconfirmed):
+//! - Pivot: when other orders priced better than the depth price already sum to between `X - Q` and `X`,
+//!   adding our `Q` moves the depth price inward, to the level just inside it (`inner_px`). On a clean (shadow)
+//!   book `inner_size` counts this band directly. On a live book `inner_size` includes our own order, so a
+//!   pivot shows as `inner_size` of about `Q`; count pivots on shadow rows or on the replay's synthetic book.
+//! - Level cap: `ob_l2` carries 15 levels a side. Our quote inside the touch adds a level and pushes the 15th
+//!   out of view, so a side that reaches `X` only at the last level can turn `Thin`. `levels` (the count we
+//!   saw) and `level` let a replay find those rows.
 
 /// One side of the book, best level first: `(price, size)`. Sizes are in contracts.
 pub type Levels = [(f64, f64)];
@@ -20,6 +26,8 @@ pub struct SidePrice {
     pub level: usize,
     /// Size priced better than `price`: the sum of the levels before it.
     pub inner_size: f64,
+    /// Price of the level just inside `price` (where a pivot would move it); `None` at the touch.
+    pub inner_px: Option<f64>,
 }
 
 /// Why a depth price could not be read.
@@ -66,10 +74,10 @@ pub fn side_depth_price(levels: &Levels, qty: f64, is_bid: bool) -> Result<SideP
                 return Err(DepthNone::Invalid);
             }
         }
-        prev = Some(price);
         if cum + size >= qty {
-            return Ok(SidePrice { price, level: i, inner_size: cum });
+            return Ok(SidePrice { price, level: i, inner_size: cum, inner_px: prev });
         }
+        prev = Some(price);
         cum += size;
     }
     Err(DepthNone::Thin)
@@ -82,23 +90,58 @@ pub struct DepthMid {
     pub ask: SidePrice,
 }
 
-/// Mid of the bid and ask depth prices for thresholds `bid_qty` and `ask_qty` (contracts).
-pub fn depth_mid(bids: &Levels, asks: &Levels, bid_qty: f64, ask_qty: f64) -> Result<DepthMid, DepthNone> {
+/// Both sides read independently, so a thin or empty side does not hide the other one.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct DepthSides {
+    pub bid: Result<SidePrice, DepthNone>,
+    pub ask: Result<SidePrice, DepthNone>,
+}
+
+impl DepthSides {
+    /// The depth mid when both sides are priced.
+    pub fn mid(&self) -> Option<DepthMid> {
+        let (bid, ask) = (self.bid.ok()?, self.ask.ok()?);
+        Some(DepthMid { mid: (bid.price + ask.price) / 2.0, bid, ask })
+    }
+}
+
+/// Bid and ask depth prices for thresholds `bid_qty` and `ask_qty` (contracts). `Err(Crossed)` when the best
+/// bid is at or above the best ask; otherwise each side carries its own price or reason.
+pub fn depth_sides(bids: &Levels, asks: &Levels, bid_qty: f64, ask_qty: f64) -> Result<DepthSides, DepthNone> {
     if let (Some(b), Some(a)) = (bids.first(), asks.first()) {
         if b.0 >= a.0 {
             return Err(DepthNone::Crossed);
         }
     }
-    let bid = side_depth_price(bids, bid_qty, true)?;
-    let ask = side_depth_price(asks, ask_qty, false)?;
-    Ok(DepthMid { mid: (bid.price + ask.price) / 2.0, bid, ask })
+    Ok(DepthSides {
+        bid: side_depth_price(bids, bid_qty, true),
+        ask: side_depth_price(asks, ask_qty, false),
+    })
 }
 
-/// Contracts worth `notional` at `price`, for a contract of `contract_value` base units. `None` on bad input.
-pub fn contracts_for_notional(notional: f64, price: f64, contract_value: f64) -> Option<f64> {
-    let per_contract = price * contract_value;
-    (notional.is_finite() && notional > 0.0 && per_contract.is_finite() && per_contract > 0.0)
-        .then(|| notional / per_contract)
+/// Why a read has no depth mid, per side: `None` when both sides are priced, else e.g. `"ask_thin"` or
+/// `"bid_empty_side,ask_thin"`.
+pub fn side_reasons(sides: &DepthSides) -> Option<String> {
+    let parts: Vec<String> = [("bid", sides.bid), ("ask", sides.ask)]
+        .iter()
+        .filter_map(|(name, r)| r.err().map(|e| format!("{name}_{}", e.as_str())))
+        .collect();
+    (!parts.is_empty()).then(|| parts.join(","))
+}
+
+/// Mid of the bid and ask depth prices; the first failing side's reason otherwise.
+pub fn depth_mid(bids: &Levels, asks: &Levels, bid_qty: f64, ask_qty: f64) -> Result<DepthMid, DepthNone> {
+    let sides = depth_sides(bids, asks, bid_qty, ask_qty)?;
+    sides.bid?;
+    sides.ask?;
+    Ok(sides.mid().expect("both sides priced"))
+}
+
+/// Contracts for a threshold of `base_qty` base units (the units `MM_ORDER_QTY` uses), for a contract of
+/// `contract_value` base units. A fixed size, so nothing our quotes move can shift it. `None` on bad input.
+pub fn contracts_for_qty(base_qty: f64, contract_value: f64) -> Option<f64> {
+    (base_qty.is_finite() && base_qty > 0.0 && contract_value.is_finite() && contract_value > 0.0)
+        .then(|| base_qty / contract_value)
 }
 
 #[cfg(test)]
@@ -116,8 +159,8 @@ mod tests {
     #[test]
     fn skips_dust_and_lands_on_the_ladder() {
         let d = depth_mid(&ada_bids(), &ada_asks(), 8_600.0, 8_600.0).unwrap();
-        assert_eq!(d.bid, SidePrice { price: 0.23200, level: 3, inner_size: 5.0 });
-        assert_eq!(d.ask, SidePrice { price: 0.23230, level: 0, inner_size: 0.0 });
+        assert_eq!(d.bid, SidePrice { price: 0.23200, level: 3, inner_size: 5.0, inner_px: Some(0.23201) });
+        assert_eq!(d.ask, SidePrice { price: 0.23230, level: 0, inner_size: 0.0, inner_px: None });
         assert!((d.mid - 0.23215).abs() < 1e-12);
     }
 
@@ -135,19 +178,53 @@ mod tests {
     #[test]
     fn the_known_exception_others_inside_between_x_minus_q_and_x() {
         // Others hold 1,850 inside; our 200 takes the cumulative to 2,050, past X = 2,000, so the depth
-        // price becomes our price. inner_size (1,850) is what a replay uses to count this case.
+        // price moves in to the others' 1,850 level (the clean book's inner_px). On the clean book the
+        // others' inner_size (1,850) is in [X - Q, X): that is how a replay counts the case. On the live
+        // book inner_size is our 200.
         let others = vec![(0.23210, 1_850.0), (0.23200, 47_081.0)];
         let mut with_us = vec![(0.23215, 200.0)];
         with_us.extend(others.clone());
-        assert_eq!(side_depth_price(&others, 2_000.0, true).unwrap().price, 0.23200);
+        let clean = side_depth_price(&others, 2_000.0, true).unwrap();
+        assert_eq!((clean.price, clean.inner_size, clean.inner_px), (0.23200, 1_850.0, Some(0.23210)));
         let moved = side_depth_price(&with_us, 2_000.0, true).unwrap();
         assert_eq!((moved.price, moved.level, moved.inner_size), (0.23210, 1, 200.0));
+        assert_eq!(moved.price, clean.inner_px.unwrap());
+    }
+
+    #[test]
+    fn the_level_cap_exception_our_level_pushes_the_last_one_out() {
+        // Others reach X only at level 15 of 15; our quote inside the touch adds a level and the venue's
+        // 15-level snapshot drops the last one, so the side turns Thin.
+        let others: Vec<(f64, f64)> = (0..15).map(|i| (1.0 - 0.0001 * i as f64, if i == 14 { 1_000.0 } else { 100.0 })).collect();
+        assert_eq!(side_depth_price(&others, 2_000.0, true).unwrap().level, 14);
+        let mut with_us = vec![(1.0005, 200.0)];
+        with_us.extend(others);
+        with_us.truncate(15);
+        assert_eq!(side_depth_price(&with_us, 2_000.0, true), Err(DepthNone::Thin));
+    }
+
+    #[test]
+    fn each_side_is_read_on_its_own() {
+        let sides = depth_sides(&ada_bids(), &ada_asks(), 8_600.0, 1e9).unwrap();
+        assert_eq!(sides.bid.unwrap().price, 0.23200);
+        assert_eq!(sides.ask, Err(DepthNone::Thin));
+        assert_eq!(sides.mid(), None);
+        assert_eq!(depth_sides(&[(0.24, 5.0)], &[(0.23, 5.0)], 1.0, 1.0), Err(DepthNone::Crossed));
+        let both = depth_sides(&ada_bids(), &ada_asks(), 8_600.0, 8_600.0).unwrap();
+        assert_eq!(both.mid().unwrap(), depth_mid(&ada_bids(), &ada_asks(), 8_600.0, 8_600.0).unwrap());
+        assert_eq!(side_reasons(&both), None);
+        assert_eq!(side_reasons(&sides).as_deref(), Some("ask_thin"));
+        let neither = depth_sides(&[], &ada_asks(), 8_600.0, 1e9).unwrap();
+        assert_eq!(side_reasons(&neither).as_deref(), Some("bid_empty_side,ask_thin"));
     }
 
     #[test]
     fn reaching_the_threshold_exactly_stops_at_that_level() {
         let levels = [(10.0, 1.0), (9.0, 1.0), (8.0, 5.0)];
-        assert_eq!(side_depth_price(&levels, 2.0, true).unwrap(), SidePrice { price: 9.0, level: 1, inner_size: 1.0 });
+        assert_eq!(
+            side_depth_price(&levels, 2.0, true).unwrap(),
+            SidePrice { price: 9.0, level: 1, inner_size: 1.0, inner_px: Some(10.0) }
+        );
     }
 
     #[test]
@@ -166,13 +243,12 @@ mod tests {
     }
 
     #[test]
-    fn notional_to_contracts() {
-        // ADA: $2,000 at 0.2329, 1 ADA per contract.
-        assert!((contracts_for_notional(2_000.0, 0.2329, 1.0).unwrap() - 8_587.37).abs() < 0.01);
-        // KITE-like: 100 per contract at $0.08 is $8 a contract.
-        assert!((contracts_for_notional(2_000.0, 0.08, 100.0).unwrap() - 250.0).abs() < 1e-9);
-        assert_eq!(contracts_for_notional(2_000.0, 0.0, 1.0), None);
-        assert_eq!(contracts_for_notional(-1.0, 0.23, 1.0), None);
-        assert_eq!(contracts_for_notional(f64::NAN, 0.23, 1.0), None);
+    fn base_units_to_contracts() {
+        assert_eq!(contracts_for_qty(10_000.0, 1.0), Some(10_000.0)); // ADA, 1 ADA a contract
+        assert_eq!(contracts_for_qty(100_000.0, 100.0), Some(1_000.0)); // KITE, 100 KITE a contract
+        assert_eq!(contracts_for_qty(0.0, 1.0), None);
+        assert_eq!(contracts_for_qty(-1.0, 1.0), None);
+        assert_eq!(contracts_for_qty(f64::NAN, 1.0), None);
+        assert_eq!(contracts_for_qty(10_000.0, 0.0), None);
     }
 }
