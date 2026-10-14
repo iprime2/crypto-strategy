@@ -1,11 +1,12 @@
-//! Public `ob_l2` depth feed: a 15-level snapshot per symbol every 500 ms. Probed 2026-10-14 on Delta India:
-//! unchanged books are re-sent every 500 ms too, so the age of the last frame is the feed's freshness. One
-//! connection carries every symbol and stays separate from `ob_l1`, so a depth failure cannot touch the book
-//! watch that cancels quotes. The anchored fair reads its live basis from this book (`plans/live-basis.plan.md`).
+//! Public `ob_l2` depth feed: a 15-level snapshot per symbol every 500 ms. Probed 2026-10-14 on Delta India
+//! mainnet and demo: unchanged books are re-sent every 500 ms too, so the age of the last frame is the feed's
+//! freshness. One connection carries every symbol and stays separate from `ob_l1`, so a depth failure cannot
+//! touch the book watch that cancels quotes (it does share the IP's connection budget, hence the backoff). The
+//! anchored fair is to read its live basis from this book (`plans/live-basis.plan.md`).
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use futures_util::{SinkExt, StreamExt};
 use serde_json::Value;
@@ -14,6 +15,7 @@ use tokio_tungstenite::{connect_async, tungstenite::Message};
 use tracing::{info, warn};
 
 use crate::products::delta_product_symbol;
+use crate::ws::present;
 use crate::DeltaEnvironment;
 
 pub const DEPTH_CHANNEL: &str = "ob_l2";
@@ -40,8 +42,13 @@ fn num(v: &Value) -> Option<f64> {
     x.is_finite().then_some(x)
 }
 
+/// One side's levels. A missing or null side is an empty side (`depth_mid` reports it); anything else that is
+/// not a list of `[price, size]` pairs fails.
 fn levels(v: Option<&Value>) -> Option<Vec<(f64, f64)>> {
-    v?.as_array()?
+    let Some(v) = v.filter(|v| !v.is_null()) else {
+        return Some(Vec::new());
+    };
+    v.as_array()?
         .iter()
         .map(|l| {
             let l = l.as_array()?;
@@ -67,7 +74,7 @@ pub fn parse_ob_l2(text: &str, received_at: Instant) -> Option<(String, DepthSna
     Some((sy, snap))
 }
 
-/// The venue's reason when it refuses our `ob_l2` subscription.
+/// The venue's reason when it refuses our `ob_l2` subscription. A null or blank `error` is not a refusal.
 fn refusal(v: &Value) -> Option<String> {
     if v.get("type")?.as_str()? != "subscriptions" {
         return None;
@@ -76,7 +83,7 @@ fn refusal(v: &Value) -> Option<String> {
         .as_array()?
         .iter()
         .find(|c| c.get("name").and_then(|n| n.as_str()) == Some(DEPTH_CHANNEL))
-        .and_then(|c| c.get("error"))
+        .and_then(|c| present(c.get("error")))
         .map(|e| e.as_str().map(str::to_string).unwrap_or_else(|| e.to_string()))
 }
 
@@ -114,18 +121,22 @@ pub struct DepthFeedTimings {
     pub connect_timeout: Duration,
     /// Reconnect when no frame arrives for this long (snapshots come every 500 ms per symbol).
     pub silence: Duration,
-    /// Pause before reconnecting; doubles while connections keep failing, up to `retry_max`.
+    /// Pause before reconnecting (±20% jitter); doubles while connections keep failing, up to `retry_max`.
     pub retry_min: Duration,
     pub retry_max: Duration,
+    /// A session that delivered books for at least this long resets the pause to `retry_min`. A venue that
+    /// accepts, sends one book and closes keeps backing off instead of being redialled every second.
+    pub reset_after: Duration,
 }
 
 impl Default for DepthFeedTimings {
     fn default() -> Self {
         Self {
             connect_timeout: Duration::from_secs(10),
-            silence: Duration::from_secs(10),
+            silence: Duration::from_secs(15),
             retry_min: Duration::from_secs(1),
             retry_max: Duration::from_secs(30),
+            reset_after: Duration::from_secs(30),
         }
     }
 }
@@ -146,11 +157,17 @@ pub fn spawn_depth_feed(env: DeltaEnvironment, mm_symbols: &[String]) -> HashMap
 }
 
 enum Ended {
-    /// The session delivered at least one snapshot before it ended.
-    Delivered,
+    /// The session delivered snapshots; how long it lasted.
+    Delivered(Duration),
     Failed,
     /// Every receiver is gone.
     Unwanted,
+}
+
+/// `d` scaled by a factor in [0.8, 1.2), so several feeds dropped together do not redial in step.
+fn jitter(d: Duration) -> Duration {
+    let n = SystemTime::now().duration_since(UNIX_EPOCH).map(|t| t.subsec_nanos()).unwrap_or(0);
+    d.mul_f64(0.8 + 0.4 * f64::from(n % 1000) / 1000.0)
 }
 
 async fn run_depth_feed(url: &str, senders: HashMap<String, DepthTx>, t: DepthFeedTimings) {
@@ -158,10 +175,10 @@ async fn run_depth_feed(url: &str, senders: HashMap<String, DepthTx>, t: DepthFe
     loop {
         match session(url, &senders, t).await {
             Ended::Unwanted => return,
-            Ended::Delivered => retry = t.retry_min,
-            Ended::Failed => {}
+            Ended::Delivered(lasted) if lasted >= t.reset_after => retry = t.retry_min,
+            Ended::Delivered(_) | Ended::Failed => {}
         }
-        tokio::time::sleep(retry).await;
+        tokio::time::sleep(jitter(retry)).await;
         if senders.values().all(|tx| tx.is_closed()) {
             return;
         }
@@ -194,8 +211,10 @@ async fn session(url: &str, senders: &HashMap<String, DepthTx>, t: DepthFeedTimi
             return Ended::Failed;
         }
     }
+    let started = Instant::now();
     let mut delivered = false;
     let mut skipped = 0u64;
+    let mut unknown: HashSet<String> = HashSet::new();
     loop {
         let msg = match tokio::time::timeout(t.silence, read.next()).await {
             Err(_) => {
@@ -220,6 +239,8 @@ async fn session(url: &str, senders: &HashMap<String, DepthTx>, t: DepthFeedTimi
                 }
                 delivered = true;
                 let _ = tx.send(Some(Arc::new(snap)));
+            } else if unknown.insert(sy.clone()) {
+                warn!(symbol = %sy, "delta ob_l2 book for a symbol we did not subscribe; ignored");
             }
             if senders.values().all(|tx| tx.is_closed()) {
                 return Ended::Unwanted;
@@ -241,7 +262,7 @@ async fn session(url: &str, senders: &HashMap<String, DepthTx>, t: DepthFeedTimi
         }
     }
     if delivered {
-        Ended::Delivered
+        Ended::Delivered(started.elapsed())
     } else {
         Ended::Failed
     }
@@ -276,9 +297,17 @@ mod tests {
         assert!(parse_ob_l2(&ADA.replace(r#"["0.23181","1"]"#, r#"["0.23181"]"#), now).is_none());
         assert!(parse_ob_l2(r#"{"type":"ob_l1","sy":"ADAUSD"}"#, now).is_none());
         assert!(parse_ob_l2("not json", now).is_none());
-        // An empty side is a valid book; depth_mid reports it.
-        let (_, s) = parse_ob_l2(r#"{"type":"ob_l2","sy":"ADAUSD","a":[],"b":[["1","2"]]}"#, now).unwrap();
-        assert!(s.asks.is_empty());
+        // An empty, missing or null side is a valid book with an empty side; depth_mid reports it.
+        for frame in [
+            r#"{"type":"ob_l2","sy":"ADAUSD","a":[],"b":[["1","2"]]}"#,
+            r#"{"type":"ob_l2","sy":"ADAUSD","b":[["1","2"]]}"#,
+            r#"{"type":"ob_l2","sy":"ADAUSD","a":null,"b":[["1","2"]]}"#,
+        ] {
+            let (_, s) = parse_ob_l2(frame, now).unwrap();
+            assert!(s.asks.is_empty(), "{frame}");
+            assert_eq!(s.bids, vec![(1.0, 2.0)]);
+        }
+        assert!(parse_ob_l2(r#"{"type":"ob_l2","sy":"ADAUSD","a":"x","b":[]}"#, now).is_none());
     }
 
     #[test]
@@ -296,6 +325,12 @@ mod tests {
         let v = json!({"type": "subscriptions", "channels": [{"name": "ob_l2", "error": "subscription forbidden on this invalid channel"}]});
         assert_eq!(refusal(&v).as_deref(), Some("subscription forbidden on this invalid channel"));
         assert_eq!(refusal(&json!({"type": "subscriptions", "channels": [{"name": "ob_l2", "symbols": ["ADAUSD"]}]})), None);
+        // A success ack that echoes an empty error field is not a refusal.
+        for e in [json!(null), json!(""), json!("  ")] {
+            let ack = json!({"type": "subscriptions", "channels": [{"name": "ob_l2", "symbols": ["ADAUSD"], "error": e}]});
+            assert_eq!(refusal(&ack), None);
+            assert_eq!(classify_other(&ack.to_string()), OtherFrame::Ack);
+        }
     }
 
     fn fast() -> DepthFeedTimings {
@@ -304,6 +339,7 @@ mod tests {
             silence: Duration::from_millis(300),
             retry_min: Duration::from_millis(10),
             retry_max: Duration::from_millis(40),
+            reset_after: Duration::from_millis(100),
         }
     }
 
@@ -385,6 +421,23 @@ mod tests {
         let ada = rx.get_mut("ADAUSD").unwrap();
         tokio::time::timeout(Duration::from_secs(5), ada.wait_for(|s| s.is_some())).await.unwrap().unwrap();
         assert!(subs.lock().unwrap().len() >= 3);
+    }
+
+    #[tokio::test]
+    async fn a_book_for_an_unknown_symbol_does_not_stop_the_others() {
+        let (url, _) = venue(|_| vec![ADA.replace("ADAUSD", "XRPUSD"), ADA.to_string()]).await;
+        let (tx, mut rx) = senders(&["ADAUSD"]);
+        tokio::spawn(async move { run_depth_feed(&url, tx, fast()).await });
+        let ada = rx.get_mut("ADAUSD").unwrap();
+        tokio::time::timeout(Duration::from_secs(5), ada.wait_for(|s| s.is_some())).await.unwrap().unwrap();
+    }
+
+    #[test]
+    fn jitter_stays_within_twenty_percent() {
+        for _ in 0..100 {
+            let j = jitter(Duration::from_secs(10));
+            assert!(j >= Duration::from_secs(8) && j < Duration::from_secs(12), "{j:?}");
+        }
     }
 
     #[tokio::test]
