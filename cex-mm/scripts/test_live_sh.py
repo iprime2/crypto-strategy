@@ -34,7 +34,13 @@ case "$1" in
     if [[ -f "$root/feed_refused" ]]; then
       echo "Error: delta fills feed not confirmed within 20 s (subscription refused: Unauthorized user)"; exit 1
     fi
-    echo "INFO mm_bot::runner: delta fills feed confirmed"
+    if [[ -f "$root/feed_silent" ]]; then
+      # A venue reason quoting the ready text in another target's line must not count as the verdict.
+      echo 'ERROR mm_delta::ws: login refused reason="mm_bot::runner: delta fills feed confirmed"'
+      while :; do sleep 0.2; done
+    fi
+    [[ -f "$root/feed_slow" ]] && sleep 6
+    echo "2026-10-14T09:00:00.000000Z  INFO mm_bot::runner: delta fills feed confirmed"
     echo '2026-10-12T12:57:54.189191Z  INFO MM_METRICS: {"symbol":"ADAUSDT","bid":0.24809,"ask":0.24834,"inventory":0.0,"ts_ms":1}'
     echo 'INFO MM_ORDER: placed post-only symbol=ADAUSDT side="buy" price=0.24793 qty=200.0'
     while :; do sleep 0.2; done ;;
@@ -360,6 +366,38 @@ class LiveSh(unittest.TestCase):
         self.assertIn("exited during startup", r.stderr)
         self.assertIn("Unauthorized user", r.stderr)
         self.assertEqual(len(self.stub_calls("cancel-all")), 1)
+
+    def test_a_start_with_no_fills_feed_verdict_is_killed_and_cancelled(self):
+        self.start_shadow()
+        (self.root / "feed_silent").write_text("")
+        r = self.live("start", "--confirm", "START REAL", env={"LIVE_START_WAIT_S": "2"})
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("no fills-feed verdict from the bot after 2 s", r.stderr)
+        self.assertNotIn("bot: running", r.stdout)
+        self.assertFalse(self.alive(self.bot_pid()))
+        self.assertEqual(len(self.stub_calls("cancel-all")), 1)
+        stopped = (self.root / "artifacts" / "live" / "current" / "stopped").read_text()
+        self.assertIn("failed start", stopped)
+
+    def test_the_start_wait_follows_the_profiles_fills_feed_wait(self):
+        # The verdict comes after 6 s: past the old fixed wait in this harness, inside 20 s + 25 s.
+        self.start_shadow()
+        (self.root / "feed_slow").write_text("")
+        r = self.live("start", "--confirm", "START REAL", env={"LIVE_START_WAIT_S": ""})
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("bot: running", r.stdout)
+
+    def test_the_fills_feed_check_can_be_waived_in_the_profile_without_a_shadow_restart(self):
+        self.start_shadow()
+        prof = self.root / "config" / "dism.env"
+        cfg = self.root / "artifacts" / "shadow" / "current" / "config.txt"
+        cfg.write_text("symbols=ADAUSDT\n" + prof.read_text())  # the shadow started before the waiver
+        prof.write_text(prof.read_text() + "MM_FILL_FEED_REQUIRED=0\nMM_FILL_FEED_WAIT_SEC=5\n")
+        r = self.live("start", "--confirm", "START REAL")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        env = self.stub_calls("run")[0]["env"]
+        self.assertEqual(env["MM_FILL_FEED_REQUIRED"], "0")
+        self.assertEqual(env["MM_FILL_FEED_WAIT_SEC"], "5")
 
     def test_stop_kills_the_bot_then_cancels_on_mainnet_without_the_profile(self):
         self.start_shadow()

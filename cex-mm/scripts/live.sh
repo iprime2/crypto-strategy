@@ -150,6 +150,25 @@ exec_bot() {
   esac
 }
 
+# The MM_ lines that change how a run quotes, sorted, for the profile-vs-shadow comparison.
+quoting_settings() { { grep -E '^MM_' "$1" || true; } | { grep -vE '^MM_FILL_FEED_' || true; } | sort; }
+
+# Kill a bot that is still starting, write the failed-start marker and cancel. Exits 1.
+failed_start() {
+  local run="$1" pid="$2" why="$3" i
+  if alive "$pid"; then
+    kill -TERM "$pid" 2>/dev/null || true
+    for ((i = 0; i < 50; i++)); do alive "$pid" || break; sleep 0.1; done
+    alive "$pid" && kill -KILL "$pid" 2>/dev/null || true
+  fi
+  echo "live.sh: $why; last log lines:" >&2
+  tail -20 "$run/bot.log" >&2
+  echo "failed start at $(date -u +%FT%TZ): $why" >"$run/stopped" || echo "live.sh: could not write the stopped marker" >&2
+  # It may have placed orders before dying; cancel them rather than wait for the dead man's switch.
+  clean_env cancel "$SYMBOLS" >&2 9>&- || echo "live.sh: CANCEL FAILED after the failed start; check the venue" >&2
+  exit 1
+}
+
 clean_env() {
   env -i HOME="$HOME" PATH="/usr/bin:/bin" LIVE_ENV_FILE="$ENV_FILE" LIVE_INTERNAL_EXEC=1 \
     "$ROOT/scripts/live.sh" _exec "$@"
@@ -177,9 +196,10 @@ start() {
       || die "the shadow dry-run runs a different mm-bot build than $BIN; restart the shadow first (systemctl --user restart cex-mm-shadow) or set LIVE_ALLOW_BINARY_MISMATCH=1"
     echo "warning: the shadow dry-run runs a different mm-bot build (LIVE_ALLOW_BINARY_MISMATCH=1)"
   fi
-  # The comparison assumes the shadow quotes with the same settings.
+  # The comparison assumes the shadow quotes with the same settings. The fills-feed knobs change nothing in a
+  # dry-run (it has no private feed), so they may differ: that is how a live start waives the feed check.
   if [[ -f "$SHADOW_CURRENT/config.txt" ]] \
-    && ! diff -q <(grep -E '^MM_' "$PROFILE" | sort) <(grep -E '^MM_' "$SHADOW_CURRENT/config.txt" | sort) >/dev/null; then
+    && ! diff -q <(quoting_settings "$PROFILE") <(quoting_settings "$SHADOW_CURRENT/config.txt") >/dev/null; then
     [[ "${LIVE_ALLOW_PROFILE_MISMATCH:-}" == 1 ]] \
       || die "the shadow runs with different MM_ settings than $PROFILE; restart the shadow first or set LIVE_ALLOW_PROFILE_MISMATCH=1"
     echo "warning: the shadow runs with different MM_ settings (LIVE_ALLOW_PROFILE_MISMATCH=1)"
@@ -215,23 +235,26 @@ start() {
   echo "REAL-MONEY bot starting: $SYMBOLS on Delta mainnet, run $run"
 
   # The pid is the launcher until it execs mm-bot, so wait on the pid itself, not on is_bot. The last startup
-  # step is the private fills feed: the bot exits if the venue does not confirm it (MM_FILL_FEED_WAIT_SEC, 20 s).
-  local i wait_s="${LIVE_START_WAIT_S:-30}" lpid ready="delta fills feed (confirmed|not confirmed; starting anyway)"
+  # step is the private fills feed: the bot exits if the venue does not confirm it within MM_FILL_FEED_WAIT_SEC
+  # (20 s), so wait that long plus 25 s for the steps before it. Only the runner's own line counts (anchored to
+  # the line start, so a venue reason quoted in another line cannot pass for it).
+  local i wait_s feed_wait lpid
+  local ready='^([^ ]+ +)?(INFO|WARN) mm_bot::runner: delta fills feed (confirmed|not confirmed; starting anyway)'
+  feed_wait="$( { grep -E '^MM_FILL_FEED_WAIT_SEC=' "$PROFILE" || true; } | tail -n 1 | cut -d= -f2-)"
+  [[ "$feed_wait" =~ ^[0-9]+(\.[0-9]*)?$ ]] && feed_wait=$((10#${feed_wait%%.*} + 1)) || feed_wait=20
+  ((feed_wait <= 600)) || feed_wait=600
+  wait_s="${LIVE_START_WAIT_S:-$((feed_wait + 25))}"
+  [[ "$wait_s" =~ ^[0-9]+$ ]] || wait_s=$((feed_wait + 25))
   lpid="$(bot_pid)"
   for ((i = 0; i < wait_s * 5; i++)); do
     grep -qE "$ready" "$run/bot.log" && break
     alive "$lpid" || break
     sleep 0.2
   done
-  if ! is_bot "$lpid"; then
-    echo "live.sh: the bot exited during startup; last log lines:" >&2
-    tail -20 "$run/bot.log" >&2
-    echo "failed start at $(date -u +%FT%TZ)" >"$run/stopped" || echo "live.sh: could not write the stopped marker" >&2
-    # It may have placed orders before dying; cancel them rather than wait for the dead man's switch.
-    clean_env cancel "$SYMBOLS" >&2 9>&- || echo "live.sh: CANCEL FAILED after the failed start; check the venue" >&2
-    exit 1
-  fi
-  grep -qE "$ready" "$run/bot.log" || echo "warning: no 'delta fills feed' line after ${wait_s} s; check the log"
+  is_bot "$lpid" || failed_start "$run" "$lpid" "the bot exited during startup"
+  # Nothing is quoted before the verdict, so a bot still without one is a failed start, not a slow one.
+  grep -qE "$ready" "$run/bot.log" \
+    || failed_start "$run" "$lpid" "no fills-feed verdict from the bot after ${wait_s} s (LIVE_START_WAIT_S)"
   exec 9>&- # the bot is up: let a stop in, the rest is read-only
   status
 }
@@ -296,7 +319,7 @@ status() {
     echo "  Not restarted automatically. Last errors:"
     { grep -E "ERROR|WARN|panicked" "$run/bot.log" || true; } | tail -5 | sed 's/^/    /'
   fi
-  # One pass over the last 64 MB (about 11 h of log), not the whole never-rotated file.
+  # One pass over the last 64 MB (about 10 h of log), not the whole never-rotated file.
   tail -c 67108864 "$run/bot.log" | awk -v full="$(stat -c %s "$run/bot.log")" '
     /MM_METRICS/ { last = $0; when = substr($0, 1, 27) }
     /MM_ORDER/ { orders++ }
