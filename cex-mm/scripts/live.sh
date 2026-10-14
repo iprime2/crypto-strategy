@@ -214,11 +214,12 @@ start() {
   echo $! >"$run/bot.pid"
   echo "REAL-MONEY bot starting: $SYMBOLS on Delta mainnet, run $run"
 
-  # The pid is the launcher until it execs mm-bot, so wait on the pid itself, not on is_bot.
-  local i wait_s="${LIVE_START_WAIT_S:-30}" lpid
+  # The pid is the launcher until it execs mm-bot, so wait on the pid itself, not on is_bot. The last startup
+  # step is the private fills feed: the bot exits if the venue does not confirm it (MM_FILL_FEED_WAIT_SEC, 20 s).
+  local i wait_s="${LIVE_START_WAIT_S:-30}" lpid ready="delta fills feed (confirmed|not confirmed; starting anyway)"
   lpid="$(bot_pid)"
   for ((i = 0; i < wait_s * 5; i++)); do
-    grep -q "account guards on" "$run/bot.log" && break
+    grep -qE "$ready" "$run/bot.log" && break
     alive "$lpid" || break
     sleep 0.2
   done
@@ -230,7 +231,7 @@ start() {
     clean_env cancel "$SYMBOLS" >&2 9>&- || echo "live.sh: CANCEL FAILED after the failed start; check the venue" >&2
     exit 1
   fi
-  grep -q "account guards on" "$run/bot.log" || echo "warning: no 'account guards on' line after ${wait_s} s; check the log"
+  grep -qE "$ready" "$run/bot.log" || echo "warning: no 'delta fills feed' line after ${wait_s} s; check the log"
   exec 9>&- # the bot is up: let a stop in, the rest is read-only
   status
 }

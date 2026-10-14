@@ -31,6 +31,10 @@ case "$1" in
   run)
     if [[ -f "$root/run_fails" ]]; then echo "ERROR leverage guard: mainnet start refused"; exit 1; fi
     echo "INFO mm_bot::runner: account guards on"
+    if [[ -f "$root/feed_refused" ]]; then
+      echo "Error: delta fills feed not confirmed within 20 s (subscription refused: Unauthorized user)"; exit 1
+    fi
+    echo "INFO mm_bot::runner: delta fills feed confirmed"
     echo '2026-10-12T12:57:54.189191Z  INFO MM_METRICS: {"symbol":"ADAUSDT","bid":0.24809,"ask":0.24834,"inventory":0.0,"ts_ms":1}'
     echo 'INFO MM_ORDER: placed post-only symbol=ADAUSDT side="buy" price=0.24793 qty=200.0'
     while :; do sleep 0.2; done ;;
@@ -300,7 +304,7 @@ class LiveSh(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         pid = self.bot_pid()
         self.assertTrue(self.alive(pid))
-        self.assertNotIn("no 'account guards on' line", r.stdout)
+        self.assertNotIn("no 'delta fills feed' line", r.stdout)
         runs = self.stub_calls("run")
         self.assertEqual(len(runs), 1)
         call = runs[0]
@@ -346,6 +350,16 @@ class LiveSh(unittest.TestCase):
         cancels = self.stub_calls("cancel-all")
         self.assertEqual(len(cancels), 1)
         self.assertEqual(cancels[0]["argv"], "cancel-all --venue delta --env mainnet --symbol ADAUSDT")
+
+    def test_a_start_without_the_fills_feed_fails_cancels_and_says_why(self):
+        # 13 Oct 2026: the bot quoted for 2.6 h with no fill ever arriving over the private feed.
+        self.start_shadow()
+        (self.root / "feed_refused").write_text("")
+        r = self.live("start", "--confirm", "START REAL")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("exited during startup", r.stderr)
+        self.assertIn("Unauthorized user", r.stderr)
+        self.assertEqual(len(self.stub_calls("cancel-all")), 1)
 
     def test_stop_kills_the_bot_then_cancels_on_mainnet_without_the_profile(self):
         self.start_shadow()

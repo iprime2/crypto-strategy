@@ -10,7 +10,7 @@ pub use book::{BookFeed, DeltaBook, OrderbookMaintainer};
 pub use products::{delta_product_symbol, mm_symbol_from_delta, ProductCatalog};
 pub use rest::{funding_carry_bps, DeltaRest, FillRole};
 pub use ticker::{parse_ticker, spawn_ticker_poller, TickerPoller, TickerSnapshot};
-pub use ws::DeltaPrivateWs;
+pub use ws::{DeltaPrivateWs, PrivateFeedState, PrivateWsTimings};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DeltaEnvironment {

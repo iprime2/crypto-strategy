@@ -193,20 +193,26 @@ pub async fn run_delta(args: RunArgs, dry_run: bool) -> Result<()> {
         let map = exec_map.clone();
         let syms = symbols.clone();
         let prod = products_fill;
+        let (feed_tx, feed_rx) = watch::channel(mm_delta::PrivateFeedState::default());
         tokio::spawn(async move {
             let ws = mm_delta::DeltaPrivateWs {
                 env: delta_env,
                 creds: c,
             };
-            let _ = ws
-                .run_user_trades(&syms, move |delta_sym, row| {
-                    let mm_sym = normalize_symbol(&mm_delta::mm_symbol_from_delta(delta_sym));
-                    let Ok(guard) = map.lock() else { return };
-                    let Some(ctx) = guard.get(&mm_sym) else { return };
-                    handle_delta_fill_row(row, &prod, &mm_sym, &ctx.economics, &ctx.markout, &ctx.economics_path, &ctx.snipe, &ctx.last_jump);
-                })
-                .await;
+            ws.run_user_trades(&syms, feed_tx, move |delta_sym, row| {
+                let mm_sym = normalize_symbol(&mm_delta::mm_symbol_from_delta(delta_sym));
+                let Ok(guard) = map.lock() else { return };
+                let Some(ctx) = guard.get(&mm_sym) else { return };
+                handle_delta_fill_row(row, &prod, &mm_sym, &ctx.economics, &ctx.markout, &ctx.economics_path, &ctx.snipe, &ctx.last_jump);
+            })
+            .await;
         });
+        require_fill_feed(
+            feed_rx,
+            Duration::from_secs_f64(env_f64_global("MM_FILL_FEED_WAIT_SEC", 20.0).max(1.0)),
+            std::env::var("MM_FILL_FEED_REQUIRED").map(|v| v.trim() != "0").unwrap_or(true),
+        )
+        .await?;
     }
 
     let mut tasks = JoinSet::new();
@@ -352,6 +358,38 @@ fn persist_economics(path: &PathBuf, eco: &FillEconomics) -> Result<()> {
 
 fn economics_path_for(symbol: &str) -> PathBuf {
     PathBuf::from(format!("artifacts/economics/{}.json", normalize_symbol(symbol)))
+}
+
+/// Live start check. Without the private fill feed, inventory is only corrected by the venue reconcile
+/// every few seconds: on 13 Oct 2026 no fill arrived over the feed for a whole live run, and the cap
+/// overshot to -811 against 600. A live run therefore waits for the venue to confirm the subscription.
+async fn require_fill_feed(
+    mut feed: watch::Receiver<mm_delta::PrivateFeedState>,
+    wait: Duration,
+    required: bool,
+) -> Result<()> {
+    let confirmed = matches!(
+        tokio::time::timeout(wait, feed.wait_for(|s| s.subscribed)).await,
+        Ok(Ok(_))
+    );
+    if confirmed {
+        tracing::info!("delta fills feed confirmed");
+        return Ok(());
+    }
+    let why = feed
+        .borrow()
+        .last_error
+        .clone()
+        .unwrap_or_else(|| "no reply from the venue".into());
+    if !required {
+        tracing::warn!(reason = %why, "delta fills feed not confirmed; starting anyway (MM_FILL_FEED_REQUIRED=0)");
+        return Ok(());
+    }
+    anyhow::bail!(
+        "delta fills feed not confirmed within {} s ({why}); fills would reach the bot only through the venue \
+         reconcile. Fix the login, or set MM_FILL_FEED_REQUIRED=0 to start anyway",
+        wait.as_secs()
+    )
 }
 
 /// Exchange is source of truth for open size; keeps economics + quoting in sync when WS fills lag.
@@ -1506,5 +1544,39 @@ fn handle_execution_row(
         .unwrap_or(u64::MAX);
     if let Ok(mut s) = snipe.lock() {
         s.record_fill(ms);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn a_live_start_waits_for_the_fills_feed() {
+        let (tx, rx) = watch::channel(mm_delta::PrivateFeedState::default());
+        tokio::spawn(async move {
+            tokio::time::sleep(Duration::from_millis(50)).await;
+            tx.send_modify(|s| s.subscribed = true);
+            tokio::time::sleep(Duration::from_secs(5)).await; // keep the sender alive
+        });
+        require_fill_feed(rx, Duration::from_secs(2), true).await.expect("confirmed in time");
+    }
+
+    #[tokio::test]
+    async fn a_live_start_refuses_without_the_fills_feed_and_says_why() {
+        let (tx, rx) = watch::channel(mm_delta::PrivateFeedState::default());
+        tx.send_modify(|s| {
+            s.last_error = Some("subscription refused: subscription forbidden on this channel. Unauthorized user".into())
+        });
+        let err = require_fill_feed(rx, Duration::from_millis(100), true).await.unwrap_err().to_string();
+        assert!(err.contains("Unauthorized user"), "{err}");
+        assert!(err.contains("MM_FILL_FEED_REQUIRED=0"), "{err}");
+        drop(tx);
+    }
+
+    #[tokio::test]
+    async fn the_check_can_be_waived() {
+        let (_tx, rx) = watch::channel(mm_delta::PrivateFeedState::default());
+        require_fill_feed(rx, Duration::from_millis(50), false).await.expect("waived");
     }
 }
