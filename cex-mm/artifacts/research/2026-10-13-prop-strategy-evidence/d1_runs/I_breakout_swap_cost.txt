@@ -1,0 +1,14 @@
+Breakout in-evaluation swap 0.033%/day x gross held at 00:00 UTC (addendum, help-center figure, not read on page).
+Series: hourly_lo_tv40.csv gross column at native TV 0.40 (k=1); scale by k for TV 0.30 (k=0.75) / TV 0.20 (k=0.5).
+days 2344  mean gross@00:00 0.198x  swap/yr of equity: k=1 2.38%  k=0.75 1.79%  k=0.5 1.19%
+  2020: days 245  mean gross 0.306x  swap/yr k=1 3.69%  k=0.75 2.76%  k=0.5 1.84%
+  2021: days 365  mean gross 0.175x  swap/yr k=1 2.11%  k=0.75 1.58%  k=0.5 1.06%
+  2022: days 365  mean gross 0.050x  swap/yr k=1 0.60%  k=0.75 0.45%  k=0.5 0.30%
+  2023: days 365  mean gross 0.296x  swap/yr k=1 3.57%  k=0.75 2.67%  k=0.5 1.78%
+  2024: days 366  mean gross 0.242x  swap/yr k=1 2.91%  k=0.75 2.18%  k=0.5 1.46%
+  2025: days 365  mean gross 0.210x  swap/yr k=1 2.54%  k=0.75 1.90%  k=0.5 1.27%
+  2026: days 273  mean gross 0.120x  swap/yr k=1 1.45%  k=0.75 1.09%  k=0.5 0.72%
+flat days (gross=0 at 00:00): 399 (17.0%)
+gross@00:00 quantiles k=1: p50 0.146 p90 0.509 p99 0.710 max 0.874
+Comparison with the backtest's modelled costs (evidence pack, TV 0.40): fees 1.1%/yr at 7.31 bps/side => implied one-way turnover 15.0x equity/yr => at Breakout's 0.04%/side 0.60%/yr; Binance funding paid 3.4%/yr vs swap 2.38%/yr.
+Backtest cost basis 4.5%/yr vs Breakout 3.0%/yr at TV 0.40 (scale by k): simulator is ~1.1%/yr conservative at TV 0.30 and ~0.75%/yr at TV 0.20 before unknown terminal slippage. [SYNTHETIC]

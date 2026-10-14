@@ -1,0 +1,18 @@
+
+=== binance  2020-05-01 .. 2026-10-12  coins: BTC, ETH, XRP, BNB, ADA, LTC, LINK, DOGE, BCH
+trend long-only                    CAGR  +24.2%  vol  19%  Sharpe  1.25  maxDD -21.9%  fees/yr 1.1%  funding/yr +3.4%  avg gross 0.20x
+    by year: 2020:+53%  2021:+47%  2022:-5%  2023:+16%  2024:+47%  2025:+3%  2026:+8%
+trend long/short                   CAGR  +17.5%  vol  24%  Sharpe  0.78  maxDD -36.6%  fees/yr 2.3%  funding/yr +3.1%  avg gross 0.39x
+    by year: 2020:+41%  2021:+36%  2022:-3%  2023:-7%  2024:+29%  2025:-1%  2026:+28%
+buy & hold, equal weight           CAGR  +61.5%  vol  75%  Sharpe  1.01  maxDD -80.2%  fees/yr 0.0%  funding/yr +0.0%  avg gross 1.00x
+    by year: 2020:+157%  2021:+608%  2022:-63%  2023:+102%  2024:+120%  2025:-17%  2026:-14%
+
+=== delta  2020-05-01 .. 2026-10-12  coins: BTC, ETH, XRP, BNB, ADA, LTC, LINK, DOGE, BCH
+trend long-only                    CAGR   +9.8%  vol  15%  Sharpe  0.70  maxDD -14.1%  fees/yr 1.1%  funding/yr +1.7%  avg gross 0.17x
+    by year: 2023:+0%  2024:+23%  2025:+3%  2026:+3%
+trend long/short                   CAGR  +12.6%  vol  24%  Sharpe  0.62  maxDD -21.6%  fees/yr 2.4%  funding/yr +0.3%  avg gross 0.38x
+    by year: 2023:+0%  2024:+13%  2025:-2%  2026:+26%
+buy & hold, equal weight           CAGR  +14.6%  vol  61%  Sharpe  0.53  maxDD -66.3%  fees/yr 0.0%  funding/yr +0.0%  avg gross 1.00x
+    by year: 2023:+0%  2024:+123%  2025:-17%  2026:-21%
+
+long-only daily returns, Binance vs Delta over the same 1018 days: correlation -0.036

@@ -1,0 +1,21 @@
+--- Breakout S_b k0.5 ds1.5 bootstrap, payout rule reset
+bootstrap: 3000 paths x 365 days, mean block 20 d, series 2344 days, base Sharpe 1.29 base vol 19%
+rules: target 10%, daily DD 3%, max DD 6% static, day stop 0.015, fee $999 acct $100,000 split 80%; payout rule reset; cap none; inactivity none d; consistency 0.4; refund False; nonpay 0.15; balance-ref False; trailing-daily False; delever 0.0
+ lev   vol |   pass <=180d dailyDD  maxDD  inact   open | med d p90 d | surv12m P(>=1 pay)  E[pay] med pay       EV EV refund EV nonpay | cons viol
+0.35    7% |  48.7%  23.1%    0.0%   6.6%   0.0%  44.7% |   190   321 |   81.8%      98.1%   8.86%   7.97%    3,318     3,318     2,670 |      0.0%
+0.50   10% |  63.3%  39.9%    0.0%  14.8%   0.0%  22.0% |   139   296 |   63.1%      95.8%  12.21%  10.75%    6,725     6,725     5,566 |      0.0%
+0.75   15% |  64.6%  49.3%    6.3%  22.6%   0.0%   6.5% |    95   251 |   24.4%      84.1%  11.14%   7.39%    6,199     6,199     5,119 |      6.8%
+--- Breakout S_b k0.5 ds1.5 bootstrap, payout rule hwm
+bootstrap: 3000 paths x 365 days, mean block 20 d, series 2344 days, base Sharpe 1.29 base vol 19%
+rules: target 10%, daily DD 3%, max DD 6% static, day stop 0.015, fee $999 acct $100,000 split 80%; payout rule hwm; cap none; inactivity none d; consistency 0.4; refund False; nonpay 0.15; balance-ref False; trailing-daily False; delever 0.0
+ lev   vol |   pass <=180d dailyDD  maxDD  inact   open | med d p90 d | surv12m P(>=1 pay)  E[pay] med pay       EV EV refund EV nonpay | cons viol
+0.35    7% |  48.7%  23.1%    0.0%   6.6%   0.0%  44.7% |   190   321 |   89.0%      91.6%   8.40%   7.04%    3,096     3,096     2,482 |      0.0%
+0.50   10% |  63.3%  39.9%    0.0%  14.8%   0.0%  22.0% |   139   296 |   73.4%      89.5%  12.27%  10.22%    6,763     6,763     5,599 |      0.0%
+0.75   15% |  64.6%  49.3%    6.3%  22.6%   0.0%   6.5% |    95   251 |   28.9%      78.5%  11.43%   7.07%    6,384     6,384     5,276 |      6.8%
+--- Breakout S_b k0.5 ds1.5 bootstrap, payout rule sweep
+bootstrap: 3000 paths x 365 days, mean block 20 d, series 2344 days, base Sharpe 1.29 base vol 19%
+rules: target 10%, daily DD 3%, max DD 6% static, day stop 0.015, fee $999 acct $100,000 split 80%; payout rule sweep; cap none; inactivity none d; consistency 0.4; refund False; nonpay 0.15; balance-ref False; trailing-daily False; delever 0.0
+ lev   vol |   pass <=180d dailyDD  maxDD  inact   open | med d p90 d | surv12m P(>=1 pay)  E[pay] med pay       EV EV refund EV nonpay | cons viol
+0.35    7% |  48.7%  23.1%    0.0%   6.6%   0.0%  44.7% |   190   321 |   87.2%      91.6%   7.02%   6.05%    2,422     2,422     1,909 |      0.0%
+0.50   10% |  63.3%  39.9%    0.0%  14.8%   0.0%  22.0% |   139   296 |   67.8%      89.5%  10.10%   8.60%    5,389     5,389     4,431 |      0.0%
+0.75   15% |  64.6%  49.3%    6.3%  22.6%   0.0%   6.5% |    95   251 |   23.1%      78.5%   9.36%   6.34%    5,048     5,048     4,141 |      6.8%

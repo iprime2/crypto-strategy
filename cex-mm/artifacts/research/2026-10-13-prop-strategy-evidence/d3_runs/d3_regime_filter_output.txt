@@ -1,0 +1,16 @@
+--- regime filter test: args=''
+2020-05-01..2026-10-12 looks=(20, 60, 120) tv=0.4 long-only volfilter=None btcfilter=False
+  days 2344  CAGR +24.2%  vol 19%  Sharpe 1.25  maxDD(daily) -21.9%  maxDD(hourly) -22.6%  fees/yr 1.1%  funding/yr +3.4%  hours 56256
+  by year: 2020:+53%  2021:+47%  2022:-5%  2023:+16%  2024:+47%  2025:+3%  2026:+8%
+--- regime filter test: args='--btc-filter'
+2020-05-01..2026-10-12 looks=(20, 60, 120) tv=0.4 long-only volfilter=None btcfilter=True
+  days 2344  CAGR +23.5%  vol 18%  Sharpe 1.25  maxDD(daily) -25.9%  maxDD(hourly) -26.6%  fees/yr 1.0%  funding/yr +3.4%  hours 56256
+  by year: 2020:+53%  2021:+37%  2022:+0%  2023:+12%  2024:+48%  2025:+3%  2026:+9%
+--- regime filter test: args='--vol-filter 0.90'
+2020-05-01..2026-10-12 looks=(20, 60, 120) tv=0.4 long-only volfilter=0.9 btcfilter=False
+  days 2344  CAGR +20.0%  vol 18%  Sharpe 1.09  maxDD(daily) -21.9%  maxDD(hourly) -22.5%  fees/yr 1.1%  funding/yr +3.0%  hours 56256
+  by year: 2020:+53%  2021:+18%  2022:-5%  2023:+16%  2024:+47%  2025:+3%  2026:+8%
+--- regime filter test: args='--vol-filter 0.70'
+2020-05-01..2026-10-12 looks=(20, 60, 120) tv=0.4 long-only volfilter=0.7 btcfilter=False
+  days 2344  CAGR +20.5%  vol 17%  Sharpe 1.18  maxDD(daily) -20.5%  maxDD(hourly) -20.7%  fees/yr 1.1%  funding/yr +2.4%  hours 56256
+  by year: 2020:+49%  2021:+27%  2022:-6%  2023:+16%  2024:+44%  2025:+3%  2026:+8%

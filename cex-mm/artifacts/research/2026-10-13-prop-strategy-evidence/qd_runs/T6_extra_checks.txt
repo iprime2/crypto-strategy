@@ -1,0 +1,30 @@
+=== T6a. Edge-decay null: rolling 24-month (730 d) Sharpe, design rule vs vol-scaled always-long 9-coin basket (same TV, cadence, costs) ===
+  basket full-sample: CAGR +22.4% vol 23.0% Sharpe 0.99
+  windows: 1615 days with a 24-month history (2022-04-30..2026-09-30); rule < basket on 58.8% of days; rule 24m return <= 0 on 14.4% of days
+  rule rolling 24m Sharpe: min -0.80 (2023-05-11) median 0.75 max 1.83; basket: min -0.35 median 0.97 max 1.80
+  month-end snapshots (rule 24m Sharpe / basket 24m Sharpe / rule 24m return / kill?):
+   2022-06: 1.81/1.31/+71%  2022-09: 1.47/1.13/+48%  2022-12: 0.94/0.60/+25%  2023-03: 0.28/0.26/+5%  2023-06: -0.31/0.07/-6% KILL  2023-09: -0.39/-0.10/-7% KILL  2023-12: 0.35/0.47/+6% KILL  2024-03: 0.77/0.92/+18% KILL  2024-06: 0.64/1.25/+15% KILL  2024-09: 0.64/1.07/+15% KILL  2024-12: 1.37/1.68/+40% KILL  2025-03: 1.19/1.23/+31% KILL  2025-06: 1.32/1.33/+35% KILL  2025-09: 1.46/1.63/+45% KILL  2025-12: 0.95/0.90/+25%  2026-03: 0.56/0.22/+11%  2026-06: 0.69/0.04/+14%  2026-09: 0.98/0.67/+22%
+  D3's original kill (24m return <= 0 while BTC 24m return > 0): fires on 1 days of 1615
+
+=== T6b. Tax split (VDA 30% on gross gains, no loss set-off) for the design line, per year ===
+  year |     net | per coin-DAY:   gains  losses after-tax | per coin-SEGMENT (held between trades):   gains  losses after-tax
+  2020 |  +26.9% |   95.1%  -68.2%     -1.6% |   42.4%  -15.5%    +14.2%
+  2021 |  +30.6% |  127.2%  -96.6%     -7.6% |   57.7%  -27.1%    +13.3%
+  2022 |   -6.8% |   17.4%  -24.1%    -12.0% |    3.6%  -10.4%     -7.9%
+  2023 |  +13.8% |   86.0%  -72.2%    -12.0% |   28.8%  -15.0%     +5.2%
+  2024 |  +22.4% |   99.9%  -77.5%     -7.6% |   43.4%  -21.0%     +9.4%
+  2025 |   +2.8% |   60.4%  -57.7%    -15.4% |   18.3%  -15.5%     -2.7%
+  2026 |   +1.5% |   19.5%  -18.0%     -4.3% |    7.9%   -6.4%     -0.8%
+
+=== T6c. Inactivity and trade gaps (design line) ===
+  days flat at 00:00 (gross 0): 381 of 2344 (16.3%); longest flat streaks: 105d 2022-04-11..2022-07-24, 70d 2022-01-17..2022-03-27, 49d 2026-06-08..2026-07-26, 42d 2026-03-02..2026-04-12, 14d 2026-02-02..2026-02-15
+  trade days: 289; longest gaps between any trade: 105d 2022-04-11->2022-07-25, 70d 2022-01-17->2022-03-28, 49d 2026-06-08->2026-07-27, 42d 2026-03-02->2026-04-13, 21d 2025-03-17->2025-04-07; gaps > 30 d: 4
+  trades/yr (orders): 192
+
+=== T6d. Plumbing kill: modelled cost per 30 days on the design line ===
+  fees/yr 0.25% + funding/yr +2.11% -> modelled cost per 30 days 0.194% of equity; 2x threshold 0.388% = $3.88 on $1,000, $19.38 on $5,000
+  30-day sd of the design's own return 3.6%: a tracking kill at 0.39% is 0.11 sd of a month's PnL; rounding noise at $1,000 (T5) is of the same order as the threshold
+
+=== T6e. Rolling 12-month Sharpe of the design line (how often it sits below the design's own forward range 0.5-0.9) ===
+  12m Sharpe: < 0 on 33.0% of days, < 0.5 on 45.5%, > 0.9 on 46.3%; min -2.00 (2022-11-09) max 3.45
+  26-week Sharpe (D3's live gate length): < 0 on 46.0% of days, sd across windows 1.78, range [-3.89, 4.58]

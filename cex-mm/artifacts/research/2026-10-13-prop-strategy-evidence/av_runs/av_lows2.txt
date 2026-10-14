@@ -1,0 +1,15 @@
+2344 days, native TV 0.40 daily rule; Breakout 3% daily limit, 1.5% stop checked at hourly closes, intra-hour LOW path = every coin at its hourly low
+  k=0.35: 3% breach days at hourly-CLOSE resolution  0 | with intra-hour LOWS  3 | stop trips  15 (2.3/yr), mean fill -1.62%, worst fill -1.90%
+      low-path breach days: 2020-08-02 h4 -4.03%, 2024-03-05 h19 -4.07%, 2025-10-10 h21 -4.46%
+  k=0.40: 3% breach days at hourly-CLOSE resolution  0 | with intra-hour LOWS  4 | stop trips  21 (3.3/yr), mean fill -1.72%, worst fill -2.17%
+      low-path breach days: 2020-08-02 h4 -4.61%, 2020-11-26 h3 -3.09%, 2024-03-05 h19 -4.66%, 2025-10-10 h21 -5.10%
+  k=0.45: 3% breach days at hourly-CLOSE resolution  0 | with intra-hour LOWS  7 | stop trips  32 (5.0/yr), mean fill -1.69%, worst fill -2.44%
+      low-path breach days: 2020-08-02 h4 -5.19%, 2020-11-26 h3 -3.48%, 2021-04-18 h3 -3.18%, 2023-12-11 h2 -3.23%, 2024-01-03 h12 -3.21%, 2024-03-05 h19 -5.24%, 2025-10-10 h21 -5.73%
+  k=0.50: 3% breach days at hourly-CLOSE resolution  0 | with intra-hour LOWS  6 | stop trips  36 (5.6/yr), mean fill -1.74%, worst fill -2.71%
+      low-path breach days: 2020-08-02 h4 -5.76%, 2020-11-26 h3 -3.87%, 2021-04-18 h3 -3.53%, 2023-12-11 h2 -3.58%, 2024-01-03 h12 -3.56%, 2025-10-10 h21 -6.37%
+  k=0.55: 3% breach days at hourly-CLOSE resolution  0 | with intra-hour LOWS  7 | stop trips  42 (6.5/yr), mean fill -1.74%, worst fill -2.20%
+      low-path breach days: 2020-08-02 h4 -6.34%, 2020-11-26 h3 -4.25%, 2021-02-23 h8 -3.02%, 2021-04-18 h3 -3.89%, 2023-12-11 h2 -3.94%, 2024-01-03 h12 -3.92%, 2025-10-10 h21 -7.01%
+  k=0.60: 3% breach days at hourly-CLOSE resolution  0 | with intra-hour LOWS  8 | stop trips  57 (8.9/yr), mean fill -1.71%, worst fill -2.41%
+      low-path breach days: 2020-08-02 h4 -6.92%, 2020-09-02 h11 -3.15%, 2020-11-26 h3 -4.64%, 2021-01-11 h3 -3.18%, 2021-04-18 h3 -4.24%, 2023-12-11 h2 -4.30%, 2024-01-03 h12 -4.28%, 2025-10-10 h21 -7.64%
+  k=0.75: 3% breach days at hourly-CLOSE resolution  0 | with intra-hour LOWS 19 | stop trips  80 (12.5/yr), mean fill -1.72%, worst fill -2.33%
+      low-path breach days: 2020-08-02 h4 -8.64%, 2020-08-07 h17 -3.73%, 2020-09-02 h11 -3.94%, 2020-11-26 h3 -5.80%, 2020-12-01 h12 -3.64%, 2021-01-11 h3 -3.98%, 2021-04-18 h3 -5.30%, 2021-04-23 h2 -3.36%, 2021-05-10 h20 -3.59%, 2021-05-12 h23 -3.46%

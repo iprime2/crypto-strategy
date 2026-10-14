@@ -1,0 +1,14 @@
+hourly_daily_tv40_breakout.csv k=0.5: 1979 windows; overall pass 52.7% dailyDD 0.0% maxDD 3.3% open 44.1%
+  start 2020H1: n= 61 pass 100.0% maxDD-bust  0.0% dailyDD 0.0% open@365d  0.0%
+  start 2020H2: n=184 pass 100.0% maxDD-bust  0.0% dailyDD 0.0% open@365d  0.0%
+  start 2021H1: n=181 pass 55.2% maxDD-bust  0.0% dailyDD 0.0% open@365d 44.8%
+  start 2021H2: n=184 pass  0.0% maxDD-bust  6.5% dailyDD 0.0% open@365d 93.5%
+  start 2022H1: n=181 pass  0.0% maxDD-bust  0.0% dailyDD 0.0% open@365d 100.0%
+  start 2022H2: n=184 pass  0.5% maxDD-bust  1.1% dailyDD 0.0% open@365d 98.4%
+  start 2023H1: n=181 pass 67.4% maxDD-bust  1.1% dailyDD 0.0% open@365d 31.5%
+  start 2023H2: n=184 pass 100.0% maxDD-bust  0.0% dailyDD 0.0% open@365d  0.0%
+  start 2024H1: n=182 pass 83.0% maxDD-bust 17.0% dailyDD 0.0% open@365d  0.0%
+  start 2024H2: n=184 pass 79.3% maxDD-bust  3.3% dailyDD 0.0% open@365d 17.4%
+  start 2025H1: n=181 pass 50.8% maxDD-bust  0.0% dailyDD 0.0% open@365d 49.2%
+  start 2025H2: n= 92 pass  1.1% maxDD-bust 13.0% dailyDD 0.0% open@365d 85.9%
+  pass indicator switches 30 times across 1979 consecutive start days -> effective independent windows ~30

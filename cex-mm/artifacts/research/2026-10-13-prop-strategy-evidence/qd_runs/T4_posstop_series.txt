@@ -1,0 +1,6 @@
+daily TV0.40 per-position stop 3%/gross (Delta costs) CAGR +21.1% vol 18.4% Sharpe  1.13 maxDD -18.5% hDD -19.2% fees/yr 1.65% fund/yr +3.32% swap/yr 0.00% gross avg 0.19x max 0.88x trades/yr  1766 worst -5.55% (2024-03-05) worst7d -9.50%
+    by year: 2020:+49.6%  2021:+42.7%  2022:-3.8%  2023:+13.0%  2024:+33.4%  2025:+3.2%  2026:+7.0%
+    per-position stops hit: 579 (90.2/yr)
+daily TV0.40 per-position stop 3%/gross (Breakout costs) CAGR +23.1% vol 18.5% Sharpe  1.22 maxDD -18.7% hDD -19.5% fees/yr 0.91% fund/yr +0.00% swap/yr 2.38% gross avg 0.19x max 0.88x trades/yr  1766 worst -5.41% (2024-03-05) worst7d -9.26%
+    by year: 2020:+55.4%  2021:+53.3%  2022:-4.1%  2023:+12.4%  2024:+35.7%  2025:+2.5%  2026:+6.6%
+    per-position stops hit: 579 (90.2/yr)

@@ -1,0 +1,135 @@
+
+[full] k=0.35 2020-05-01..2026-09-30 days=2344
+  CAGR +8.3%  vol 6.5%  Sharpe 1.26  maxDD daily -7.8%  hourly -8.1%  avg gross 0.07x
+  by year: 2020:+16.8%  2021:+15.1%  2022:-1.7%  2023:+5.8%  2024:+15.0%  2025:+1.3%  2026:+2.7%
+  daily sd 0.34%  worst days: 2021-05-19 -2.58%, 2020-11-26 -2.06%, 2020-09-03 -1.86%  best: 2024-11-11 +1.74%, 2024-03-02 +1.88%, 2020-11-21 +2.28%
+  intraday low < -1.0%: 46 days (7.2/yr); close < -1.0%: 33 days
+  intraday low < -1.5%: 19 days (3.0/yr); close < -1.5%: 9 days
+  intraday low < -2.0%: 4 days (0.6/yr); close < -2.0%: 2 days
+  intraday low < -3.0%: 2 days (0.3/yr); close < -3.0%: 0 days
+  intraday low < -4.0%: 0 days (0.0/yr); close < -4.0%: 0 days
+  best day as share of a 10% target: 23% (40% consistency rule needs < 40%); days > +4%: 0
+  +10% reached (no rules) from 71% of start days; median 320 d, p90 963 d
+
+[full] k=0.50 2020-05-01..2026-09-30 days=2344
+  CAGR +12.0%  vol 9.4%  Sharpe 1.25  maxDD daily -11.1%  hourly -11.5%  avg gross 0.10x
+  by year: 2020:+24.6%  2021:+22.0%  2022:-2.5%  2023:+8.2%  2024:+21.9%  2025:+1.7%  2026:+3.8%
+  daily sd 0.49%  worst days: 2021-05-19 -3.68%, 2020-11-26 -2.94%, 2020-09-03 -2.65%  best: 2024-11-11 +2.49%, 2024-03-02 +2.69%, 2020-11-21 +3.28%
+  intraday low < -1.0%: 99 days (15.4/yr); close < -1.0%: 60 days
+  intraday low < -1.5%: 42 days (6.5/yr); close < -1.5%: 30 days
+  intraday low < -2.0%: 23 days (3.6/yr); close < -2.0%: 13 days
+  intraday low < -3.0%: 4 days (0.6/yr); close < -3.0%: 1 days
+  intraday low < -4.0%: 2 days (0.3/yr); close < -4.0%: 0 days
+  best day as share of a 10% target: 33% (40% consistency rule needs < 40%); days > +4%: 0
+  +10% reached (no rules) from 74% of start days; median 200 d, p90 884 d
+
+[full] k=0.60 2020-05-01..2026-09-30 days=2344
+  CAGR +14.4%  vol 11.2%  Sharpe 1.25  maxDD daily -13.3%  hourly -13.8%  avg gross 0.12x
+  by year: 2020:+30.0%  2021:+26.8%  2022:-3.0%  2023:+9.8%  2024:+26.6%  2025:+1.9%  2026:+4.6%
+  daily sd 0.59%  worst days: 2021-05-19 -4.41%, 2020-11-26 -3.53%, 2020-09-03 -3.17%  best: 2024-11-11 +2.99%, 2024-03-02 +3.24%, 2020-11-21 +3.94%
+  intraday low < -1.0%: 132 days (20.6/yr); close < -1.0%: 80 days
+  intraday low < -1.5%: 67 days (10.4/yr); close < -1.5%: 42 days
+  intraday low < -2.0%: 39 days (6.1/yr); close < -2.0%: 24 days
+  intraday low < -3.0%: 9 days (1.4/yr); close < -3.0%: 5 days
+  intraday low < -4.0%: 4 days (0.6/yr); close < -4.0%: 1 days
+  best day as share of a 10% target: 39% (40% consistency rule needs < 40%); days > +4%: 0
+  +10% reached (no rules) from 78% of start days; median 166 d, p90 869 d
+
+[full] k=0.75 2020-05-01..2026-09-30 days=2344
+  CAGR +18.0%  vol 14.0%  Sharpe 1.25  maxDD daily -16.6%  hourly -17.1%  avg gross 0.15x
+  by year: 2020:+38.4%  2021:+34.1%  2022:-3.7%  2023:+12.1%  2024:+33.9%  2025:+2.3%  2026:+5.7%
+  daily sd 0.73%  worst days: 2021-05-19 -5.50%, 2020-11-26 -4.41%, 2020-09-03 -3.96%  best: 2024-11-11 +3.74%, 2024-03-02 +4.06%, 2020-11-21 +4.95%
+  intraday low < -1.0%: 190 days (29.6/yr); close < -1.0%: 108 days
+  intraday low < -1.5%: 99 days (15.4/yr); close < -1.5%: 60 days
+  intraday low < -2.0%: 56 days (8.7/yr); close < -2.0%: 38 days
+  intraday low < -3.0%: 23 days (3.6/yr); close < -3.0%: 13 days
+  intraday low < -4.0%: 5 days (0.8/yr); close < -4.0%: 2 days
+  best day as share of a 10% target: 49% (40% consistency rule needs < 40%); days > +4%: 2
+  +10% reached (no rules) from 80% of start days; median 158 d, p90 860 d
+
+[full] k=1.00 2020-05-01..2026-09-30 days=2344
+  CAGR +24.2%  vol 18.7%  Sharpe 1.25  maxDD daily -21.9%  hourly -22.6%  avg gross 0.20x
+  by year: 2020:+53.3%  2021:+47.0%  2022:-5.0%  2023:+15.9%  2024:+46.6%  2025:+2.7%  2026:+7.5%
+  daily sd 0.98%  worst days: 2021-05-19 -7.31%, 2020-11-26 -5.89%, 2020-09-03 -5.25%  best: 2024-11-11 +5.01%, 2024-03-02 +5.44%, 2020-11-21 +6.64%
+  intraday low < -1.0%: 284 days (44.2/yr); close < -1.0%: 152 days
+  intraday low < -1.5%: 159 days (24.8/yr); close < -1.5%: 91 days
+  intraday low < -2.0%: 99 days (15.4/yr); close < -2.0%: 61 days
+  intraday low < -3.0%: 42 days (6.5/yr); close < -3.0%: 30 days
+  intraday low < -4.0%: 23 days (3.6/yr); close < -4.0%: 13 days
+  best day as share of a 10% target: 66% (40% consistency rule needs < 40%); days > +4%: 12
+  +10% reached (no rules) from 90% of start days; median 146 d, p90 801 d
+
+[bear/chop 2022-23] k=0.50 2022-01-01..2023-12-31 days=730
+  CAGR +2.7%  vol 7.0%  Sharpe 0.42  maxDD daily -6.4%  hourly -6.6%  avg gross 0.09x
+  by year: 2022:-2.5%  2023:+8.2%
+  daily sd 0.37%  worst days: 2023-04-19 -2.32%, 2023-11-21 -2.13%, 2022-11-08 -1.99%  best: 2023-01-20 +1.81%, 2022-10-29 +1.82%, 2023-11-06 +1.88%
+  intraday low < -1.0%: 19 days (9.5/yr); close < -1.0%: 13 days
+  intraday low < -1.5%: 7 days (3.5/yr); close < -1.5%: 6 days
+  intraday low < -2.0%: 5 days (2.5/yr); close < -2.0%: 2 days
+  intraday low < -3.0%: 0 days (0.0/yr); close < -3.0%: 0 days
+  intraday low < -4.0%: 0 days (0.0/yr); close < -4.0%: 0 days
+  best day as share of a 10% target: 19% (40% consistency rule needs < 40%); days > +4%: 0
+  +10% reached (no rules) from 21% of start days; median 125 d, p90 199 d
+
+[recent 2025-26] k=0.50 2025-01-01..2026-09-30 days=638
+  CAGR +3.1%  vol 7.3%  Sharpe 0.46  maxDD daily -7.2%  hourly -7.8%  avg gross 0.09x
+  by year: 2025:+1.7%  2026:+3.8%
+  daily sd 0.38%  worst days: 2025-10-10 -2.55%, 2025-07-23 -1.96%, 2025-08-25 -1.65%  best: 2026-09-21 +1.71%, 2026-08-21 +2.24%, 2025-08-22 +2.35%
+  intraday low < -1.0%: 18 days (10.3/yr); close < -1.0%: 13 days
+  intraday low < -1.5%: 5 days (2.9/yr); close < -1.5%: 4 days
+  intraday low < -2.0%: 2 days (1.1/yr); close < -2.0%: 1 days
+  intraday low < -3.0%: 0 days (0.0/yr); close < -3.0%: 0 days
+  intraday low < -4.0%: 0 days (0.0/yr); close < -4.0%: 0 days
+  best day as share of a 10% target: 23% (40% consistency rule needs < 40%); days > +4%: 0
+  +10% reached (no rules) from 9% of start days; median 130 d, p90 152 d
+
+[2024] k=0.50 2024-01-01..2024-12-31 days=366
+  CAGR +21.8%  vol 10.7%  Sharpe 1.90  maxDD daily -8.7%  hourly -9.4%  avg gross 0.12x
+  by year: 2024:+21.9%
+  daily sd 0.56%  worst days: 2024-12-09 -2.54%, 2024-03-19 -2.45%, 2024-03-05 -2.35%  best: 2024-11-10 +2.23%, 2024-11-11 +2.49%, 2024-03-02 +2.69%
+  intraday low < -1.0%: 23 days (22.9/yr); close < -1.0%: 8 days
+  intraday low < -1.5%: 9 days (9.0/yr); close < -1.5%: 5 days
+  intraday low < -2.0%: 5 days (5.0/yr); close < -2.0%: 4 days
+  intraday low < -3.0%: 1 days (1.0/yr); close < -3.0%: 0 days
+  intraday low < -4.0%: 0 days (0.0/yr); close < -4.0%: 0 days
+  best day as share of a 10% target: 27% (40% consistency rule needs < 40%); days > +4%: 0
+  +10% reached (no rules) from 88% of start days; median 103 d, p90 244 d
+
+[bear/chop 2022-23] k=0.75 2022-01-01..2023-12-31 days=730
+  CAGR +3.9%  vol 10.5%  Sharpe 0.42  maxDD daily -9.6%  hourly -10.0%  avg gross 0.13x
+  by year: 2022:-3.7%  2023:+12.1%
+  daily sd 0.55%  worst days: 2023-04-19 -3.46%, 2023-11-21 -3.19%, 2022-11-08 -2.99%  best: 2023-01-20 +2.72%, 2022-10-29 +2.74%, 2023-11-06 +2.83%
+  intraday low < -1.0%: 36 days (18.0/yr); close < -1.0%: 22 days
+  intraday low < -1.5%: 19 days (9.5/yr); close < -1.5%: 13 days
+  intraday low < -2.0%: 10 days (5.0/yr); close < -2.0%: 7 days
+  intraday low < -3.0%: 5 days (2.5/yr); close < -3.0%: 2 days
+  intraday low < -4.0%: 0 days (0.0/yr); close < -4.0%: 0 days
+  best day as share of a 10% target: 28% (40% consistency rule needs < 40%); days > +4%: 0
+  +10% reached (no rules) from 87% of start days; median 359 d, p90 643 d
+
+[recent 2025-26] k=0.75 2025-01-01..2026-09-30 days=638
+  CAGR +4.5%  vol 11.0%  Sharpe 0.46  maxDD daily -10.7%  hourly -11.5%  avg gross 0.13x
+  by year: 2025:+2.3%  2026:+5.7%
+  daily sd 0.57%  worst days: 2025-10-10 -3.80%, 2025-07-23 -2.94%, 2025-08-25 -2.46%  best: 2026-09-21 +2.57%, 2026-08-21 +3.38%, 2025-08-22 +3.53%
+  intraday low < -1.0%: 41 days (23.5/yr); close < -1.0%: 23 days
+  intraday low < -1.5%: 18 days (10.3/yr); close < -1.5%: 13 days
+  intraday low < -2.0%: 7 days (4.0/yr); close < -2.0%: 5 days
+  intraday low < -3.0%: 2 days (1.1/yr); close < -3.0%: 1 days
+  intraday low < -4.0%: 0 days (0.0/yr); close < -4.0%: 0 days
+  best day as share of a 10% target: 35% (40% consistency rule needs < 40%); days > +4%: 0
+  +10% reached (no rules) from 30% of start days; median 101 d, p90 191 d
+
+[2024] k=0.75 2024-01-01..2024-12-31 days=366
+  CAGR +33.8%  vol 16.1%  Sharpe 1.89  maxDD daily -12.9%  hourly -13.9%  avg gross 0.18x
+  by year: 2024:+33.9%
+  daily sd 0.84%  worst days: 2024-12-09 -3.80%, 2024-03-19 -3.67%, 2024-03-05 -3.54%  best: 2024-11-10 +3.36%, 2024-11-11 +3.74%, 2024-03-02 +4.06%
+  intraday low < -1.0%: 36 days (35.9/yr); close < -1.0%: 18 days
+  intraday low < -1.5%: 23 days (22.9/yr); close < -1.5%: 8 days
+  intraday low < -2.0%: 11 days (11.0/yr); close < -2.0%: 6 days
+  intraday low < -3.0%: 5 days (5.0/yr); close < -3.0%: 4 days
+  intraday low < -4.0%: 1 days (1.0/yr); close < -4.0%: 0 days
+  best day as share of a 10% target: 41% (40% consistency rule needs < 40%); days > +4%: 1
+  +10% reached (no rules) from 90% of start days; median 92 d, p90 232 d
+wrote d1_runs/hourly_recent.csv
+wrote d1_runs/hourly_bear.csv
+wrote d1_runs/hourly_post2024.csv

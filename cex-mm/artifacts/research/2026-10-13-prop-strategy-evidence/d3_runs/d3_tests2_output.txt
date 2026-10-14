@@ -1,0 +1,109 @@
+=== R2a. B1 BTC-only daily on Delta 2024-08-10..2026-10-12 ===
+B1 BTC only on Delta                         CAGR +10.8% vol  22% Sharpe  0.57 xS  0.37 maxDD -22.7% CAGR/DD 0.47 worst -9.11% | fees 1.8% fund +3.6% gross 0.34x trades/yr   194 | corrBTC +0.57 beta +0.29 alpha +5.9%
+    2020-05..2021-12: n/a  2022: n/a  2023: n/a  2024: +95%/S2.19/DD-9%  2025: -8%/S-0.26/DD-20%  2026..10-12: +6%/S0.49/DD-6%  2022..2026: +11%/S0.57/DD-23%
+B1 BTC only on Binance, same window          CAGR +12.3% vol  22% Sharpe  0.63 xS  0.43 maxDD -22.2% CAGR/DD 0.55 worst -9.08% | fees 1.8% fund +2.7% gross 0.33x trades/yr   191 | corrBTC +0.57 beta +0.28 alpha +7.0%
+    2020-05..2021-12: n/a  2022: n/a  2023: n/a  2024: +96%/S2.22/DD-9%  2025: -7%/S-0.20/DD-20%  2026..10-12: +7%/S0.63/DD-6%  2022..2026: +12%/S0.63/DD-22%
+    same-day correlation Delta vs Binance over 782 days: 1.000
+
+=== R2b. Weekly rebalance, weekday-offset robustness (all 7 offsets, three universes) ===
+-- BTC only
+  offset 0 (decision close on a Thu): full Sharpe 1.02 CAGR +24.6% maxDD -26.7% | 2022-26 Sharpe 0.73 | 2025-26 Sharpe -0.39 CAGR -8.5% | Delta 2024-08.. Sharpe 0.14 CAGR +0.8% maxDD -32.1% | trades/yr 33 fees/yr 0.6%
+  offset 1 (decision close on a Fri): full Sharpe 0.97 CAGR +23.3% maxDD -31.1% | 2022-26 Sharpe 0.63 | 2025-26 Sharpe -0.57 CAGR -11.4% | Delta 2024-08.. Sharpe 0.16 CAGR +1.2% maxDD -28.8% | trades/yr 35 fees/yr 0.6%
+  offset 2 (decision close on a Sat): full Sharpe 0.86 CAGR +20.1% maxDD -32.0% | 2022-26 Sharpe 0.47 | 2025-26 Sharpe -0.52 CAGR -10.0% | Delta 2024-08.. Sharpe 0.29 CAGR +4.0% maxDD -22.4% | trades/yr 34 fees/yr 0.6%
+  offset 3 (decision close on a Sun): full Sharpe 0.84 CAGR +19.7% maxDD -28.3% | 2022-26 Sharpe 0.51 | 2025-26 Sharpe -0.18 CAGR -4.6% | Delta 2024-08.. Sharpe 0.78 CAGR +15.8% maxDD -20.9% | trades/yr 35 fees/yr 0.6%
+  offset 4 (decision close on a Mon): full Sharpe 1.06 CAGR +27.3% maxDD -32.6% | 2022-26 Sharpe 0.75 | 2025-26 Sharpe 0.21 CAGR +2.2% | Delta 2024-08.. Sharpe 0.59 CAGR +11.6% maxDD -23.6% | trades/yr 34 fees/yr 0.5%
+  offset 5 (decision close on a Tue): full Sharpe 1.04 CAGR +27.0% maxDD -27.6% | 2022-26 Sharpe 0.82 | 2025-26 Sharpe -0.16 CAGR -4.7% | Delta 2024-08.. Sharpe 0.49 CAGR +8.9% maxDD -26.6% | trades/yr 33 fees/yr 0.6%
+  offset 6 (decision close on a Wed): full Sharpe 1.13 CAGR +29.6% maxDD -25.9% | 2022-26 Sharpe 0.87 | 2025-26 Sharpe -0.08 CAGR -3.3% | Delta 2024-08.. Sharpe 0.33 CAGR +5.0% maxDD -27.2% | trades/yr 34 fees/yr 0.5%
+-- BTC+ETH
+  offset 0 (decision close on a Thu): full Sharpe 1.15 CAGR +26.6% maxDD -21.5% | 2022-26 Sharpe 0.68 | 2025-26 Sharpe 0.50 CAGR +6.7% | Delta 2024-08.. Sharpe 0.45 CAGR +6.6% maxDD -21.4% | trades/yr 66 fees/yr 0.5%
+  offset 1 (decision close on a Fri): full Sharpe 1.07 CAGR +24.4% maxDD -25.7% | 2022-26 Sharpe 0.58 | 2025-26 Sharpe 0.19 CAGR +1.7% | Delta 2024-08.. Sharpe 0.50 CAGR +7.5% maxDD -21.0% | trades/yr 69 fees/yr 0.5%
+  offset 2 (decision close on a Sat): full Sharpe 0.98 CAGR +22.2% maxDD -27.1% | 2022-26 Sharpe 0.51 | 2025-26 Sharpe 0.22 CAGR +2.2% | Delta 2024-08.. Sharpe 0.45 CAGR +6.6% maxDD -19.4% | trades/yr 66 fees/yr 0.5%
+  offset 3 (decision close on a Sun): full Sharpe 0.97 CAGR +22.1% maxDD -26.3% | 2022-26 Sharpe 0.56 | 2025-26 Sharpe 0.43 CAGR +5.4% | Delta 2024-08.. Sharpe 0.75 CAGR +12.8% maxDD -16.0% | trades/yr 69 fees/yr 0.5%
+  offset 4 (decision close on a Mon): full Sharpe 1.12 CAGR +26.8% maxDD -28.5% | 2022-26 Sharpe 0.67 | 2025-26 Sharpe 0.69 CAGR +10.5% | Delta 2024-08.. Sharpe 0.79 CAGR +13.4% maxDD -15.7% | trades/yr 66 fees/yr 0.5%
+  offset 5 (decision close on a Tue): full Sharpe 1.16 CAGR +27.6% maxDD -25.7% | 2022-26 Sharpe 0.77 | 2025-26 Sharpe 0.58 CAGR +8.3% | Delta 2024-08.. Sharpe 0.68 CAGR +11.2% maxDD -17.7% | trades/yr 67 fees/yr 0.5%
+  offset 6 (decision close on a Wed): full Sharpe 1.16 CAGR +27.9% maxDD -23.5% | 2022-26 Sharpe 0.71 | 2025-26 Sharpe 0.52 CAGR +7.2% | Delta 2024-08.. Sharpe 0.76 CAGR +12.3% maxDD -20.6% | trades/yr 67 fees/yr 0.5%
+-- 9 coins
+  offset 0 (decision close on a Thu): full Sharpe 1.33 CAGR +27.5% maxDD -15.6% | 2022-26 Sharpe 0.92 | 2025-26 Sharpe 0.31 CAGR +3.5% | Delta 2024-08.. Sharpe 1.15 CAGR +20.1% maxDD -12.0% | trades/yr 273 fees/yr 0.4%
+  offset 1 (decision close on a Fri): full Sharpe 1.24 CAGR +24.8% maxDD -25.2% | 2022-26 Sharpe 0.85 | 2025-26 Sharpe 0.49 CAGR +6.3% | Delta 2024-08.. Sharpe 0.93 CAGR +15.1% maxDD -13.7% | trades/yr 277 fees/yr 0.4%
+  offset 2 (decision close on a Sat): full Sharpe 1.16 CAGR +23.0% maxDD -27.3% | 2022-26 Sharpe 0.75 | 2025-26 Sharpe 0.20 CAGR +1.8% | Delta 2024-08.. Sharpe 0.69 CAGR +10.6% maxDD -14.3% | trades/yr 275 fees/yr 0.4%
+  offset 3 (decision close on a Sun): full Sharpe 1.12 CAGR +22.5% maxDD -26.3% | 2022-26 Sharpe 0.66 | 2025-26 Sharpe 0.25 CAGR +2.5% | Delta 2024-08.. Sharpe 1.01 CAGR +16.7% maxDD -13.0% | trades/yr 278 fees/yr 0.4%
+  offset 4 (decision close on a Mon): full Sharpe 1.27 CAGR +26.5% maxDD -26.0% | 2022-26 Sharpe 0.79 | 2025-26 Sharpe 0.57 CAGR +7.2% | Delta 2024-08.. Sharpe 0.95 CAGR +15.0% maxDD -13.0% | trades/yr 276 fees/yr 0.4%
+  offset 5 (decision close on a Tue): full Sharpe 1.18 CAGR +23.1% maxDD -20.7% | 2022-26 Sharpe 0.80 | 2025-26 Sharpe 0.40 CAGR +4.6% | Delta 2024-08.. Sharpe 1.06 CAGR +17.7% maxDD -12.2% | trades/yr 278 fees/yr 0.4%
+  offset 6 (decision close on a Wed): full Sharpe 1.34 CAGR +27.4% maxDD -17.6% | 2022-26 Sharpe 0.91 | 2025-26 Sharpe 0.46 CAGR +5.7% | Delta 2024-08.. Sharpe 1.05 CAGR +17.9% maxDD -13.8% | trades/yr 279 fees/yr 0.4%
+
+=== R2c. Hourly mark-to-market, BTC only: weekly (offset 0) and daily; own-account effect of a day stop ===
+btc_weekly day stop none                       CAGR +24.6% vol  25% Sharpe  1.02 maxDD -26.7% CAGR/DD 0.92 worst -9.08% stop days 0
+btc_weekly day stop 0.015                      CAGR +17.8% vol  23% Sharpe  0.82 maxDD -28.9% CAGR/DD 0.62 worst -4.93% stop days 240
+btc_weekly day stop 0.02                       CAGR +19.5% vol  24% Sharpe  0.87 maxDD -29.4% CAGR/DD 0.66 worst -4.93% stop days 157
+btc_weekly day stop 0.03                       CAGR +19.6% vol  24% Sharpe  0.85 maxDD -37.4% CAGR/DD 0.52 worst -4.93% stop days 76
+btc_daily day stop none                        CAGR +31.1% vol  25% Sharpe  1.19 maxDD -23.4% CAGR/DD 1.33 worst -9.08% stop days 0
+btc_daily day stop 0.015                       CAGR +25.3% vol  24% Sharpe  1.06 maxDD -24.8% CAGR/DD 1.02 worst -5.30% stop days 228
+btc_daily day stop 0.02                        CAGR +27.4% vol  24% Sharpe  1.11 maxDD -23.0% CAGR/DD 1.19 worst -5.30% stop days 153
+btc_daily day stop 0.03                        CAGR +27.8% vol  25% Sharpe  1.10 maxDD -25.7% CAGR/DD 1.08 worst -5.52% stop days 69
+  btc_weekly native-vol daily tail: worst closes 2025-10-10 -9.1%, 2020-11-26 -6.9%, 2024-03-19 -6.4%, 2024-01-12 -6.3%, 2021-01-21 -6.0%, 2020-08-02 -5.4%
+    close < -2%: 97 days; intraday low < -2%: 157 days
+    close < -3%: 41 days; intraday low < -3%: 76 days
+    close < -4%: 17 days; intraday low < -4%: 35 days
+    close < -5%: 9 days; intraday low < -5%: 17 days
+
+=== R2d. prop_sim.py on the BTC-only weekly series ===
+
+--- Breakout Classic 10/3/6 static, day stop 1.5%, bootstrap full
+bootstrap: 3000 paths x 365 days, mean block 20 d, series 2344 days, base Sharpe 1.01 base vol 25%
+rules: target 10%, daily DD 3% vs 00:00 equity, max DD 6% static, time limit none d/phase, min days 0, day stop 0.015
+ lev   vol |   pass pass<=180d  dailyDD  maxDD  timeout   open | med days p90 days | funded surv E[payout]/acct EV per challenge
+0.30    7% |  46.6%      23.4%     0.0%  12.4%     0.0%  41.0% |      180      326 |       67.7%          8.19%            2,815
+0.40   10% |  54.2%      33.7%     0.0%  23.3%     0.0%  22.5% |      142      299 |       46.3%          9.59%            4,198
+0.50   12% |  56.6%      41.8%     0.0%  32.4%     0.0%  11.0% |      112      259 |       33.9%         10.44%            4,904
+0.60   15% |  57.9%      46.4%     0.0%  37.0%     0.0%   5.1% |       89      232 |       25.2%         10.88%            5,299
+0.75   19% |  52.1%      45.9%    17.7%  28.8%     0.0%   1.4% |       66      190 |       10.5%          9.18%            3,786
+
+--- Breakout Classic, day stop 1.5%, HISTORICAL windows
+historical windows: 1979 starts, 365 days each
+rules: target 10%, daily DD 3% vs 00:00 equity, max DD 6% static, time limit none d/phase, min days 0, day stop 0.015
+ lev   vol |   pass pass<=180d  dailyDD  maxDD  timeout   open | med days p90 days | funded surv E[payout]/acct EV per challenge
+0.30    7% |  45.8%      30.3%     0.0%   1.9%     0.0%  52.3% |      124      296 |       68.9%          8.19%            2,755
+0.40   10% |  47.0%      34.2%     0.0%  13.1%     0.0%  39.9% |      109      271 |       46.5%          9.46%            3,449
+0.50   12% |  51.5%      42.8%     0.0%  19.3%     0.0%  29.2% |       76      212 |       33.7%         10.20%            4,259
+0.60   15% |  68.7%      57.2%     0.0%  19.5%     0.0%  11.8% |       89      216 |       25.4%         10.76%            6,393
+
+--- Breakout Classic, day stop 1.5%, bootstrap 2025-01..2026-10 only
+bootstrap: 3000 paths x 365 days, mean block 20 d, series 638 days, base Sharpe -0.34 base vol 20%
+rules: target 10%, daily DD 3% vs 00:00 equity, max DD 6% static, time limit none d/phase, min days 0, day stop 0.015
+ lev   vol |   pass pass<=180d  dailyDD  maxDD  timeout   open | med days p90 days | funded surv E[payout]/acct EV per challenge
+0.30    6% |   3.2%       0.7%     0.0%  34.1%     0.0%  62.7% |      258      348 |       43.7%          2.94%             -906
+0.40    8% |   6.8%       2.2%     0.0%  57.2%     0.0%  36.0% |      222      332 |       20.0%          2.95%             -798
+0.50   10% |  11.2%       5.5%     0.0%  72.8%     0.0%  16.0% |      184      316 |        9.8%          2.64%             -703
+0.60   12% |  18.5%      12.3%     0.0%  73.0%     0.0%   8.5% |      124      274 |        6.9%          2.82%             -477
+
+--- Breakout Classic, NO day stop, bootstrap full
+bootstrap: 3000 paths x 365 days, mean block 20 d, series 2344 days, base Sharpe 1.01 base vol 25%
+rules: target 10%, daily DD 3% vs 00:00 equity, max DD 6% static, time limit none d/phase, min days 0, day stop none
+ lev   vol |   pass pass<=180d  dailyDD  maxDD  timeout   open | med days p90 days | funded surv E[payout]/acct EV per challenge
+0.30    7% |  44.5%      22.3%     7.7%  11.2%     0.0%  36.6% |      180      326 |       58.2%          7.67%            2,412
+0.40   10% |  48.7%      31.8%    20.9%  13.6%     0.0%  16.8% |      136      292 |       27.6%          7.18%            2,498
+0.50   12% |  48.4%      37.4%    28.1%  17.1%     0.0%   6.4% |      101      246 |       15.0%          7.21%            2,490
+
+--- HyroTrader 1-step 10/4/6 trailing, day stop 2%, bootstrap full
+bootstrap: 3000 paths x 365 days, mean block 20 d, series 2344 days, base Sharpe 1.01 base vol 25%
+rules: target 10%, daily DD 4% vs 00:00 equity, max DD 6% trailing, time limit none d/phase, min days 0, day stop 0.02
+ lev   vol |   pass pass<=180d  dailyDD  maxDD  timeout   open | med days p90 days | funded surv E[payout]/acct EV per challenge
+0.30    7% |  43.6%      23.0%     0.0%  34.1%     0.0%  22.3% |      172      319 |       17.2%          4.88%            1,377
+0.40   10% |  44.8%      32.1%     0.0%  49.0%     0.0%   6.3% |      125      261 |        3.2%          4.33%            1,188
+0.50   12% |  42.7%      36.3%     0.0%  56.2%     0.0%   1.1% |       87      206 |        0.8%          3.84%              890
+
+--- HyroTrader if max DD is STATIC (unconfirmed), day stop 2%, bootstrap full
+bootstrap: 3000 paths x 365 days, mean block 20 d, series 2344 days, base Sharpe 1.01 base vol 25%
+rules: target 10%, daily DD 4% vs 00:00 equity, max DD 6% static, time limit none d/phase, min days 0, day stop 0.02
+ lev   vol |   pass pass<=180d  dailyDD  maxDD  timeout   open | med days p90 days | funded surv E[payout]/acct EV per challenge
+0.30    7% |  47.9%      23.7%     0.0%  11.7%     0.0%  40.4% |      181      328 |       74.0%          7.42%            2,805
+0.40   10% |  55.9%      34.6%     0.0%  21.1%     0.0%  23.0% |      144      301 |       55.8%          8.81%            4,177
+0.50   12% |  58.5%      43.1%     0.0%  30.4%     0.0%  11.1% |      112      260 |       43.7%         10.05%            5,126
+
+--- CFT 1-step 10/4/6 trailing (locks at +6%), day stop 2%, bootstrap full
+bootstrap: 3000 paths x 365 days, mean block 20 d, series 2344 days, base Sharpe 1.01 base vol 25%
+rules: target 10%, daily DD 4% vs 00:00 equity, max DD 6% trailing, time limit none d/phase, min days 0, day stop 0.02
+ lev   vol |   pass pass<=180d  dailyDD  maxDD  timeout   open | med days p90 days | funded surv E[payout]/acct EV per challenge
+0.30    7% |  43.6%      23.0%     0.0%  34.1%     0.0%  22.3% |      172      319 |       68.7%          8.32%            3,027
+0.40   10% |  44.8%      32.1%     0.0%  49.0%     0.0%   6.3% |      125      261 |       48.4%          9.76%            3,769
+0.50   12% |  42.7%      36.3%     0.0%  56.2%     0.0%   1.1% |       87      206 |       36.5%         11.01%            4,102

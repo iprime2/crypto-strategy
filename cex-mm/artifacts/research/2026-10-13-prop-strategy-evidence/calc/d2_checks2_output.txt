@@ -1,0 +1,20 @@
+
+
+
+
+
+
+(a) Rebalance hour (UTC) robustness, Binance 2020-05-01..2026-09-30, tv 0.40, long-only, fixed rule
+close/rebalance at 00:00 UTC (05:30 IST)             CAGR +24.2% vol  19% Sharpe  1.26 maxDD -21.7% worst day -7.39% p1 -3.39% 
+close/rebalance at 04:00 UTC (09:30 IST)             CAGR +25.6% vol  19% Sharpe  1.32 maxDD -18.3% worst day -6.40% p1 -2.88% 
+close/rebalance at 08:00 UTC (13:30 IST)             CAGR +25.3% vol  18% Sharpe  1.32 maxDD -18.3% worst day -8.37% p1 -3.03% 
+close/rebalance at 12:00 UTC (17:30 IST)             CAGR +25.3% vol  18% Sharpe  1.32 maxDD -20.5% worst day -9.70% p1 -2.64% 
+close/rebalance at 16:00 UTC (21:30 IST)             CAGR +25.9% vol  19% Sharpe  1.33 maxDD -22.5% worst day -10.22% p1 -2.61% 
+close/rebalance at 20:00 UTC (01:30 IST)             CAGR +23.8% vol  19% Sharpe  1.22 maxDD -21.1% worst day -10.53% p1 -2.92% 
+
+(b) Drawdown de-leveraging, Binance 2020-05-01..2026-09-30, tv 0.25, mult = clip(1 - dd/dd_max, 0.25, 1)
+dd_max None                                          CAGR +15.0% vol  12% Sharpe  1.25 maxDD -13.9% worst day -4.57% p1 -2.13% avg multiplier 1.00
+dd_max 0.1                                           CAGR  +9.2% vol   8% Sharpe  1.13 maxDD  -8.8% worst day -3.31% p1 -1.41% avg multiplier 0.43
+dd_max 0.15                                          CAGR +10.8% vol   9% Sharpe  1.18 maxDD -10.8% worst day -3.75% p1 -1.52% avg multiplier 0.57
+dd_max 0.2                                           CAGR +11.9% vol  10% Sharpe  1.21 maxDD -11.7% worst day -3.97% p1 -1.63% avg multiplier 0.67
+dd_max 0.3                                           CAGR +13.0% vol  10% Sharpe  1.23 maxDD -12.6% worst day -4.17% p1 -1.82% avg multiplier 0.77

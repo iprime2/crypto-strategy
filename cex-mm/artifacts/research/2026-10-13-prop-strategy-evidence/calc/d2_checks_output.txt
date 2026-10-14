@@ -1,0 +1,132 @@
+
+====================================================================================================
+1. Intraday day-stop on the hourly series (native 40% target vol, long-only, 2020-05-01..2026-09-30)
+====================================================================================================
+day stop none                                        CAGR +24.2% vol  19% Sharpe  1.25 maxDD -21.9% worst day -7.31% p1 -3.41% stop days 0 ({})
+   by year: 2020:+53%  2021:+47%  2022:-5%  2023:+16%  2024:+47%  2025:+3%  2026:+8%
+day stop 0.015                                       CAGR +18.6% vol  18% Sharpe  1.05 maxDD -16.2% worst day -4.79% p1 -2.37% stop days 159 ({2020: 30, 2021: 35, 2022: 3, 2023: 28, 2024: 33, 2025: 26, 2026: 4})
+   by year: 2020:+52%  2021:+40%  2022:-2%  2023:+6%  2024:+29%  2025:-0%  2026:+6%
+day stop 0.02                                        CAGR +24.2% vol  18% Sharpe  1.29 maxDD -18.4% worst day -4.79% p1 -2.61% stop days 99 ({2020: 20, 2021: 19, 2022: 3, 2023: 16, 2024: 23, 2025: 16, 2026: 2})
+   by year: 2020:+59%  2021:+47%  2022:-2%  2023:+17%  2024:+35%  2025:+4%  2026:+7%
+day stop 0.03                                        CAGR +23.7% vol  19% Sharpe  1.24 maxDD -18.4% worst day -5.45% p1 -3.39% stop days 42 ({2020: 12, 2021: 9, 2022: 2, 2023: 5, 2024: 9, 2025: 5})
+   by year: 2020:+52%  2021:+49%  2022:-5%  2023:+16%  2024:+43%  2025:+2%  2026:+8%
+day stop 0.04                                        CAGR +22.2% vol  19% Sharpe  1.15 maxDD -20.8% worst day -7.80% p1 -3.60% stop days 23 ({2020: 5, 2021: 6, 2022: 1, 2023: 4, 2024: 5, 2025: 2})
+   by year: 2020:+52%  2021:+43%  2022:-6%  2023:+15%  2024:+40%  2025:+2%  2026:+8%
+
+====================================================================================================
+2a. Binance 2020-05-01..2026-09-30, long-only: target vol, per-coin cap, no-trade band
+====================================================================================================
+tv 0.40 coin cap None band 0.00                      CAGR +24.2% vol  19% Sharpe  1.25 maxDD -21.9% worst day -7.31% p1 -3.41% fees/yr 1.1% funding/yr +3.4% gross 0.20x trades/yr 1773
+   by year: 2020:+53%  2021:+47%  2022:-5%  2023:+16%  2024:+47%  2025:+3%  2026:+8%
+tv 0.40 coin cap None band 0.10                      CAGR +24.2% vol  19% Sharpe  1.25 maxDD -22.4% worst day -7.36% p1 -3.35% fees/yr 1.1% funding/yr +3.4% gross 0.20x trades/yr 531
+   by year: 2020:+52%  2021:+47%  2022:-5%  2023:+16%  2024:+47%  2025:+3%  2026:+8%
+tv 0.40 coin cap None band 0.25                      CAGR +24.7% vol  19% Sharpe  1.25 maxDD -22.3% worst day -7.20% p1 -3.33% fees/yr 1.0% funding/yr +3.5% gross 0.20x trades/yr 433
+   by year: 2020:+53%  2021:+48%  2022:-4%  2023:+16%  2024:+48%  2025:+2%  2026:+8%
+tv 0.40 coin cap 0.25 band 0.00                      CAGR +24.2% vol  19% Sharpe  1.25 maxDD -21.9% worst day -7.31% p1 -3.41% fees/yr 1.1% funding/yr +3.4% gross 0.20x trades/yr 1773
+   by year: 2020:+53%  2021:+47%  2022:-5%  2023:+16%  2024:+47%  2025:+3%  2026:+8%
+tv 0.40 coin cap 0.25 band 0.10                      CAGR +24.2% vol  19% Sharpe  1.25 maxDD -22.4% worst day -7.36% p1 -3.35% fees/yr 1.1% funding/yr +3.4% gross 0.20x trades/yr 531
+   by year: 2020:+52%  2021:+47%  2022:-5%  2023:+16%  2024:+47%  2025:+3%  2026:+8%
+tv 0.40 coin cap 0.25 band 0.25                      CAGR +24.7% vol  19% Sharpe  1.25 maxDD -22.3% worst day -7.20% p1 -3.33% fees/yr 1.0% funding/yr +3.5% gross 0.20x trades/yr 433
+   by year: 2020:+53%  2021:+48%  2022:-4%  2023:+16%  2024:+48%  2025:+2%  2026:+8%
+tv 0.25 coin cap None band 0.00                      CAGR +15.0% vol  12% Sharpe  1.25 maxDD -13.9% worst day -4.57% p1 -2.13% fees/yr 0.7% funding/yr +2.1% gross 0.12x trades/yr 1773
+   by year: 2020:+31%  2021:+28%  2022:-3%  2023:+10%  2024:+28%  2025:+2%  2026:+5%
+tv 0.25 coin cap None band 0.10                      CAGR +15.0% vol  12% Sharpe  1.25 maxDD -14.1% worst day -4.54% p1 -2.08% fees/yr 0.7% funding/yr +2.1% gross 0.12x trades/yr 538
+   by year: 2020:+31%  2021:+28%  2022:-3%  2023:+10%  2024:+28%  2025:+2%  2026:+5%
+tv 0.25 coin cap None band 0.25                      CAGR +15.4% vol  12% Sharpe  1.25 maxDD -14.2% worst day -4.47% p1 -2.10% fees/yr 0.7% funding/yr +2.2% gross 0.13x trades/yr 434
+   by year: 2020:+32%  2021:+29%  2022:-3%  2023:+10%  2024:+29%  2025:+2%  2026:+5%
+tv 0.25 coin cap 0.25 band 0.00                      CAGR +15.0% vol  12% Sharpe  1.25 maxDD -13.9% worst day -4.57% p1 -2.13% fees/yr 0.7% funding/yr +2.1% gross 0.12x trades/yr 1773
+   by year: 2020:+31%  2021:+28%  2022:-3%  2023:+10%  2024:+28%  2025:+2%  2026:+5%
+tv 0.25 coin cap 0.25 band 0.10                      CAGR +15.0% vol  12% Sharpe  1.25 maxDD -14.1% worst day -4.54% p1 -2.08% fees/yr 0.7% funding/yr +2.1% gross 0.12x trades/yr 538
+   by year: 2020:+31%  2021:+28%  2022:-3%  2023:+10%  2024:+28%  2025:+2%  2026:+5%
+tv 0.25 coin cap 0.25 band 0.25                      CAGR +15.4% vol  12% Sharpe  1.25 maxDD -14.2% worst day -4.47% p1 -2.10% fees/yr 0.7% funding/yr +2.2% gross 0.13x trades/yr 434
+   by year: 2020:+32%  2021:+29%  2022:-3%  2023:+10%  2024:+29%  2025:+2%  2026:+5%
+
+====================================================================================================
+2b. Delta 2024-08-10..2026-09-30 (and ..2026-10-12), long-only: same variants
+====================================================================================================
+to 2026-09-30 tv 0.40 cap None band 0.00             CAGR +19.4% vol  17% Sharpe  1.15 maxDD -14.1% worst day -5.04% p1 -2.63% fees/yr 1.1% funding/yr +1.8% gross 0.19x trades/yr 1530
+   by year: 2024:+32%  2025:+3%  2026:+8%
+to 2026-09-30 tv 0.40 cap None band 0.10             CAGR +19.9% vol  17% Sharpe  1.17 maxDD -14.0% worst day -4.99% p1 -2.69% fees/yr 1.0% funding/yr +1.8% gross 0.19x trades/yr 444
+   by year: 2024:+32%  2025:+3%  2026:+8%
+to 2026-09-30 tv 0.40 cap 0.25 band 0.00             CAGR +19.4% vol  17% Sharpe  1.15 maxDD -14.1% worst day -5.04% p1 -2.63% fees/yr 1.1% funding/yr +1.8% gross 0.19x trades/yr 1530
+   by year: 2024:+32%  2025:+3%  2026:+8%
+to 2026-09-30 tv 0.40 cap 0.25 band 0.10             CAGR +19.9% vol  17% Sharpe  1.17 maxDD -14.0% worst day -4.99% p1 -2.69% fees/yr 1.0% funding/yr +1.8% gross 0.19x trades/yr 444
+   by year: 2024:+32%  2025:+3%  2026:+8%
+to 2026-09-30 tv 0.25 cap None band 0.00             CAGR +12.1% vol  10% Sharpe  1.15 maxDD  -8.9% worst day -3.15% p1 -1.65% fees/yr 0.7% funding/yr +1.1% gross 0.12x trades/yr 1530
+   by year: 2024:+19%  2025:+2%  2026:+5%
+to 2026-09-30 tv 0.25 cap None band 0.10             CAGR +12.3% vol  10% Sharpe  1.17 maxDD  -8.9% worst day -3.21% p1 -1.69% fees/yr 0.6% funding/yr +1.1% gross 0.12x trades/yr 446
+   by year: 2024:+19%  2025:+2%  2026:+5%
+to 2026-09-30 tv 0.25 cap 0.25 band 0.00             CAGR +12.1% vol  10% Sharpe  1.15 maxDD  -8.9% worst day -3.15% p1 -1.65% fees/yr 0.7% funding/yr +1.1% gross 0.12x trades/yr 1530
+   by year: 2024:+19%  2025:+2%  2026:+5%
+to 2026-09-30 tv 0.25 cap 0.25 band 0.10             CAGR +12.3% vol  10% Sharpe  1.17 maxDD  -8.9% worst day -3.21% p1 -1.69% fees/yr 0.6% funding/yr +1.1% gross 0.12x trades/yr 446
+   by year: 2024:+19%  2025:+2%  2026:+5%
+to 2026-10-12 tv 0.40 cap None band 0.00             CAGR +16.5% vol  17% Sharpe  0.99 maxDD -14.1% worst day -5.04% p1 -2.91% fees/yr 1.1% funding/yr +1.9% gross 0.19x trades/yr 1556
+   by year: 2024:+32%  2025:+3%  2026:+3%
+to 2026-10-12 tv 0.40 cap None band 0.10             CAGR +17.0% vol  17% Sharpe  1.02 maxDD -14.0% worst day -4.99% p1 -2.97% fees/yr 1.0% funding/yr +1.9% gross 0.19x trades/yr 442
+   by year: 2024:+32%  2025:+3%  2026:+3%
+to 2026-10-12 tv 0.40 cap 0.25 band 0.00             CAGR +16.5% vol  17% Sharpe  0.99 maxDD -14.1% worst day -5.04% p1 -2.91% fees/yr 1.1% funding/yr +1.9% gross 0.19x trades/yr 1556
+   by year: 2024:+32%  2025:+3%  2026:+3%
+to 2026-10-12 tv 0.40 cap 0.25 band 0.10             CAGR +17.0% vol  17% Sharpe  1.02 maxDD -14.0% worst day -4.99% p1 -2.97% fees/yr 1.0% funding/yr +1.9% gross 0.19x trades/yr 442
+   by year: 2024:+32%  2025:+3%  2026:+3%
+to 2026-10-12 tv 0.25 cap None band 0.00             CAGR +10.4% vol  10% Sharpe  0.99 maxDD  -8.9% worst day -3.15% p1 -1.82% fees/yr 0.7% funding/yr +1.2% gross 0.12x trades/yr 1556
+   by year: 2024:+19%  2025:+2%  2026:+2%
+to 2026-10-12 tv 0.25 cap None band 0.10             CAGR +10.6% vol  11% Sharpe  1.01 maxDD  -8.9% worst day -3.21% p1 -1.85% fees/yr 0.6% funding/yr +1.2% gross 0.12x trades/yr 444
+   by year: 2024:+19%  2025:+2%  2026:+2%
+to 2026-10-12 tv 0.25 cap 0.25 band 0.00             CAGR +10.4% vol  10% Sharpe  0.99 maxDD  -8.9% worst day -3.15% p1 -1.82% fees/yr 0.7% funding/yr +1.2% gross 0.12x trades/yr 1556
+   by year: 2024:+19%  2025:+2%  2026:+2%
+to 2026-10-12 tv 0.25 cap 0.25 band 0.10             CAGR +10.6% vol  11% Sharpe  1.01 maxDD  -8.9% worst day -3.21% p1 -1.85% fees/yr 0.6% funding/yr +1.2% gross 0.12x trades/yr 444
+   by year: 2024:+19%  2025:+2%  2026:+2%
+
+====================================================================================================
+2c. Delta 2024-08-10..2026-10-12, whole Delta contracts, per-coin cap 0.25, band 0.10 (and band 0 for comparison)
+====================================================================================================
+tv 0.40 band 0.00 capital $500                       CAGR +18.5% vol  17% Sharpe  1.09 maxDD -14.4% worst day -5.69% p1 -3.00% fees/yr 1.2% gross 0.18x trades/yr 457
+tv 0.40 band 0.00 capital $1,000                     CAGR +15.3% vol  17% Sharpe  0.93 maxDD -15.2% worst day -5.50% p1 -2.79% fees/yr 1.1% gross 0.20x trades/yr 566
+tv 0.40 band 0.00 capital $2,000                     CAGR +16.5% vol  17% Sharpe  1.00 maxDD -13.5% worst day -5.05% p1 -2.89% fees/yr 1.1% gross 0.19x trades/yr 679
+tv 0.40 band 0.00 capital $5,000                     CAGR +16.5% vol  17% Sharpe  1.00 maxDD -13.7% worst day -4.98% p1 -2.90% fees/yr 1.1% gross 0.19x trades/yr 857
+tv 0.40 band 0.00 capital $20,000                    CAGR +16.5% vol  17% Sharpe  1.00 maxDD -14.0% worst day -5.05% p1 -2.90% fees/yr 1.1% gross 0.19x trades/yr 1162
+tv 0.40 band 0.10 capital $500                       CAGR +18.6% vol  17% Sharpe  1.10 maxDD -14.4% worst day -5.65% p1 -3.00% fees/yr 1.1% gross 0.18x trades/yr 376
+tv 0.40 band 0.10 capital $1,000                     CAGR +15.4% vol  17% Sharpe  0.93 maxDD -15.2% worst day -5.48% p1 -2.76% fees/yr 1.1% gross 0.20x trades/yr 423
+tv 0.40 band 0.10 capital $2,000                     CAGR +16.8% vol  17% Sharpe  1.01 maxDD -13.4% worst day -5.02% p1 -2.85% fees/yr 1.0% gross 0.19x trades/yr 456
+tv 0.40 band 0.10 capital $5,000                     CAGR +16.7% vol  17% Sharpe  1.01 maxDD -14.0% worst day -5.01% p1 -2.96% fees/yr 1.0% gross 0.19x trades/yr 461
+tv 0.40 band 0.10 capital $20,000                    CAGR +16.8% vol  17% Sharpe  1.01 maxDD -14.0% worst day -5.03% p1 -2.97% fees/yr 1.0% gross 0.19x trades/yr 447
+tv 0.25 band 0.00 capital $500                       CAGR +10.9% vol  10% Sharpe  1.06 maxDD -10.8% worst day -2.70% p1 -1.77% fees/yr 0.7% gross 0.10x trades/yr 368
+tv 0.25 band 0.00 capital $1,000                     CAGR +12.9% vol  10% Sharpe  1.21 maxDD  -8.3% worst day -3.33% p1 -1.83% fees/yr 0.7% gross 0.11x trades/yr 488
+tv 0.25 band 0.00 capital $2,000                     CAGR +10.0% vol  10% Sharpe  0.96 maxDD  -9.2% worst day -3.24% p1 -1.72% fees/yr 0.7% gross 0.12x trades/yr 618
+tv 0.25 band 0.00 capital $5,000                     CAGR +10.1% vol  10% Sharpe  0.97 maxDD  -9.0% worst day -3.17% p1 -1.79% fees/yr 0.7% gross 0.12x trades/yr 768
+tv 0.25 band 0.00 capital $20,000                    CAGR +10.3% vol  10% Sharpe  0.99 maxDD  -8.9% worst day -3.15% p1 -1.83% fees/yr 0.7% gross 0.12x trades/yr 1057
+tv 0.25 band 0.10 capital $500                       CAGR +11.0% vol  10% Sharpe  1.07 maxDD -10.8% worst day -2.68% p1 -1.79% fees/yr 0.7% gross 0.10x trades/yr 323
+tv 0.25 band 0.10 capital $1,000                     CAGR +12.9% vol  10% Sharpe  1.21 maxDD  -8.3% worst day -3.32% p1 -1.81% fees/yr 0.7% gross 0.11x trades/yr 396
+tv 0.25 band 0.10 capital $2,000                     CAGR +10.1% vol  10% Sharpe  0.97 maxDD  -9.2% worst day -3.24% p1 -1.71% fees/yr 0.7% gross 0.12x trades/yr 454
+tv 0.25 band 0.10 capital $5,000                     CAGR +10.2% vol  10% Sharpe  0.98 maxDD  -9.1% worst day -3.18% p1 -1.80% fees/yr 0.7% gross 0.12x trades/yr 468
+tv 0.25 band 0.10 capital $20,000                    CAGR +10.6% vol  10% Sharpe  1.01 maxDD  -9.0% worst day -3.19% p1 -1.83% fees/yr 0.6% gross 0.12x trades/yr 457
+
+====================================================================================================
+3. Sub-periods, Binance long-only, per-coin cap 0.25, band 0.10, tv 0.25 and 0.40
+====================================================================================================
+-- tv 0.25
+  2020-05-01..2021-12-31                             CAGR +36.0% vol  15% Sharpe  2.08 maxDD  -9.4% worst day -4.54% p1 -2.39% 
+  2022-01-01..2022-12-31                             CAGR  -2.8% vol   5% Sharpe -0.53 maxDD  -6.3% worst day -2.38% p1 -0.86% 
+  2023-01-01..2023-12-31                             CAGR +10.0% vol  11% Sharpe  0.91 maxDD  -7.9% worst day -2.86% p1 -2.34% 
+  2024-01-01..2024-12-31                             CAGR +27.7% vol  13% Sharpe  1.89 maxDD -10.6% worst day -3.20% p1 -2.50% 
+  2025-01-01..2025-12-31                             CAGR  +2.3% vol  11% Sharpe  0.26 maxDD  -7.0% worst day -3.13% p1 -1.86% 
+  2026-01-01..2026-09-30                             CAGR  +6.6% vol   7% Sharpe  0.99 maxDD  -2.7% worst day -1.31% p1 -0.85% 
+  2025-01-01..2026-09-30                             CAGR  +4.1% vol   9% Sharpe  0.49 maxDD  -8.9% worst day -3.13% p1 -1.61% 
+  2022-01-01..2026-09-30                             CAGR  +8.4% vol  10% Sharpe  0.85 maxDD -10.6% worst day -3.20% p1 -1.79% 
+-- tv 0.40
+  2020-05-01..2021-12-31                             CAGR +61.6% vol  25% Sharpe  2.08 maxDD -15.1% worst day -7.36% p1 -3.78% 
+  2022-01-01..2022-12-31                             CAGR  -4.8% vol   8% Sharpe -0.54 maxDD -10.0% worst day -3.85% p1 -1.39% 
+  2023-01-01..2023-12-31                             CAGR +15.7% vol  18% Sharpe  0.90 maxDD -12.5% worst day -4.58% p1 -3.77% 
+  2024-01-01..2024-12-31                             CAGR +46.7% vol  22% Sharpe  1.89 maxDD -16.9% worst day -5.05% p1 -4.10% 
+  2025-01-01..2025-12-31                             CAGR  +3.3% vol  17% Sharpe  0.27 maxDD -11.1% worst day -4.99% p1 -2.98% 
+  2026-01-01..2026-09-30                             CAGR +10.6% vol  11% Sharpe  0.99 maxDD  -4.3% worst day -2.08% p1 -1.35% 
+  2025-01-01..2026-09-30                             CAGR  +6.3% vol  15% Sharpe  0.49 maxDD -13.9% worst day -4.99% p1 -2.58% 
+  2022-01-01..2026-09-30                             CAGR +13.2% vol  16% Sharpe  0.85 maxDD -16.9% worst day -5.05% p1 -2.86% 
+
+====================================================================================================
+4. Binance vs Delta long-only daily returns, 2024-08-10..2026-09-30, tv 0.40, no cap/band (memo says 0.999)
+====================================================================================================
+common days 782  Binance days 782  Delta days 782  corr 0.999
+Delta daily series first/last: 2024-08-10 2026-09-30; Binance: 2024-08-10 2026-09-30
+days in Binance but not Delta: 0 e.g. []
+Delta series when started 2020-05-01: 1006 days from 2023-12-30 (BTC/ETH only before alts listed)

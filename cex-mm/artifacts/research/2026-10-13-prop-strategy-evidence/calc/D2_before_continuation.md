@@ -1,0 +1,243 @@
+# D2 — Trend-Only Core: long/flat, vol-targeted time-series momentum on Delta India perps, with prop accounts as leverage on the same signal
+
+**Angle:** own capital, Sharpe-first. **Date:** 2026-10-13. **Author:** design subagent (no orders placed, no live system touched, repo not modified).
+**Tags:** `[UNVERIFIED]` = not confirmed against a primary source in this sandbox (web pages could not be opened); `[SYNTHETIC]` = my own arithmetic or simulation in this session; `[THIRD-PARTY]` = affiliate/review-site figure; *(start)* = starting parameter, to be calibrated from live data.
+
+**Every setting tested in this session is listed in Appendix A, including the ones not adopted. Choices made after seeing results are labelled as such.**
+
+---
+
+## 1. Thesis
+
+The only thing in the whole evidence pack that (a) has a positive after-cost result on this venue, (b) was fixed before testing with every grid setting reported, and (c) is backed by the most-replicated anomaly in the crypto literature, is long-only (long/flat) time-series momentum (TSMOM) with volatility targeting on large-cap perps. The repo's pre-registered rule (mean of sign(20/60/120-day return), long-only, 40%/N target vol / 60-day realized vol, 9 coins) earned CAGR +24.2%, Sharpe 1.25, max DD −21.9% on Binance USDT-M perp data 2020-05..2026-09 after Delta taker fees (5.31 bps) + 2 bps slippage and funding; all 18 pre-registered lookback×vol settings were positive (Sharpe 0.99–1.25); on Delta's own prices and funding 2024-08..2026-09 it earned Sharpe 1.15 with daily returns correlated 0.999 to the Binance run (repo memo `cex-mm/artifacts/research/2026-10-08-trend-following-backtest.md`; reproduced this session, `local_evidence.md` and Appendix A). The academic record agrees on the shape of this edge and on its limits: TSMOM is the crypto anomaly that survives realistic frictions best while cross-sectional momentum does not (Han, Kang & Ryu, [AUT working paper](https://acfr.aut.ac.nz/__data/assets/pdf_file/0009/918729/Time_Series_and_Cross_Sectional_Momentum_in_the_Cryptocurrency_Market_with_IA.pdf) [UNVERIFIED]); the short leg is where crypto momentum crashes (Grobys et al. 2025, [Springer](https://link.springer.com/article/10.1007/s11408-025-00474-9) [UNVERIFIED]; repo: long/short Sharpe 0.78 vs 1.25, shorts lost 7% in 2023); vol targeting is a risk tool, not an alpha source (Bloomberg Crypto Insights [UNVERIFIED]; repo: target vol leaves Sharpe unchanged); the best independent backtest of the same family is Zarattini–Pagani–Barbon's Donchian ensemble, Sharpe ~1.5 net on the top-20 coins 2015–Mar 2025 ([SSRN 5209907](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5209907) [UNVERIFIED]); and the honest live comparator is bad: the Barclay Cryptocurrency Traders Index lost 12.3% in 2025 after +54% in 2024 ([The Full FX](https://thefullfx.com/ctas-end-2025-on-a-positive-note/) [UNVERIFIED]), Summitward finds most of the Sharpe gain comes from vol scaling and only 0.74→0.79 from the trend signal ([Summitward](https://summitward.com/learn/crypto-trend-following) [UNVERIFIED]), and the repo rule itself made +3% in 2025 and +8% in 2026 to September (Sharpe 0.49 over 2025-01..2026-09, [SYNTHETIC], Appendix A).
+
+So the thesis is narrow and deliberately unexciting: **run one engine, the pre-registered long/flat trend rule, at a target volatility chosen for drawdown tolerance rather than return, with hard tail controls that cost no Sharpe; keep idle cash off the venue; and use prop-firm evaluations, not own leverage, to scale the same daily signal.** Every other candidate engine failed its own evidence test: the market-making bot lost money in its first real-money run (−3.6 bps net60 per fill, picked off by faster traders; `2026-10-13-live-run-pickoff.md`), daily option selling has no edge out of sample (`options-research/README.md`), funding carry on Delta is capped at 10.95%/yr gross on BTC/ETH, costs ~14–21 bps a round trip plus a 10 bps spot seller fee and 1% TDS, and the carry Sharpe documented by Borri, Liu, Tsyvinski & Wu went from 6.45 (2020–25) to negative in 2025 ([arXiv 2510.14435](https://arxiv.org/abs/2510.14435) [UNVERIFIED]; `funding_carry_basis.md`). A portfolio of engines would be better for Sharpe, but a portfolio of one justified engine and three unjustified ones is worse.
+
+Expected forward Sharpe is **0.6–0.9**, not 1.25: the 2022–2026 realized Sharpe of the rule is 0.85 and the last 21 months 0.49 [SYNTHETIC]; the 1.25 includes 2020–21 (Sharpe 2.08), the regime that made the user choose crypto trend in the first place.
+
+---
+
+## 2. The rule (complete specification)
+
+### 2.1 Universe and venue
+- **Venue:** Delta Exchange India mainnet, INR-funded, USD-quoted perpetuals (FIU-IND registered per the exchange [UNVERIFIED against the FIU register]). No foreign venue, no spot, no options.
+- **Universe (fixed):** the 9 coins of the pre-registered rule, all with Delta India perps: BTCUSD, ETHUSD, XRPUSD, BNBUSD, ADAUSD, LTCUSD, LINKUSD, DOGEUSD, BCHUSD. Contract values (Delta, 2026-10-08 memo): BTC 0.001 (~$83), BNB 0.1 (~$76), ETH 0.01 (~$25), LTC 0.1, LINK 1, DOGE 100, BCH 0.01, XRP 1, ADA 1. Do not add or remove coins for performance reasons; a coin is removed only if Delta delists it or its 24 h turnover falls below $0.5M for 30 consecutive days *(start)* (BCH ~$1M/day and ADA ~$1.4M/day are the thinnest today).
+- **Fees assumed:** taker 5.31 bps + 2 bps slippage per side (retail incl. GST with the 10% referral discount; undiscounted is 5.90 bps). Maker fills (2.12 bps) are a bonus, never assumed.
+
+### 2.2 Signal (unchanged from the pre-registered rule)
+At the daily decision time T (see 2.6), for each coin i using closes up to and including T:
+- `s_i = mean( sign(P_T / P_{T-20d} − 1), sign(P_T / P_{T-60d} − 1), sign(P_T / P_{T-120d} − 1) )` ∈ {−1, −⅓, ⅓, 1}
+- **Long/flat:** `sig_i = max(s_i, 0)`. No shorts (repo: shorts lost 7% in 2023; literature: the short leg is the crash leg).
+- `vol_i` = annualized 60-day realized vol of daily log returns, floored at 5%.
+Code: `cex-mm/scripts/trend_backtest.py::target_weights` (has a no-look-ahead self-test).
+
+### 2.3 Position sizing
+- **Target vol `TV` = 25%** *(start)* of total strategy equity `E` (total = on-venue + off-venue cash, see 2.5). Realized vol at this setting was 12% on Binance 2020–26 and 10% on Delta 2024–26 because the rule is flat part of the time. Sharpe is identical at 25% and 40% (1.25 vs 1.25); 25% halves the drawdown (−14% vs −22%) and the worst day (−4.5% vs −7.3%) [SYNTHETIC]. 40% is the "growth" dial the user may turn after six months of live tracking (see 4); it is not a Sharpe decision.
+- `w_i = sig_i × (TV / N) / vol_i`, N = 9. **Per-coin cap: |w_i| ≤ 0.25 × E** *(start)*. The cap never bound in 2020–26 (results identical, Appendix A); it exists as the hard limit the literature asks for when tail variance is undefined (Grobys et al.) and it satisfies HyroTrader's 25% max exposure rule.
+- **Gross cap:** Σ|w_i| ≤ 2.0 × E (pre-registered). Average gross was 0.12× at TV 25%.
+- **Contracts:** `n_i = round(w_i × E / (P_i × contract_value_i))`. Whole contracts only.
+- **No-trade band = 10%** *(start)*: if the coin already has a position and the new target differs from it by ≤ 10% of the target, keep the old position. A zero target always closes; a zero position with a non-zero target always opens. Effect: trades per year 1,773 → 538 at identical Sharpe and drawdown (Appendix A). *Chosen after seeing results; 0%, 10% and 25% were run and all three are within 0.0–0.5% CAGR of each other; 10% was taken for operational simplicity and record-keeping, not performance.*
+- **Small-account rounding** (Delta prices 2024-08-10..2026-10-12, TV 25%, cap, band, [SYNTHETIC]):
+
+| Capital | CAGR | Sharpe | Max DD | Avg gross | Trades/yr | Note |
+|---|---|---|---|---|---|---|
+| unrounded | +10.6% | 1.01 | −8.9% | 0.12× | 444 | |
+| $500 | +11.0% | 1.07 | −10.8% | 0.10× | 323 | BTC, BNB, often ETH round to 0 |
+| $1,000 | +12.9% | 1.21 | −8.3% | 0.11× | 396 | BTC and BNB round to 0 most days |
+| $2,000 | +10.1% | 0.97 | −9.2% | 0.12× | 454 | |
+| $5,000 | +10.2% | 0.98 | −9.1% | 0.12× | 468 | converged |
+| $20,000 | +10.6% | 1.01 | −9.0% | 0.12× | 457 | |
+
+Rounding noise is ±0.1–0.2 Sharpe below $2,000 in either direction (the $1,000 row is luck, not skill: BTC/BNB happened to round away on bad days). The rule is implementable from $500; from $2,000 it tracks the model. At $1,000 the live portfolio is effectively 7 coins.
+
+### 2.4 Risk rules
+1. **Intraday circuit breaker (day stop) = 0.05 × TV of equity, measured from the 00:00 UTC equity** *(start)*: at TV 25% that is **−1.25% of E** within a UTC day → flatten everything (reduce-only), stay flat until the next decision time. At the native 40% it is −2.0%. Evidence (hourly series, TV 40%, [SYNTHETIC]): no stop Sharpe 1.25 / worst day −7.3% / max DD −21.9%; stop at 2.0% Sharpe 1.29 / worst day −4.8% / max DD −18.4%, tripping 99 days in 6.4 years (≈4% of days); stop at 1.5% costs Sharpe (1.05) and CAGR (18.6%); 3% and 4% are in between. *The 2% level was chosen after seeing all five; the Sharpe differences between none/2%/3% are within noise, so the justification is the worst-day and max-DD reduction, not Sharpe.* For own capital in the manual phase (2.6) this rule is executed by a watcher process or, failing that, not at all; it is **mandatory** in any prop account.
+2. **No drawdown de-leveraging.** Tested `mult = clip(1 − dd/dd_max, 0.25, 1)` at dd_max 10/15/20/30%: every variant lowered Sharpe (1.13–1.23 vs 1.25) and CAGR (9–13% vs 15%) for a modest DD improvement (Appendix A). The rule already vol-targets; cutting size in drawdowns double-counts. *Reported, not adopted.*
+3. **No regime filter.** BTC-above-200-day filter: Sharpe unchanged, max DD worse (−25.9%). BTC 30-day realized vol > 90% filter: Sharpe 1.09 (it skipped 2021). Vol > 120%: never triggered. *Reported, not adopted.*
+4. **Review trigger at −15% from the strategy equity peak**: written review within 48 h (is the vol estimate sane; are fills within 2× model cost; has anything about the venue or data changed). No automatic size change.
+5. **Kill switch at −20% from the strategy equity peak** → flatten, stop, do not restart without a new written decision. Under block-bootstrap of the 2020–26 series at TV 25% the one-year probability of hitting −20% is 0.3% (−15%: 3.9%); on the 2025–26 regime alone 0.2% (−15%: 2.1%) [SYNTHETIC, hourly granularity understates intra-hour breaches]. Hitting it means the edge is gone or the plumbing is broken, not bad luck.
+6. **Performance kill:** rolling 24-month Sharpe of live strategy returns < 0 → stop. (The worst 24-month window in the backtest, 2022–23, was positive.)
+7. **Plumbing kill:** live equity deviates from the model equity (the unrounded rule marked at the same decision prices with modelled costs) by more than 2× modelled costs over any 30-day window → stop and fix before continuing (this is the repo's own paper-trade stop rule, kept).
+8. **External kills:** adverse tax opinion (see 6, step 0); Delta withdrawal delays > 5 business days or any regulatory notice naming the venue; a missed or partial rebalance on 2 of any 10 days.
+9. **Leverage/liquidation:** on-venue leverage (gross notional / on-venue equity) must stay ≤ 2× at all times; at Delta's 0.25% maintenance margin this survives a 40%+ adverse move during a 1–2 hour exchange lockout (Oct-2025 Binance precedent: reduce-only rejected for 100+ minutes).
+
+### 2.5 Capital placement
+- **Below $5,000:** all capital on Delta (splitting is impractical).
+- **From $5,000** *(start)*: keep **40% of strategy equity on Delta**, 60% in an Indian liquid fund / sweep FD. Sizing uses total E. Top up the venue when on-venue equity < 25% of E or when on-venue leverage would exceed 2×. This adds ~3–4% a year on the idle 60% at near-zero vol and halves exchange counterparty exposure; it is cash management, not edge, and it is reported as such in section 4.
+
+### 2.6 Execution
+- **Decision time: 04:00 UTC (09:30 IST)** *(start)*, using the 04:00 UTC bar close for the 20/60/120-day returns and 60-day vol. The rule is robust to the decision hour: Sharpe 1.22–1.33 across 00/04/08/12/16/20 UTC (Appendix A). *04:00 was chosen for the user's convenience (Indian morning, away from Delta's 05:30/13:30/21:30 IST funding timestamps, during Asian-session liquidity); it is not the worst hour but it was not picked for being the best either.* Any prop account keeps the firm's own UTC day for the loss accounting regardless of decision hour.
+- **Phase 1 (manual, first 3 months of real money):** at 04:00 UTC run a target-contracts script (`trend_targets.py`, to be written: reads E, Delta closes and current positions, applies 2.2–2.3, prints the 0–9 orders). Place each as a **limit order at the touch, post-only, for 60 s; if unfilled, replace with an IOC limit at the far touch (taker)**. Delta BTC/ETH are one tick wide, so taker is ~free of spread; alts are 6–12 bps wide, so the 60 s maker attempt matters there. Record every fill (time, price, fee) in a sheet for tax and tracking.
+- **Phase 2 (bot):** a `trend_exec` mode in `mm-bot` using the existing `mm-delta` REST order path and the OEMS as supervisor, with the day-stop watcher, cancel-all coverage (invariant #2 in `.claude/rules/cex-mm.md`), and the daily loss stop (`MM_DAILY_LOSS_LIMIT_USD` exists for live runs). **Taker entries are a new order path that breaks the MM bot's post-only invariant and need the user's explicit approval in the PR.** Dry-run on mainnet public data for 4 weeks before it touches money.
+- **Order types:** post-only limit, then IOC limit. Market orders only for the kill switch and day stop (`scripts/flatten_delta.py`, reduce-only), which require the user's go-ahead under the repo's hard rules.
+- **What already exists in the repo:** the rule and self-test (`scripts/trend_backtest.py`), the paper trader on Delta mainnet public data (`scripts/trend_paper.py`, started 2026-10-08 on the Tokyo VM at $1,000 paper equity, TV 40%, dashboard `/trend`), the Delta adapter, OEMS, recorder, fire drill and flatten tools. **What does not exist:** any live trend order executor, the day-stop watcher, the band and per-coin cap (both trivial additions to `target_weights`), and a decision-hour parameter (the paper trader uses the 00:00 UTC close).
+- **The market-making bot:** not funded. Its code stays as infrastructure (Delta I/O, OEMS, Binance feed with the reconnect fix, kill switches). The anchored-fair shadow experiment in the 2026-10-13 memo may continue at zero capital; D2 does not depend on it and does not allocate to it.
+
+---
+
+## 3. Prop-firm fit (leverage on the same signal)
+
+The prop account trades **the identical daily weights** scaled by a multiplier k on the account's own equity, with the firm's UTC reset as the loss-accounting day and a mandatory day stop at half the firm's daily limit. Own capital and prop accounts are 100% correlated by construction, so prop accounts are sized as leverage, not diversification. All simulator numbers below are **[SYNTHETIC]**: stationary block bootstrap (mean block 20 days) of the rule's hourly return series, daily loss vs 00:00 UTC equity, fee assumptions from third-party pages, funded phase 12 months with 80% of profit withdrawn every 30 days; hourly granularity understates intra-hour breaches; rule texts are [THIRD-PARTY]/[UNVERIFIED] and must be re-read on the firm's dashboard on the day of purchase (reset times, static vs trailing, whether funding counts against drawdown, and **whether automated/API trading is allowed, which no source confirmed for any of the three**).
+
+| | Breakout Classic (Kraken-owned) | HyroTrader 1-step | Crypto Fund Trader 1-step |
+|---|---|---|---|
+| Rules used | 10% target, 3% daily (balance at 00:30 UTC excl. open P&L [UNVERIFIED]), 6% static, no time limit, no min days, no consistency rule, no SL rule, 80% split, $999 for $100k / $275 for $25k / $60 for $5k [THIRD-PARTY] | 10% target, 4% daily (UTC, incl. unrealized), 6% static (one review says trailing by default [CONFLICT]), mandatory SL within 5 min, 3% max risk/trade, 25% max exposure/position, 40% consistency rule [CONFLICT], 70% split, 5%-of-balance payout cap, $599–749 refundable [THIRD-PARTY] | 10% target, 4% daily, **6% trailing**, bans HFT/arbitrage, FINMA warning list (Aug 2024), "educational platform" terms, denial complaints [THIRD-PARTY] |
+| Does D2 comply? | Yes. Long/flat daily rebalance, no hedging, no arbitrage. | Yes if each position carries a resting stop (20% below entry at weights ≤ 0.15× E keeps risk/trade ≤ 3%; at the 0.25 cap the stop must be ≤ 12%). Consistency: at k=0.75 (15% vol) a 4%-of-account day is ~5σ, so the 40% rule is rarely binding. | Mechanically yes; trailing DD makes funded survival ~0–3%. |
+| k (vol) | **0.5 (10% realized)** *(start)*; 0.75 (15%) acceptable | 0.75 (15%) | not recommended |
+| Day stop (of account, from the firm's reset) | **1.5%** | 2.0% | 2.0% |
+| Pass prob., full 2020–26 bootstrap | k 0.5: 61% (39% within 180 d), median 139 d, p90 296 d; k 0.75: 63%, median 98 d | k 0.75: 65%, median 97 d; k 1.0: 60% | k 0.5: 50%; k 1.0: 39% |
+| Pass prob., **2025–26 regime only** (base Sharpe 0.46) | k 0.5: **16%** (58% still open after 365 d); k 0.75: 32%; k 1.0: 33% | k 0.75: 30%; k 1.0: 35% | not run |
+| Funded 12-month survival | k 0.5: 60%; k 0.75: 27% (full); 51% / 31% (2025–26) | k 0.75: 47%; k 1.0: 22% (full); 29% / 21% (2025–26) | 3% / 0% |
+| Fee EV per $100k challenge (full / 2025–26) | k 0.5: **+$5.9k / −$373**; k 0.75: +$5.8k / +$747 | k 0.75: +$7.6k / +$673; k 1.0: +$6.0k / +$1,270 | k 0.5: +$1.8k; k 1.0: +$0.6k |
+| Without a day stop (Breakout, full) | k 0.5: 54% pass, 17% daily-DD breaches, EV +$3.1k; k 1.0: 34%, 58% daily breaches, EV −$28 | | |
+| Historical (real) windows, Breakout k 0.5 | 50% pass, 47% still open at 365 d, EV +$4.4k | | |
+| Trust ordering | 1 (exchange-owned, rating 3.25/5) | 2 (rating 2.05/5, operator disclosure conflicts) | 3 (regulator warning) |
+
+Reading: **the day stop is what makes the trade viable** (daily-limit breaches 17–58% → 0–3%); **Breakout at k=0.5 is the preferred first account** (loosest static rules, no consistency/SL rules, best counterparty); **HyroTrader at k=0.75 has the best raw EV but a 70% split, a 5% payout cap per cycle and operational rules that need a stop on every position**; **CFT is dropped**. The decisive caveat is the regime row: if 2025–26 is the new normal, the challenge is roughly zero-EV (−$373 to +$1,270) and half the attempts are still unfinished after a year. The prop route is therefore **conditional**: buy the first challenge only after ≥ 3 months of own-capital live results that track the model (6, step 5), and cap total challenge fees at 25% of own trading capital per year *(start)*. A $25k Breakout Classic ($275) is the cheap first test: EV ≈ +$1.4k (full-series) or −$120 to +$160 (2025–26 regime) [SYNTHETIC: pass × E[payout]/acct × $25k − fee].
+
+India-specific: India is not on Breakout's published restricted list and Kraken hosts an `/in/` comparison page [THIRD-PARTY]; HyroTrader has no firm-level country gate via its Tealstreet terminal [firm FAQ snippet]; payouts are USDC/USDT, so the INR leg is a VDA disposal (30% + cess, 1% TDS) and the profit share itself is business income at slab rates; the challenge fee outflow sits in LRS/FEMA grey territory with no authoritative text found ([UNVERIFIED], `prop_firm_landscape.md`, `prop_challenge_math.md`). A chartered accountant signs this off before the first fee is paid.
+
+---
+
+## 4. Expected performance
+
+**Backtest (Binance proxy, 2020-05..2026-09, TV 25%, cap 0.25, band 10%, [SYNTHETIC reproduction of the pre-registered rule]):** CAGR +15.0%, vol 12%, Sharpe 1.25, max DD −14.1%, worst day −4.5%, 1st-percentile day −2.1%, fees 0.7%/yr, funding paid 2.1%/yr, average gross 0.12×. By year: 2020 +31%, 2021 +28%, 2022 −3%, 2023 +10%, 2024 +28%, 2025 +2%, 2026 to Sep +5%. On Delta's own prices 2024-08..2026-09: CAGR +12.3%, Sharpe 1.17, max DD −8.9%; extended to 2026-10-12: CAGR +10.6%, Sharpe 1.01 (the first twelve days of October 2026 cost about 3% at this vol; a start today begins in a drawdown).
+
+**Sub-periods (TV 25%, [SYNTHETIC]):**
+
+| Period | CAGR | Vol | Sharpe | Max DD | Worst day |
+|---|---|---|---|---|---|
+| 2020-05..2021 | +36.0% | 15% | 2.08 | −9.4% | −4.5% |
+| 2022 | −2.8% | 5% | −0.53 | −6.3% | −2.4% |
+| 2023 | +10.0% | 11% | 0.91 | −7.9% | −2.9% |
+| 2024 | +27.7% | 13% | 1.89 | −10.6% | −3.2% |
+| 2025 | +2.3% | 11% | 0.26 | −7.0% | −3.1% |
+| 2026 to Sep | +6.6% | 7% | 0.99 | −2.7% | −1.3% |
+| **2025-01..2026-09** | **+4.1%** | 9% | **0.49** | −8.9% | −3.1% |
+| **2022-01..2026-09** | **+8.4%** | 10% | **0.85** | −10.6% | −3.2% |
+
+**What to expect going forward (my estimate, not a backtest):** Sharpe **0.6–0.9** (haircut for the 2020–21 regime, for the fact that "crypto trend" was chosen knowing crypto rose, and for live frictions the paper trade has not yet measured). At TV 25% that is **CAGR +5% to +11% in a normal year, −5% to −10% in a 2022/2025-type year, max drawdown −12% to −20%**, worst single day −4% to −6%. The 2025–26 realized figure (+4%/yr) is the honest "if nothing improves" case. Realized vol ~10–12%. Add ~3–4%/yr on 60% of capital from the off-venue cash sleeve above $5,000 (not edge).
+
+**In money [SYNTHETIC]:**
+
+| | Base year (Sharpe ~0.7) | Backtest-like year | Bad year | Kill switch (−20%) |
+|---|---|---|---|---|
+| $1,000 own, TV 25% | +$50 to +$110 | +$150 | −$50 to −$100 | −$200 |
+| $5,000 own, TV 25% | +$250 to +$550 (+~$120 cash sleeve) | +$750 | −$250 to −$500 | −$1,000 |
+| $5,000 own, TV 40% | +$500 to +$1,100 | +$1,200 | −$500 to −$1,000 | −$1,000 (hit 11%/yr under bootstrap) |
+| $100k Breakout, k 0.5 (10% vol), funded | gross +$5k to +$9k → **+$4k to +$7k to the trader at 80%**, if the account survives the year (60% full-series / 51% 2025–26) and after the challenge was passed (61% / 16%) and $999 paid | gross +$12k → +$9.6k | breach: account lost, fee gone | n/a (6% static DD is the firm's kill) |
+
+The honest summary: on a few thousand dollars of own capital this is **capital preservation with a positive drift**, roughly ₹4,000–9,000 a year on ₹4.5 lakh. The money, if the edge persists, is in the funded accounts, and the 2025–26 row says the edge may not persist.
+
+---
+
+## 5. Failure modes, what the user will see, kill criteria
+
+| Failure mode | Evidence | What the user sees | Response / kill |
+|---|---|---|---|
+| **Trendless whipsaw regime** (2022, 2025; policy-headline reversals) | Rule: 2022 −3%, 2025 +2%; Barclay crypto CTA −12% in 2025; Man Group SG Trend −18.6% rolling 12 m to Apr 2025 [UNVERIFIED] | Many small losses, positions opened and closed within weeks, rolling 12-month return near zero or slightly negative; the rule is long/flat so bear years are flat, not −60% | Expected; no action. Kill only on rule 6 (24-month Sharpe < 0) or rule 5 (−20%). |
+| **Crash while long** (19 May 2021 −7.3% at 40% TV; 10 Oct 2025; 5 Feb 2026) | Hourly series: 9 days with intraday drawdown < −5% at 40% TV in 6.4 years | A −3% to −5% day at TV 25%; exits may be impossible for 1–2 h (Binance Oct-2025 precedent) | Day stop (−1.25%) if the watcher is running; leverage ≤ 2× on venue so no liquidation. Not a kill. |
+| **Edge decay / crowding** | Swinkels: TSMOM weakened after futures launch; Summitward: trend adds only 0.05 Sharpe over vol-scaled buy-and-hold; 2025–26 Sharpe 0.49 | Years that look like 2025 back to back; live equity flat while buy-and-hold swings | Kill rule 6. Also compare live to a vol-scaled equal-weight buy-and-hold monthly: if the trend overlay has not added anything over 24 months, stop. |
+| **Tax regime** (30% VDA per transfer, no loss set-off, applied to perps) | KoinX/TaxGuru/Mudrex conflict; unresolved; [UNVERIFIED] | A tax bill on gross gains with dead losses. Illustration [SYNTHETIC]: a daily-rebalanced 12%-vol strategy has gross gains ≈ 95–100%/yr and gross losses ≈ 80–85%/yr for a net +15%; taxing gains at 30% with no set-off gives ≈ −14%/yr after tax | **Pre-live gate 0.** Adverse opinion = do not trade this (or any daily-rebalanced perp strategy) in India. |
+| **Venue / rails** (Delta outage, API change, INR rail freeze, FIU action, delisting of a universe coin) | Bybit hack Feb 2025; Binance reduce-only failures Oct 2025; FIU blocked 25 offshore exchanges Oct 2025 | Missed rebalance, stuck withdrawal, a coin that cannot be traded | Missed/partial rebalance on 2 of 10 days → kill rule 8; withdrawal > 5 business days → reduce to zero. 60% off-venue above $5k limits the damage. |
+| **Data / plumbing** (wrong candle boundary, funding units, frozen feed, clock skew) | The bot once read funding % as a fraction; the Binance feed froze silently 8–12 Oct; WSL clock −1 s; this session's own −0.036 correlation artefact (Appendix A.6) | Live equity drifts from model equity | Kill rule 7 (tracking error > 2× modelled cost over 30 days). |
+| **Execution cost higher than modelled** (thin alts, 6–12 bps wide; depth down since Oct 2025) | Delta alt turnover $1–7M/day; Kaiko: alt depth still −35% six months after Oct 2025 | Fees + slippage per rebalance > 15 bps round trip | Paper-trade stop rule (> 2× model); drop the coin if its spread > 20 bps at decision time for 30 days. |
+| **Operator discipline** (skipping rebalances, overriding the signal, upsizing after wins) | hoc-trade/OneFunded: most prop failures are behavioural | Deviations from the model sheet | The model-vs-live sheet is the control; two unexplained deviations in a month = stop and automate (Phase 2). |
+| **Prop-specific** (rule tightened mid-account, payout denied, firm closes, automation flagged) | FundingTicks retroactive change + shutdown Jan 2026; CFT denial complaints; FPFX: 7% of entrants ever paid [UNVERIFIED] | Account breached by a rule the simulator did not model; payout refused | Treat fees as sunk lottery tickets; never more than one live challenge at a time *(start)*; stop buying after two consecutive failures in the same regime. |
+| **Small-account rounding** | $500: BTC/BNB/ETH round to zero | Fewer coins, lumpier P&L | Accept below $2,000; it is noise, not drift. |
+
+---
+
+## 6. Pre-live verification plan (in order; nothing goes live until the step above it passes)
+
+| # | Check | How | Pass | Fail → |
+|---|---|---|---|---|
+| 0 | **Tax and legal** | Written CA opinion on Delta India INR-funded, USD-quoted, cash-settled perps: speculative business income (s.43(5)/s.73, net basis, loss set-off within speculative income) vs flat 30% VDA (s.115BBH, no set-off). Confirm Delta's TDS practice on perp P&L and GST on fees. Confirm the FY2026-27 section renumbering (Income-tax Act 2025) [UNVERIFIED]. | Business-income treatment on a net basis | Do not trade daily-rebalanced perps from India. Stop here. |
+| 1 | **Data** | (a) Re-run `trend_backtest.py --source both` to the latest date; Binance-vs-Delta daily-return correlation on the common window must be > 0.99 (this session: 0.999 over 782 days; the earlier −0.036 was an index-alignment artefact, Appendix A.6). (b) Confirm Delta daily candle boundaries are 00:00 UTC and the FUNDING:<sym> candles are % per 8 h. (c) Confirm all 9 contracts are listed with the contract values above and 24 h turnover > $0.5M. | All three | Fix the data path; do not proceed on a proxy that does not reproduce. |
+| 2 | **Rule implementation** | `trend_backtest.py --selftest`; add the band, per-coin cap and decision-hour parameters with unit tests; on 20 random historical days the executor's target contracts equal `target_weights` × E / price rounded. | Zero differences | Fix before paper. |
+| 3 | **Paper trade on mainnet public data (4 weeks at the final settings)** | `scripts/trend_paper.py` + `/trend` dashboard (running since 2026-10-08 at TV 40%, 00:00 UTC; restart at TV 25%, 04:00 UTC, band, cap). Metrics: every rebalance executes; measured fee + slippage per rebalance; paper equity vs model equity. | Every rebalance executed; costs ≤ 2× 7.31 bps; tracking error ≤ 2× modelled costs | Missed/partial rebalances on 2 days or costs > 2× model → fix and restart the 4 weeks. |
+| 4 | **Platform / API / rails** | Delta demo: place, amend, cancel, reduce-only, post-only reject behaviour, cancel-all < 2 s (fire drill), rate limits under a synthetic 429. Mainnet with 1 contract: one full open/close cycle per coin; deposit ₹ and withdraw a small amount, time it; confirm Read+Trade-only API keys with IP whitelist, no withdrawal right. | All orders behave as documented; withdrawal round-trip ≤ 2 business days | Do not scale. |
+| 5 | **Live, small (3 months at ≤ 50% of intended capital, TV 25%)** | Manual Phase 1 execution; model-vs-live sheet daily; realized cost per rebalance; day-stop watcher in dry-run alongside. | Tracking error ≤ 2× modelled costs over each 30-day window; realized round-trip cost ≤ 15 bps on majors / ≤ 20 bps on alts; no missed rebalances | Kill rule 7/8; return to step 3. |
+| 6 | **Scale to full own capital; decide TV 25% vs 40%** | After step 5 passes. | User decision, in writing, with the drawdown numbers from section 4 in front of them | — |
+| 7 | **Bot (Phase 2)** | `trend_exec` + day-stop watcher: 4-week mainnet dry-run (public data, no keys), then live at the same size as step 5 for 4 weeks; taker-entry order path approved by the user in the PR; cancel-all covers it. | Same metrics as step 5 | Stay manual. |
+| 8 | **Prop (only after step 5)** | Re-read the firm's live rules page the day you buy (reset time, static vs trailing, funding treatment, API/automation policy, India eligibility, payout rail); CA opinion on the fee outflow (LRS/FEMA) and payout taxation; start with Breakout Classic $25k at k=0.5, day stop 1.5% from the firm's reset; fee budget ≤ 25% of own capital per year. | Rules match the simulated set; automation allowed or manual execution feasible at the firm's reset hour | Skip the firm. |
+
+---
+
+## 7. What this design deliberately drops, and why
+
+| Dropped | Why (evidence) |
+|---|---|
+| **Market-making bot as a PnL engine** | First real-money run: −3.6 bps net60 per fill, −4.46 bps per dollar traded, fills arrive when quotes are stale (Binance moved 1.97 bps toward the quote in the 2 s before a fill; whole-quote takers had −2.77 bps markout); the shadow simulator structurally cannot see this; BTC/ETH touch is one tick so passive quoting cannot beat 2.12 bps maker fee; the fix (Binance-anchored fair) is unproven live and its basis input is contaminated by our own quotes in live (`2026-10-13-live-run-pickoff.md`, `.claude/rules/cex-mm.md`). Kept as infrastructure only. |
+| **Daily option selling** | Pre-registered OOS: BTC ≈ 0, ETH strangle −16.1 bps/day (t −2.0); implied below realized every quarter (`options-research/README.md`). Weekly/monthly VRP untested; not worth capital now. |
+| **Funding carry (on-venue spot vs perp, or cross-venue)** | Delta BTC/ETH funding capped at 0.01%/8 h = 10.95%/yr gross; 30-day Delta BTC mean 5.6%/yr; round trip ≈ 14–21 bps plus 10 bps spot seller fee, 1% TDS cash drag, 30% VDA on the spot leg with unresolved offset of perp losses, no dated futures; carry Sharpe 6.45 → negative in 2025 (Borri et al.); Binance BTC funding negative 67 consecutive days Mar–May 2026; cross-venue blocked by LRS/FEMA and the Oct-2025 ADL tail (`funding_carry_basis.md`). Monitored, not traded. |
+| **Short leg / long-short** | Repo: L/S Sharpe 0.78 vs 1.25, shorts −7% in 2023; literature: losers rebound sharply, momentum crashes live in the short leg. |
+| **Regime filters (BTC 200-day, realized-vol gate)** | Tested this session: no Sharpe gain, worse or equal drawdown (Appendix A.3). |
+| **Drawdown de-leveraging** | Tested: Sharpe 1.13–1.23 vs 1.25, CAGR −2 to −6 pts (Appendix A.5). Hard kill instead. |
+| **Intraday / multi-hour rebalancing** | 13–15 bps per round trip on Delta vs 1–3 bps of expected hour-of-day effect; Bysik & Ślepaczuk: naive hourly signals fail at 10 bps cost [UNVERIFIED]. |
+| **Lead-lag taker trades (Binance → Delta)** | Conditional follow-through 3–5 bps vs 10.6 bps taker round trip; the lead is a pick-off risk for makers, not a taker edge (`alternative_edges.md` KQ6). |
+| **Cross-sectional alt momentum / beta-neutral alt baskets** | Weak after costs (Han et al.; Fieberg et al.: alphas from the short leg of illiquid coins); negative OOS 2025–26 in an independent 25-coin test [UNVERIFIED]; alt depth −35% since Oct 2025. |
+| **ML / signal stacking / parameter optimization** | Every honest OOS report is modest or negative; the pre-registered rule's value is that nobody optimized it. The 60-day-only lookback "scored best on Delta" and is explicitly not taken (memo). |
+| **On-chain, sentiment, skew, OI, Coinbase premium, altseason, FOMC/CPI, listings** | In-sample, commentary, or structurally adverse for a late venue (`alternative_edges.md` KQ8 table). |
+| **Token-unlock shorts** | The one event with a large documented effect, but it needs the token's perp on Delta with depth, pays alt funding on the short, and has no post-2022 after-cost test; a research item, not an engine. |
+| **Crypto Fund Trader** | 6% trailing drawdown → funded survival ~0–3% [SYNTHETIC]; FINMA warning; denial complaints. |
+| **Own leverage above 2× on venue, or TV > 40%** | Sharpe is invariant to TV; drawdown and liquidation-during-lockout risk are not. |
+| **Hyperliquid vaults, copy trading, exchange competitions** | Non-Indian venue/KYC and FEMA; <7% of copy-trading wallets profitable [UNVERIFIED]; competitions pay volume, not edge. |
+
+---
+
+## 8. Plain-English explanation
+
+**What we do.** Nine of the largest cryptocurrencies are traded on Delta Exchange India as perpetual futures. Once a day, at 9:30 in the morning India time, we look at each coin and ask one question: has it gone up over the last month, the last three months, and the last six months? If the answer is mostly yes, we hold a small long position in it. If the answer is mostly no, we hold nothing in that coin. We never bet on prices falling. The size of each position is set so that the whole account should swing by about 1% a day on a normal day, and we make the positions smaller when markets get wilder and larger when they calm down. Most of the account sits in cash most of the time; on an average day only about 12% of the money is actually in the market. Above about $5,000 we keep more than half the cash off the exchange altogether, in an ordinary Indian liquid fund.
+
+**Why it should make money.** Crypto prices tend to keep moving in the direction they have been moving for weeks or months, and this "trend" effect has been measured again and again by academics and by funds. Our own test of this exact rule over six and a half years, using Delta's real fees, made about 15% a year at the risk level we propose, with a worst peak-to-trough loss of about 14%, and the rule was written down before it was tested, so nobody tuned it to look good. It also has a second, quieter advantage: because it steps out of coins that are falling, it avoids the 60–80% crashes that buy-and-hold crypto investors live through.
+
+**What can go wrong.** First, the last two years have been poor for this kind of strategy: markets reversed on headlines faster than trends could form, and the rule made only 2–4% a year. If that continues, we earn roughly bank-deposit returns while taking more risk. Second, the whole approach could stop working if too many people do it; crypto trend strategies run by professional funds lost 12% in 2025. Third, there is an unresolved Indian tax question: if these futures are taxed like crypto purchases (30% on every winning trade, with losing trades not counted), the strategy loses money after tax even when it wins before tax. We do not put real money in until a chartered accountant has answered this in writing. Fourth, the exchange itself can fail, freeze, or be shut; we keep the account small, keep most cash elsewhere, and stop if withdrawals take longer than a week. Fifth, we have a hard rule: if the account is ever 20% below its best level, we close everything and stop.
+
+**How much to expect.** On $1,000, in a normal year, roughly $50–110 of profit, and a bad year of −$50 to −100. On $5,000, roughly $250–550. This is not a get-rich strategy on its own; it is a disciplined, low-drawdown core. The way to make it meaningful is to run the same daily rule on a prop-firm "funded account": you pay a fee (about $275 for a $25,000 account or $999 for a $100,000 account at the Kraken-owned firm Breakout), prove the rule inside their loss limits, and then keep 80% of the profits on their capital. Our simulations say that over the full history this rule passes their test about six times in ten and that the fee is well worth paying; over the last two years alone it passes only about one to three times in ten and the fee is roughly a coin-flip. So we earn the right to buy that ticket only after three months of real, small, own-money trading that behaves like the model.
+
+**What we are explicitly not doing.** We are not running the market-making bot with money (it lost in its first real test because faster traders picked off its stale prices), not selling options (no edge found), not harvesting funding rates (too compressed and too tax-unfriendly in India), and not betting on falling prices.
+
+---
+
+## Appendix A — Every setting tested in this session (all reported)
+
+Data: Binance USDT-M perp daily klines and funding 2019-09..2026-09 (proxy; corr 0.999 with Delta), Delta India daily candles and funding 2023-12..2026-10-12, Binance hourly 2020..2026-10-12. Scripts: `scratchpad/tools/trend_hourly.py`, `prop_sim.py`, `d2_checks.py`, `d2_checks2.py`; outputs in `scratchpad/calc/d2_checks_output.txt`, `d2_checks2_output.txt`, `local_evidence.md`. Baseline = pre-registered rule, long-only, TV 40%, Binance 2020-05-01..2026-09-30: CAGR +24.2%, vol 19%, Sharpe 1.25, max DD −21.9% (hourly −22.6%), worst day −7.31%.
+
+**A.1 Day stop (hourly series, TV 40%)** — none: Sharpe 1.25, CAGR 24.2%, DD −21.9%, worst −7.31%; **1.5%: 1.05, 18.6%, −16.2%, −4.79% (159 stop days)**; **2.0%: 1.29, 24.2%, −18.4%, −4.79% (99)**; 3.0%: 1.24, 23.7%, −18.4%, −5.45% (42); 4.0%: 1.15, 22.2%, −20.8%, −7.80% (23). Adopted 2.0% of equity at TV 40% ≡ 0.05 × TV (chosen after seeing results; justified on tail, not Sharpe).
+
+**A.2 Target vol, per-coin cap, no-trade band (daily, Binance 2020–26)** — TV 40%: Sharpe 1.25 at every (cap ∈ {none, 0.25}) × (band ∈ {0, 10%, 25%}); CAGR 24.2/24.2/24.7%; DD −21.9/−22.4/−22.3%; trades/yr 1,773/531/433; fees 1.1/1.1/1.0%. TV 25%: Sharpe 1.25 throughout; CAGR 15.0/15.0/15.4%; DD −13.9/−14.1/−14.2%; worst day −4.57/−4.54/−4.47%; fees 0.7%; funding 2.1%; gross 0.12×. The cap never bound. Adopted TV 25% (decided before the runs, on drawdown logic), cap 0.25, band 10% (after seeing results; operational).
+
+**A.3 Regime filters (hourly, TV 40%)** — BTC < 200-day → flat: Sharpe 1.25, CAGR 23.5%, DD −25.9%. BTC 30-day RV > 90% → flat: Sharpe 1.09, CAGR 20.0%, DD −21.9% (2021 +18% vs +47%). RV > 120%: 1.25, 24.2%, −21.6% (barely triggers). None adopted.
+
+**A.4 Decision hour (daily closes from hourly bars, TV 40%)** — 00:00 UTC Sharpe 1.26 (DD −21.7%); 04:00 1.32 (−18.3%); 08:00 1.32 (−18.3%); 12:00 1.32 (−20.5%); 16:00 1.33 (−22.5%); 20:00 1.22 (−21.1%). Funding is shifted by up to one day in this construction. Adopted 04:00 UTC for convenience; the spread across hours is the robustness result.
+
+**A.5 Drawdown de-leveraging (daily, TV 25%, mult = clip(1 − dd/dd_max, 0.25, 1))** — none: Sharpe 1.25, CAGR 15.0%, DD −13.9%; dd_max 10%: 1.13, 9.2%, −8.8% (avg mult 0.43); 15%: 1.18, 10.8%, −10.8%; 20%: 1.21, 11.9%, −11.7%; 30%: 1.23, 13.0%, −12.6%. None adopted.
+
+**A.6 Delta reproduction and alignment** — Delta 2024-08-10..2026-09-30, TV 40%: CAGR 19.4%, Sharpe 1.15, DD −14.1% (matches the memo); with cap+band: 19.9%, 1.17; TV 25%: 12.1–12.3%, 1.15–1.17, −8.9%. To 2026-10-12: TV 40% Sharpe 0.99–1.02, 2026 YTD +3%; TV 25% Sharpe 0.99–1.01, 2026 YTD +2%. Common-window correlation Binance vs Delta: **0.999 over 782 days**. The session's earlier `baseline_backtest.txt` line "correlation −0.036 over 1018 days" came from starting the Delta run at 2020-05-01 (its series begins 2023-12-30 with BTC/ETH only, 1,006 days) and comparing the last n returns of two differently-dated series by index; it is an artefact, not a data problem.
+
+**A.7 Small-account rounding (Delta to 2026-10-12, cap, band)** — TV 40%: $500 Sharpe 1.09–1.10 (gross 0.18×), $1,000 0.93, $2,000 1.00–1.01, $5,000 1.00–1.01, $20,000 1.00–1.01 vs unrounded 0.99–1.02. TV 25%: $500 1.06–1.07 (gross 0.10×), $1,000 1.21, $2,000 0.96–0.97, $5,000 0.97–0.98, $20,000 0.99–1.01 vs unrounded 0.99–1.01.
+
+**A.8 Sub-periods (TV 25% and 40%, cap, band)** — see section 4 table; TV 40% doubles CAGR/DD at identical Sharpe (2020–21 2.08; 2022 −0.54; 2023 0.90; 2024 1.89; 2025 0.27; 2026 0.99; 2025–26 0.49; 2022–26 0.85).
+
+**A.9 Kill-level hit probability (bootstrap, 1 year, no other rules)** — TV 25% (k 0.625): −15% trailing 3.9% (full series) / 2.1% (2025–26 only); −20%: 0.3% / 0.2%. TV 40% (k 1.0): −15% 37.1% / 28.7%; −20%: 11.0% / 6.6%.
+
+**A.10 Prop simulations** — Local evidence pack (bootstrap, 2020–26): Breakout Classic no stop k 0.5–2.0 (pass 53→30%, EV +$3.1k→−$672); Breakout day stop 1.5% k 0.5–2.0 (pass 61/63/51/51/43%, EV +$5.8k/+5.6k/+3.2k/+2.2k/+0.6k); Breakout day stop 2% k 0.5–1.0; Breakout historical windows day stop 1.5% k 0.5–1.0 (pass 50/59/59%); HyroTrader 10/4/6 static day stop 2% k 0.5–1.0 (pass 59/65/60%, EV +$4.7k/+7.6k/+6.0k); CFT 6% trailing k 0.5–1.0 (surv 2.8/0.2/0.0%); generic 2-step 8+5/5/10 no stop k 1–3. This session: Breakout day stop 1.5% k 0.5/0.6/0.75 full series (pass 61.1/61.0/63.1%, surv 60/37/27%, EV +$5,897/+5,320/+5,826); **2025–26-only series (base Sharpe 0.46, vol 15%)**: Breakout day stop 1.5% k 0.5/0.75/1.0 (pass 15.7/32.4/33.4%, open at 365 d 58/26/9%, surv 51/31/9%, EV −$373/+$747/+$450); HyroTrader day stop 2% k 0.5/0.75/1.0 (pass 17.5/29.6/35.1%, surv 58/29/21%, EV +$54/+$673/+$1,270 at 70% split, $599 fee).
+
+## Appendix B — Sources relied on (beyond the repo memos cited inline)
+- Moskowitz, Ooi & Pedersen (2012), time-series momentum — https://doi.org/10.1016/j.jfineco.2011.11.003
+- Liu & Tsyvinski, Risks and Returns of Cryptocurrency — https://www.nber.org/system/files/working_papers/w24877/w24877.pdf [UNVERIFIED]
+- Han, Kang & Ryu, TSMOM vs CSMOM under realistic assumptions — https://acfr.aut.ac.nz/__data/assets/pdf_file/0009/918729/Time_Series_and_Cross_Sectional_Momentum_in_the_Cryptocurrency_Market_with_IA.pdf [UNVERIFIED]
+- Grobys et al. (2025), Cryptocurrency momentum has (not) its moments — https://link.springer.com/article/10.1007/s11408-025-00474-9 [UNVERIFIED]
+- Zarattini, Pagani & Barbon, Catching Crypto Trends — https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5209907 [UNVERIFIED]
+- Summitward, crypto trend decomposition — https://summitward.com/learn/crypto-trend-following [UNVERIFIED]
+- Barclay Cryptocurrency Traders Index 2025 via The Full FX — https://thefullfx.com/ctas-end-2025-on-a-positive-note/ [UNVERIFIED]
+- Man Group, In Crypto We Trend — https://www.man.com/insights/in-crypto-we-trend [UNVERIFIED]
+- Borri, Liu, Tsyvinski & Wu (2025), carry decay — https://arxiv.org/abs/2510.14435 [UNVERIFIED]; Schmeling, Schrimpf & Todorov, Crypto Carry — https://www.bis.org/publ/work1087.pdf [UNVERIFIED]
+- Delphic Alpha, Prop Firm Math — https://delphicalpha.substack.com/p/prop-firm-math-what-the-rules-actually [UNVERIFIED]
+- Breakout program rules — https://www.breakoutprop.com/program-rules/ [UNVERIFIED]; CryptoSlate Breakout review — https://cryptoslate.com/prop-firms/breakout-review/ [THIRD-PARTY]; Kraken Breakout vs HyroTrader — https://www.kraken.com/in/learn/breakout-vs-hyrotrader
+- HyroTrader payout page — https://www.hyrotrader.com/payout/ [UNVERIFIED]; LuxAlgo CFT rules — https://www.luxalgo.com/prop-firms/crypto-fund-trader/ [THIRD-PARTY]
+- Delta funding schedule — https://www.delta.exchange/support/solutions/articles/80001183756-update-on-funding-exchange-schedule-for-perpetual-contracts; Delta products API — https://api.india.delta.exchange/v2/products?contract_types=perpetual_futures
+- India tax: KoinX — https://www.koinx.com/in/crypto-tax-stories/crypto-futures-traders-in-india-are-filing-taxes-under-two-different-systems; TaxGuru — https://taxguru.in/income-tax/taxation-crypto-futures-options-income-tax-act-1961.html; CBDT Circular 13/2022 via StudyCafe — https://studycafe.in/tds-on-crypto-transactions-cbdt-issues-clarifications-on-newly-introduced-section-194s-138945.html [all UNVERIFIED]
+- Oct-2025 cascade and Binance outage — https://blog.amberdata.io/the-liquidity-that-vanished-inside-octobers-40-depth-collapse; https://coinedition.com/binance-system-failure-reduceonly-order-outage/ [UNVERIFIED]
+- Bailey & López de Prado, Deflated Sharpe — https://papers.ssrn.com/abstract=2460551; Harvey & Liu, Backtesting — https://people.duke.edu/~charvey/Research/Published_Papers/P120_Backtesting.PDF
