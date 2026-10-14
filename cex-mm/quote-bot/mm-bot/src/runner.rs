@@ -7,8 +7,8 @@ use mm_bybit::{
 };
 use mm_core::{
     BookTop,
-    clip_reducing_qty, compute_quote_cex, economics::FillEconomics, hard_cap_reduce,
-    should_taker_flatten, horizon_vol_bps,
+    compute_quote_cex, economics::FillEconomics, hard_cap_reduce,
+    should_taker_flatten, horizon_vol_bps, side_order_qty,
     ofi::{AlphaMuEstimator, OfiTracker, SnipeTracker},
     queue::should_place_limit,
     regime::{RegimeEngine, RegimeLevel, RegimeThresholds},
@@ -958,7 +958,7 @@ async fn run_symbol_loop(
             .map(|g| g.rolling_adverse_bps())
             .unwrap_or(0.0);
 
-        let plan = compute_quote_cex(
+        let mut plan = compute_quote_cex(
             &cfg,
             fair_native,
             tick,
@@ -975,6 +975,16 @@ async fn run_symbol_loop(
             ext,
         )
         .map_err(|e| anyhow::anyhow!(e))?;
+        // The side that adds to the position only quotes the room left under the cap. No room switches the
+        // side off, so needs_update_sides pulls any order still resting there.
+        let bid_qty = side_order_qty(inventory, false, plan.order_qty, min_qty, max_inv);
+        let ask_qty = side_order_qty(inventory, true, plan.order_qty, min_qty, max_inv);
+        if bid_qty <= 0.0 {
+            plan.place_bid = false;
+        }
+        if ask_qty <= 0.0 {
+            plan.place_ask = false;
+        }
 
         let tol_bps = env_f64_for_symbol(&symbol, "MM_REQUOTE_TOL_BPS", 3.0);
 
@@ -1119,8 +1129,6 @@ async fn run_symbol_loop(
                 need_bid = true;
                 need_ask = true;
             } else {
-                let bid_qty = clip_reducing_qty(inventory, false, plan.order_qty, min_qty);
-                let ask_qty = clip_reducing_qty(inventory, true, plan.order_qty, min_qty);
                 if need_bid {
                     if let Some(id) = oms.live.bid_id {
                         let crosses = top.best_ask > 0.0 && plan.bid >= top.best_ask;
@@ -1166,7 +1174,6 @@ async fn run_symbol_loop(
         let queue_front_frac = env_f64_for_symbol(&symbol, "MM_QUEUE_MAX_FRONT_FRAC", 0.9);
 
         if need_bid && plan.place_bid {
-            let bid_qty = clip_reducing_qty(inventory, false, plan.order_qty, min_qty);
             let bid_reduces = inventory < 0.0;
             if bid_reduces && plan.bid >= top.best_ask && top.best_ask > 0.0 && bid_qty > 0.0 {
                 let price = (top.best_ask - tick).max(top.best_bid);
@@ -1257,7 +1264,6 @@ async fn run_symbol_loop(
         }
 
         if need_ask && plan.place_ask {
-            let ask_qty = clip_reducing_qty(inventory, true, plan.order_qty, min_qty);
             let ask_reduces = inventory > 0.0;
             if ask_reduces && plan.ask <= top.best_bid && top.best_bid > 0.0 && ask_qty > 0.0 {
                 let price = (top.best_bid + tick).min(top.best_ask);

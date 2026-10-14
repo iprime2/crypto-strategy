@@ -600,6 +600,23 @@ pub fn clip_reducing_qty(
     shaped_qty.max(min_qty).min(abs_inv)
 }
 
+/// Size for one side's quote: `clip_reducing_qty`, plus the side that adds to the position may only fill
+/// the room left under `max_inv`. Returns 0 when that room is below `min_qty`, so the caller can switch the
+/// side off. `max_inv <= 0` means no cap. Without the clip a full quote just under the cap could overshoot
+/// it by up to one quote (13 Oct 2026 live run).
+pub fn side_order_qty(inventory: f64, side_is_sell: bool, shaped_qty: f64, min_qty: f64, max_inv: f64) -> f64 {
+    let qty = clip_reducing_qty(inventory, side_is_sell, shaped_qty, min_qty);
+    let adds = (side_is_sell && inventory <= 0.0) || (!side_is_sell && inventory >= 0.0);
+    if !adds || max_inv <= 0.0 {
+        return qty;
+    }
+    let room = max_inv - inventory.abs();
+    if room + 1e-12 < min_qty {
+        return 0.0;
+    }
+    qty.min(room)
+}
+
 /// Pay the spread to flatten only when size is at least two orders past `max_inv`.
 /// A smaller excess is left for a resting quote.
 pub fn should_taker_flatten(inventory: f64, max_inv: f64, order_qty: f64) -> bool {
@@ -1093,6 +1110,38 @@ mod tests {
         let q = clip_reducing_qty(0.0004, true, 0.0004, 0.001);
         assert!((q - 0.0004).abs() < 1e-12);
         assert!(q + 1e-15 < 0.001);
+    }
+
+    #[test]
+    fn side_order_qty_clips_the_adding_side_to_the_room_under_the_cap() {
+        // ADA live profile: 200 per quote, cap 600, min 1 contract.
+        assert_eq!(side_order_qty(0.0, false, 200.0, 1.0, 600.0), 200.0);
+        assert_eq!(side_order_qty(0.0, true, 200.0, 1.0, 600.0), 200.0);
+        // Long 500: the buy adds and may only fill the last 100; the sell reduces and stays full size.
+        assert_eq!(side_order_qty(500.0, false, 200.0, 1.0, 600.0), 100.0);
+        assert_eq!(side_order_qty(500.0, true, 200.0, 1.0, 600.0), 200.0);
+        // Short 450: the sell adds (150 left), the buy reduces.
+        assert_eq!(side_order_qty(-450.0, true, 200.0, 1.0, 600.0), 150.0);
+        assert_eq!(side_order_qty(-450.0, false, 200.0, 1.0, 600.0), 200.0);
+        // 13 Oct 2026: at -511 a full 200 ask could take the position to -711; it is now 89.
+        assert_eq!(side_order_qty(-511.0, true, 200.0, 1.0, 600.0), 89.0);
+    }
+
+    #[test]
+    fn side_order_qty_is_zero_when_the_room_is_below_the_venue_minimum() {
+        assert_eq!(side_order_qty(600.0, false, 200.0, 1.0, 600.0), 0.0);
+        assert_eq!(side_order_qty(-650.0, true, 200.0, 1.0, 600.0), 0.0);
+        assert_eq!(side_order_qty(590.0, false, 200.0, 50.0, 600.0), 0.0);
+        assert_eq!(side_order_qty(550.0, false, 200.0, 50.0, 600.0), 50.0);
+    }
+
+    #[test]
+    fn side_order_qty_keeps_the_reducing_rules_and_an_unset_cap() {
+        // The reducing side follows clip_reducing_qty (lifted to min, never past flat).
+        assert_eq!(side_order_qty(150.0, true, 200.0, 1.0, 600.0), 150.0);
+        assert!((side_order_qty(0.01, true, 0.0004, 0.001, 1.0) - 0.001).abs() < 1e-12);
+        // No cap configured: nothing to clip against.
+        assert_eq!(side_order_qty(5000.0, false, 200.0, 1.0, 0.0), 200.0);
     }
 
     #[test]
