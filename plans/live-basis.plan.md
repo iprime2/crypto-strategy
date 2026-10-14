@@ -1,0 +1,152 @@
+---
+name: Live basis source for the Binance-anchored fair
+overview: Make the Binance-anchored fair safe to run live. Its basis must come from a Delta price our own quotes cannot move, and no other term of the fair may read our own quotes. First harden the live path the 13 Oct run exposed, record the candidate sources in the shadow, then judge them with a live-mode replay and a pre-registered gate. The real bot stays off throughout.
+todos:
+  - id: p0-readonly-checks
+    content: "P0 (read-only, VM): confirm why fills arrived 15-30 s late on 13 Oct; 10-min ob_l2 probe on all four shadow symbols"
+    status: pending
+  - id: pr-a-live-path
+    content: "PR A: live-path robustness: private fill feed reconnects; ticker off the hot path (background poller with timeout); clip the adding quote to cap - |q|"
+    status: pending
+  - id: pr-b-depth-logging
+    content: "PR B: ob_l2 depth feed + depth price (mm-core) + candidate logging (depth, mark/index, Binance qty) + raw ob_l2/mark recording; no behaviour change"
+    status: pending
+  - id: pr-c-source-safety
+    content: "PR C: MM_BASIS_SOURCE=book|depth; OFI out of the anchored fair; one live-anchor check with an allowlist across live.sh, the bot and the OEMS; anchor-off pulls quotes live"
+    status: pending
+  - id: pr-d-replay
+    content: "PR D: scripts/basis_replay.py (live-mode replay, pinned gate) + tests; Python unittests in CI"
+    status: pending
+  - id: pr-e-ghost-orders
+    content: "PR E: fills update the OMS by order id (needs one real demo user_trades frame first)"
+    status: pending
+isProject: false
+---
+
+# Live basis source for the Binance-anchored fair
+
+**Why:** `cex-mm/artifacts/research/2026-10-13-shadow-anchor-interim.md`, finding 2. In a live run our quotes are the Delta touch about 95% of the time, so the current basis gate starves the anchor (on only 39–74% of the time) and biases it. STRATEGY.md §4.2 (anchored fair) stays the design source.
+
+**Plan review (2026-10-13):** three adversarial reviews (microstructure, engineering and live safety, evaluation) found must-fix gaps in the first draft. This version includes every must-fix. The main changes:
+- a second self-reference (OFI) is removed;
+- the success gate no longer uses a yardstick that a perfect predictor fails;
+- the live refusal now covers every launcher;
+- live-path bugs come first.
+
+## Findings this plan rests on
+- **Delta India public websocket** (probed live from the Tokyo VM):
+  - `ob_l2` sends a full 15-level snapshot per side every 500 ms, keys `a`, `b`, `sy`, `ts`, `lts`.
+  - `mark_price` works with the symbol `MARK:ADAUSD`.
+  - `l2_orderbook`, `l2_updates` and `v2/ticker` are rejected.
+  - Not yet checked: whether `ob_l2` re-sends an unchanged book (the docs say "at least every 10 s").
+- **ADA book:**
+  - one 28k–90k-contract ladder on a 0.0002 grid, with a 0.0003 (12.9 bps) touch spread;
+  - 1–4-contract dust on the ticks between levels;
+  - other makers of about our size (239–300 contracts);
+  - a repricing ~3,850-contract bid.
+- **Two self-references in the anchored fair today:**
+  1. The basis (fixed by this plan).
+  2. OFI. The anchored fair is anchor × (1 + OFI), and OFI's denominator is the L1 size, which is our own 200-contract quote live. On the real 13 Oct live book, the OFI term was |p90| 2.5, p99 9.9, max 31 bps, against under 0.1 bps on a clean book. It grows as 1/Q, so smaller live sizes make it worse.
+- **Live-path bugs (13 Oct):**
+  - The private fill feed can end for good on one send or parse error (`ws.rs` `?` exits).
+  - The funding ticker is a REST call awaited every loop with no timeout. If it hangs, the symbol loop freezes while the separate dead man's switch keeps being acked, so resting orders go unmanaged.
+  - The adding quote is a full order just below the cap.
+  - Fills never update the OMS, which leaves "ghost" orders tracked after a full fill.
+- **The OMS cannot subtract our own orders reliably.** It has no sizes, fills don't reach it, and it records the new price at the REST acknowledgement while the book may still show the old one. So the source must not depend on knowing our orders.
+
+## Design
+- **Depth price.** The price at which cumulative size first reaches **X contracts**, per side; the depth mid is the midpoint.
+  - Pure function in `mm-core`. It returns a reason with `None`: thin (X not reached within 15 levels), stale, crossed, or an empty side.
+  - X is set per symbol in **base units** (`MM_BASIS_DEPTH_QTY_<SYM>`) and converted with `contract_value`, following the base-units rule for `mm-core`.
+  - The default sits in a **gap** of each symbol's inside-size distribution. ADA: 10,000 contracts, between the 3,850 order and the 28k ladder. The other symbols are chosen from the P0 probe.
+  - Startup refuses X ≤ 2 × our order.
+- **Immunity, stated exactly.** Our order of size Q cannot move the depth price unless the other orders priced better than it total between X − Q and X. The replay counts how often that band is hit (the pivot share), using the logged inner size and price.
+  - Immunity to **other makers reacting to us** (repricing or pegging to our quote) cannot be shown by any shadow. It is checked on the first live run (below).
+- **Feeds.**
+  - One reusable reconnect helper in `mm-delta`: connect timeout, subscribe check, silence timeout ≥ 15 s, backoff, a rate-limited WARN on error or unparsed frames, an ERROR when the task ends, and a respawn. Tested against a local websocket server.
+  - It carries `ob_l2` for all symbols on one connection, separate from `ob_l1`, so a depth failure cannot touch `BookWatch`.
+  - Depth age is measured from the last received frame on the local clock, not from book changes.
+- **Mark and index.**
+  - A background public ticker poller in `mm-delta`: every 3 s, with a 2 s timeout, lenient parsing, missing → `None`. It runs in dry-runs and live alike.
+  - It replaces the per-loop awaited REST call and also feeds funding carry.
+  - The mark stays **logged only**; it is not a source until it is scored.
+- **Logging (new MM_METRICS fields, no renames, bps rounded to 3 decimals, `None` skipped):**
+  - `depth_mid`;
+  - per side: `depth_px`, `depth_lvl`, `depth_inner_cum`, `depth_inner_px`;
+  - `depth_age_ms`, `depth_none`;
+  - `mark_price`, `spot_price`, `mark_age_ms`;
+  - `binance_bid`, `binance_ask`, `binance_bid_qty`, `binance_ask_qty` (B and A parsed as optional);
+  - `basis_src`, `basis_updated`, `anchor_off_reason`, and the OFI term.
+  
+  One EMA, the source in use, stays `basis_bps`; the replay can rebuild any other EMA.
+- **Raw recording.** The shadow recorder also writes raw `ob_l2` (ADA) and `mark_price`, about 100 MB a day before gzip. This needs per-channel symbol mapping (`MARK:` prefix).
+- **Source knob.** `MM_BASIS_SOURCE=book|depth`, resolved per symbol. An unknown value fails the start, in a dry-run as well as live.
+- **No self-reference while anchored.** With an anchor weight above 0, OFI is computed on the `ob_l2` depth (depth-size denominator), or off, never on our own L1.
+- **Live safety.**
+  - One pure, unit-tested `live_anchor_check`, used by both the Delta and Bybit paths. It resolves per-symbol keys and allows a live anchor only for the source named in `MM_FAIR_ANCHOR_LIVE=depth` (a source name, not `1`).
+  - `live.sh` refuses any nonzero `MM_FAIR_ANCHOR_WEIGHT(_SYM)?` and any `MM_FAIR_ANCHOR_LIVE` line until the user lifts it.
+  - The OEMS `config_guard` rejects UI overrides of the anchor and basis keys, so they come from the profile file only.
+  - In a live run with the anchor on, **an anchor off for more than `MM_ANCHOR_OFF_PULL_SEC` (default 10) pulls quotes** instead of quoting on the old fair, which reads our own quotes. The depth source has a short basis max age (30 s), so a dead depth feed turns the anchor off fast.
+  - Quotes stay post-only; no new order path; cancel-all coverage is unchanged.
+
+## Gate before asking for real money (ADA, ≥ 24 h shadow on the new build)
+Judged by `scripts/basis_replay.py`. Q comes from config, and every term derived from L1 is recomputed on a synthetic live book (the logged book plus our quotes): the mid/microprice blend, OFI, the post-only clamp, the fair-jump check and the fallback.
+
+| | Gate | Why |
+|---|---|---|
+| G1 health | Depth snapshot ≤ 2 s old and anchor on, each on ≥ 95% of Binance-fresh rows. `basis_updated` means "updated this loop from a snapshot ≤ `MM_DEPTH_STALE_MS` old". | Feed uptime. It cannot fail on self-reference by design. |
+| G2 equivalence | p90 \|EMA basis_depth − EMA clean-L1 basis\| ≤ 1.5 bps, and pivot share ≤ 1% of rows. | Depth must reproduce the clean-book basis that the memo's evidence is about. |
+| G3 no self-reference | In the live-mode replay at the planned Q: p99 \|anchored fair (live book) − anchored fair (clean book)\| ≤ 0.5 bps. | Catches OFI-like leaks. |
+| G4 information | The slope of Delta's mid move at +5 s and +60 s on (fair − Delta mid) is at least the old fair's, with the 60 s difference CI above 0. | Binance-free evidence that the fair leads Delta (memo finding 3). |
+| G5 exposure | Side-averaged exposure at **+30 s and +60 s**: upper 95% CI ≤ +1 pp vs the clean old fair. Per-side guard +3 pp. | Convergence horizons. +1 s and +5 s are diagnostics only: there a fair that knew Delta's mid 60 s ahead fails by +28/+32 pp, because Delta lags. |
+| G6 live path | PR A merged; PR E merged or its absence accepted by the user. | 13 Oct failure modes. |
+
+The replay prints:
+- an oracle row (fair = future mid at +5 s and +60 s); no gate may rely on a metric the oracle fails;
+- both baselines (the clean old fair, and the live-mode old fair after the OFI fix);
+- a depth-mid yardstick next to the L1-mid one, with recentred exposure;
+- a latency sensitivity at 0, 1 and 2 loops;
+- a **"not modelled"** block: inventory and side drops, takers arriving when our quote is stale, latency races, ghost orders, other makers reacting.
+
+The verdict reads PROVISIONAL under 24 h.
+
+## Pre-registered first live run (only if G1–G6 pass and the user says go)
+- ADA only. Size per the user; with OFI out of the fair, a smaller Q no longer adds self-reference.
+- **The existing stop rule:** PnL per $ < −2.6 bps at 300 fills or < 0 at 1,000, plus the $15 a day loss stop.
+- **Anchored aborts:**
+  - live vs shadow `basis_depth` over the same period, p99 |difference| > 0.5 bps;
+  - live anchor on < 95%;
+  - |OFI term| > 0.5 bps;
+  - the depth price within one tick of our own price on > 1% of rows (another maker pegging to us).
+- **Report:** bnet60, and the whole-order vs partial 60 s markout split with CIs, against 13 Oct.
+- **Only this run can tell:** whether informed takers still pick off the anchored quotes; our requote latency against theirs after each 4.2 bps Binance tick; the inventory path; and whether other makers reprice around us.
+
+## Work, in order
+
+| Step | What | Files (≤ 5 per PR, docs as a separate commit) | Proof |
+|---|---|---|---|
+| **P0** | Read-only on the VM: grep the 13 Oct live `bot.log` for the private fill feed ending or erroring; a 10-min public `ob_l2` probe of all four shadow symbols (re-sends on quiet books, level counts, size gaps). | none | Command output in the PR description. |
+| **PR A** | Fill feed reconnects on every error (auth and error frames logged, task end logged). Ticker moves to the background poller with a timeout, and funding reads from it. The adding quote is clipped to cap − \|q\|. | `mm-delta/src/ws.rs`, `mm-delta/src/rest.rs`, `mm-bot/src/runner.rs`, `mm-core/src/strategy.rs`, `mm-bot/src/exchange.rs` | Tests: the reconnect loop against a local server; a ticker timeout does not block the loop; clip at the cap boundary. `cargo test --workspace --locked`. VM dry-run. |
+| **PR B** | Reconnect helper + `ob_l2` feed, depth price + reasons, the candidate fields, raw `ob_l2`/`mark_price` recording. No behaviour change. | `mm-core/src/fair.rs`, `mm-core/src/lib.rs`, `mm-delta/src/book.rs`, `mm-binance/src/lib.rs`, `mm-bot/src/runner.rs` (+ `record_delta.rs`, `shadow.sh` in a second commit) | Tests: the probe frame; dust; our order; the pivot band (others 1,850 + ours 200 at X = 2,000 moves the price); thin, crossed and empty sides; `contract_value` 100; B/A missing. A 30-min run beside the live shadow, joined on `ts_ms`: fair, bid, ask and basis are identical. |
+| **PR C** | Source knob, OFI out of the anchored fair, `live_anchor_check`, anchor-off pull, `live.sh` and OEMS guards, shadow profile on `depth` (DUSK and KITE weight 0). | `mm-bot/src/runner.rs`, `mm-core/src/fair.rs`, `scripts/live.sh` + `test_live_sh.py`, `backend/mm-oems/src/config_guard.rs`, `config/dism.env` | Unit tests for the check (per-symbol keys, unknown source, Bybit path) and for "constant own touch gives an OFI contribution of about 0". A 15-min VM dry-run with one forced `ob_l2` reconnect: G1 per symbol. |
+| **PR D** | `basis_replay.py` (stdlib), its tests, Python unittests in CI. | `scripts/basis_replay.py`, `scripts/test_basis_replay.py`, `.github/workflows/pr.yml` | Synthetic tests: gate starvation, depth immunity, pivot band, oracle row, block CI, `--exclude`, thin data exits 2, and a parity mode that reproduces livegate's 74.1 / 7.6. Manual QA: replay basis = logged `basis_bps` within 1e-6 on a PR C dry-run; calibration against the real 13 Oct window (touch occupancy ±10 pp, spread p50 ±1 bps, OFI p90 ±1 bps). |
+| **PR E** | Fills reach the OMS: an mpsc `FillEvent{order_id, contracts}` drained each loop; decrement on a partial fill; clear only when the venue says closed; ignore unknown or replaced ids. | `mm-bot/src/oms.rs`, `mm-bot/src/runner.rs`, `mm-delta/src/ws.rs` | Needs one real `v2/user_trades` frame captured on demo first (user's go-ahead). Tests: partial, full, stale id, unknown id. |
+
+**Sequence:**
+1. P0 now.
+2. PR A and PR B in parallel.
+3. Restart the shadow on the new build after the current run's 24 h mark (~07:40Z on 14 Oct), with the user's go-ahead.
+4. PR C and PR D during the next 24 h.
+5. Run the replay and write the memo.
+6. The user decides on the live run under the protocol above.
+
+**Stop:**
+- If `depth` fails G2 or G4, score `mark` (with a learned offset) in the replay before changing anything else.
+- Do not widen the spread to compensate.
+
+## Risks
+- The `ob_l2` cadence adds up to 0.5 s of lag. Measured trend bias at a 120 s half-life is ≤ 0.2 bps.
+- The depth mid moves in ladder blocks of 0.0001 (about 4.2 bps, the same as Binance's tick); the EMA absorbs them (the clamp binds on 3% of samples).
+- The 15-level cap: KITE reaches 2,000 contracts at level 10 of 15. If thin books starve the basis, move to `ob_updates` (full book, sequence number and CRC).
+- Delta renamed its channels once (Apr 2026). A missing or invalid frame means "no update", never zero.
+- Log volume grows (about 1 GB a day for 4 symbols before rounding and skip-None), which shortens `live.sh status`'s window.
