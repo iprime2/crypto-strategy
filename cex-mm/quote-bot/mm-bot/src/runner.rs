@@ -136,6 +136,13 @@ pub async fn run_delta(args: RunArgs, dry_run: bool) -> Result<()> {
             }
         }
     }
+    if !dry_run {
+        // Every symbol needs an inventory cap of at least one contract before any symbol starts quoting.
+        for s in &symbols {
+            let lot = products.get(s).map(|m| m.contract_value).unwrap_or(1.0);
+            size_clip_cap(s, env_f64_for_symbol(s, "MM_MAX_INVENTORY", 0.01), lot, false)?;
+        }
+    }
     let creds = if dry_run {
         None
     } else {
@@ -358,6 +365,22 @@ fn persist_economics(path: &PathBuf, eco: &FillEconomics) -> Result<()> {
 
 fn economics_path_for(symbol: &str) -> PathBuf {
     PathBuf::from(format!("artifacts/economics/{}.json", normalize_symbol(symbol)))
+}
+
+/// The cap the size clip uses. A cap below one lot leaves no room to quote at all: the 0.01 default is below
+/// a Delta contract, so a symbol without MM_MAX_INVENTORY_<SYM> would quote nothing. A dry-run keeps quoting
+/// without the clip (as before 2026-10-14) and says so; a live run refuses.
+fn size_clip_cap(symbol: &str, max_inv: f64, min_qty: f64, dry_run: bool) -> Result<f64> {
+    if max_inv.is_finite() && (max_inv <= 0.0 || max_inv >= min_qty) {
+        return Ok(max_inv);
+    }
+    if dry_run {
+        tracing::warn!(%symbol, max_inv, min_qty, "MM_MAX_INVENTORY is below one lot; this dry-run quotes without the size clip");
+        return Ok(0.0);
+    }
+    anyhow::bail!(
+        "{symbol}: MM_MAX_INVENTORY={max_inv} is below one order lot ({min_qty}); set MM_MAX_INVENTORY_{symbol} for a live run"
+    )
 }
 
 /// Live start check. Without the private fill feed, inventory is only corrected by the venue reconcile
@@ -590,7 +613,7 @@ async fn run_symbol_loop(
         Duration::from_secs_f64(env_f64_for_symbol(&symbol, "MM_TICKER_STALE_SEC", 30.0).max(1.0));
 
     let fallback_instrument = instrument.unwrap_or((0.01, 0.001, 0.001));
-    let (tick, _step, min_qty) = if let Some(r) = &rest {
+    let (tick, step, min_qty) = if let Some(r) = &rest {
         r.get_instrument(&symbol).await.unwrap_or(fallback_instrument)
     } else {
         fallback_instrument
@@ -598,6 +621,7 @@ async fn run_symbol_loop(
     tracing::info!(%symbol, tick, min_qty, "instrument");
 
     let max_inv = env_f64_for_symbol(&symbol, "MM_MAX_INVENTORY", 0.01);
+    let clip_cap = size_clip_cap(&symbol, max_inv, min_qty, dry_run)?;
     let base_qty = env_f64_for_symbol(&symbol, "MM_ORDER_QTY", min_qty.max(0.001));
 
     let mut vol_tracker = VolTracker::new(96);
@@ -705,6 +729,9 @@ async fn run_symbol_loop(
         env_f64_for_symbol(&symbol, "MM_VENUE_RECONCILE_SEC", 5.0).max(0.5),
     );
     let mut last_reconcile = Instant::now() - reconcile_every;
+    // The venue's last reported position. The private fills feed and the reconcile both move the bot's
+    // inventory, and either can lag the other, so the adding side is sized against both readings.
+    let mut last_venue_pos: Option<f64> = None;
     let mut last_reduce_only = Instant::now() - Duration::from_secs(2);
     let mut l3_pause_until: Option<Instant> = None;
     let mut reject_over_since: Option<Instant> = None;
@@ -720,6 +747,7 @@ async fn run_symbol_loop(
                     reconcile_tol,
                 )
                 .await;
+                last_venue_pos = Some(inv);
                 tracing::info!(%symbol, inventory = inv, "startup venue inventory");
             }
         }
@@ -876,14 +904,16 @@ async fn run_symbol_loop(
             if let Some(r) = &rest {
                 if last_reconcile.elapsed() >= reconcile_every {
                     last_reconcile = Instant::now();
-                    sync_inventory_from_venue(
+                    let v = sync_inventory_from_venue(
                         r,
                         &symbol,
                         &economics_arc,
                         &economics_path,
                         reconcile_tol,
                     )
-                    .await
+                    .await;
+                    last_venue_pos = Some(v);
+                    v
                 } else {
                     economics_arc
                         .lock()
@@ -1033,10 +1063,18 @@ async fn run_symbol_loop(
             ext,
         )
         .map_err(|e| anyhow::anyhow!(e))?;
-        // The side that adds to the position only quotes the room left under the cap. No room switches the
-        // side off, so needs_update_sides pulls any order still resting there.
-        let bid_qty = side_order_qty(inventory, false, plan.order_qty, min_qty, max_inv);
-        let ask_qty = side_order_qty(inventory, true, plan.order_qty, min_qty, max_inv);
+        // The side that adds to the position only quotes the room left under the cap, by both the bot's and
+        // the venue's last position (whichever leaves less). No room switches the side off, so
+        // needs_update_sides pulls any order still resting there.
+        let size = |side_is_sell: bool| {
+            let q = side_order_qty(inventory, side_is_sell, plan.order_qty, min_qty, clip_cap, step);
+            match last_venue_pos {
+                Some(v) => q.min(side_order_qty(v, side_is_sell, plan.order_qty, min_qty, clip_cap, step)),
+                None => q,
+            }
+        };
+        let bid_qty = size(false);
+        let ask_qty = size(true);
         if bid_qty <= 0.0 {
             plan.place_bid = false;
         }
@@ -1572,6 +1610,17 @@ mod tests {
         assert!(err.contains("Unauthorized user"), "{err}");
         assert!(err.contains("MM_FILL_FEED_REQUIRED=0"), "{err}");
         drop(tx);
+    }
+
+    #[test]
+    fn a_cap_below_one_lot_disables_the_clip_in_a_dry_run_and_refuses_a_live_run() {
+        assert_eq!(size_clip_cap("ADAUSDT", 600.0, 1.0, false).unwrap(), 600.0);
+        assert_eq!(size_clip_cap("ADAUSDT", 0.0, 1.0, false).unwrap(), 0.0); // no cap configured
+        // KITE in the shadow: the 0.01 default against a 1-contract lot (100 KITE).
+        assert_eq!(size_clip_cap("KITEUSDT", 0.01, 100.0, true).unwrap(), 0.0);
+        let err = size_clip_cap("KITEUSDT", 0.01, 100.0, false).unwrap_err().to_string();
+        assert!(err.contains("MM_MAX_INVENTORY_KITEUSDT"), "{err}");
+        assert!(size_clip_cap("ADAUSDT", f64::NAN, 1.0, false).is_err());
     }
 
     #[tokio::test]
