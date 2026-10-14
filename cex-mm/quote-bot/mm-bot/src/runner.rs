@@ -8,7 +8,7 @@ use mm_bybit::{
 use mm_core::{
     BookTop,
     compute_quote_cex, economics::FillEconomics, hard_cap_reduce,
-    should_taker_flatten, horizon_vol_bps, side_order_qty,
+    should_taker_flatten, horizon_vol_bps, side_order_qty, adds_to_position,
     ofi::{AlphaMuEstimator, OfiTracker, SnipeTracker},
     queue::should_place_limit,
     regime::{RegimeEngine, RegimeLevel, RegimeThresholds},
@@ -18,7 +18,7 @@ use crate::exchange::QuotingRest;
 use crate::markout::MarkoutRuntime;
 use crate::oms::OmsState;
 use crate::account::{AccountConfig, AccountFlags};
-use crate::risk::{counts_toward_reject_kill, BookAge, BookWatch, DailyLossGuard};
+use crate::risk::{counts_toward_reject_kill, BookAge, BookWatch, DailyLossGuard, FeedHealth, FeedWatch};
 use crate::symbols::{env_f64_for_symbol, normalize_symbol, resolve_symbols_from_env};
 use crate::universe::{UniverseOptions, resolve_universe};
 use std::collections::{HashMap, VecDeque};
@@ -196,6 +196,7 @@ pub async fn run_delta(args: RunArgs, dry_run: bool) -> Result<()> {
         );
     }
 
+    let mut fill_feed: Option<watch::Receiver<mm_delta::PrivateFeedState>> = None;
     if let Some(c) = creds.clone() {
         let map = exec_map.clone();
         let syms = symbols.clone();
@@ -214,12 +215,28 @@ pub async fn run_delta(args: RunArgs, dry_run: bool) -> Result<()> {
             })
             .await;
         });
-        require_fill_feed(
-            feed_rx,
-            Duration::from_secs_f64(env_f64_global("MM_FILL_FEED_WAIT_SEC", 20.0).max(1.0)),
-            std::env::var("MM_FILL_FEED_REQUIRED").map(|v| v.trim() != "0").unwrap_or(true),
+        let checked = require_fill_feed(
+            feed_rx.clone(),
+            secs_knob(env_f64_global("MM_FILL_FEED_WAIT_SEC", 20.0), 20.0, 1.0, 600.0),
+            fill_feed_required(),
         )
-        .await?;
+        .await;
+        if let Err(e) = checked {
+            // No symbol loop has started, so the startup cancel-all has not run: clear what a previous
+            // instance left resting (the OEMS supervisor does not cancel after a failed start).
+            if let Some(r) = &delta_rest {
+                for s in &symbols {
+                    if let Err(ce) = r.cancel_all(s).await {
+                        tracing::warn!(symbol = %s, error = %ce, "cancel-all after the refused start failed");
+                    }
+                }
+                if let Some(id) = &heartbeat {
+                    crate::account::disarm_dead_mans_switch(r, id).await;
+                }
+            }
+            return Err(e);
+        }
+        fill_feed = Some(feed_rx);
     }
 
     let mut tasks = JoinSet::new();
@@ -228,6 +245,7 @@ pub async fn run_delta(args: RunArgs, dry_run: bool) -> Result<()> {
         let rest = rest.clone();
         let exec_map = exec_map.clone();
         let account = account.clone();
+        let fill_feed = fill_feed.clone();
         // Public catalog: dry-run has no REST client but still needs the real tick.
         let instrument = products
             .get(&symbol)
@@ -243,6 +261,7 @@ pub async fn run_delta(args: RunArgs, dry_run: bool) -> Result<()> {
                 BookFeedKind::Delta(delta_env),
                 instrument,
                 account,
+                fill_feed,
             )
             .await
         });
@@ -383,36 +402,60 @@ fn size_clip_cap(symbol: &str, max_inv: f64, min_qty: f64, dry_run: bool) -> Res
     )
 }
 
-/// Live start check. Without the private fill feed, inventory is only corrected by the venue reconcile
-/// every few seconds: on 13 Oct 2026 no fill arrived over the feed for a whole live run, and the cap
-/// overshot to -811 against 600. A live run therefore waits for the venue to confirm the subscription.
+/// Explicit venue refusals (login or subscription) after which a start stops waiting for the fills feed.
+const FILL_FEED_REFUSALS_TO_FAIL: u64 = 2;
+
+/// Start check for a run with keys. Without the private fill feed, inventory is only corrected by the venue
+/// reconcile every few seconds: on 13 Oct 2026 no fill arrived over the feed for a whole live run, and the
+/// cap overshot to -811 against 600. The run therefore waits for the venue to confirm the subscription, and
+/// gives up early after repeated explicit refusals.
 async fn require_fill_feed(
     mut feed: watch::Receiver<mm_delta::PrivateFeedState>,
     wait: Duration,
     required: bool,
 ) -> Result<()> {
-    let confirmed = matches!(
-        tokio::time::timeout(wait, feed.wait_for(|s| s.subscribed)).await,
-        Ok(Ok(_))
-    );
+    let waited = tokio::time::timeout(
+        wait,
+        feed.wait_for(|s| s.subscribed || s.refusals >= FILL_FEED_REFUSALS_TO_FAIL),
+    )
+    .await;
+    let confirmed = matches!(&waited, Ok(Ok(s)) if s.subscribed);
+    drop(waited);
     if confirmed {
         tracing::info!("delta fills feed confirmed");
         return Ok(());
     }
-    let why = feed
-        .borrow()
-        .last_error
-        .clone()
-        .unwrap_or_else(|| "no reply from the venue".into());
+    let (why, refusals) = {
+        let s = feed.borrow();
+        (s.last_error.clone().unwrap_or_else(|| "no reply from the venue".into()), s.refusals)
+    };
     if !required {
         tracing::warn!(reason = %why, "delta fills feed not confirmed; starting anyway (MM_FILL_FEED_REQUIRED=0)");
         return Ok(());
     }
+    let what = if refusals >= FILL_FEED_REFUSALS_TO_FAIL {
+        format!("refused {refusals} times")
+    } else {
+        format!("not confirmed within {:.1} s", wait.as_secs_f64())
+    };
+    // Logged as well as returned: the OEMS event feed and live.sh status read ERROR lines, not the exit error.
+    tracing::error!(reason = %why, "delta fills feed {what}; not starting");
     anyhow::bail!(
-        "delta fills feed not confirmed within {} s ({why}); fills would reach the bot only through the venue \
-         reconcile. Fix the login, or set MM_FILL_FEED_REQUIRED=0 to start anyway",
-        wait.as_secs()
+        "delta fills feed {what} ({why}); fills would reach the bot only through the venue reconcile. Fix the \
+         login, or waive the check with MM_FILL_FEED_REQUIRED=0 (live.sh: in the profile; OEMS: a config override)"
     )
+}
+
+/// `MM_FILL_FEED_REQUIRED` (default on; "0" waives the start check and the mid-run pull).
+fn fill_feed_required() -> bool {
+    std::env::var("MM_FILL_FEED_REQUIRED").map(|v| v.trim() != "0").unwrap_or(true)
+}
+
+/// A duration knob given in seconds: `default` when it is not finite, then clamped to `[lo, hi]`.
+/// `Duration::from_secs_f64` panics on an infinite or negative value, and "inf" parses as an f64.
+fn secs_knob(value: f64, default: f64, lo: f64, hi: f64) -> Duration {
+    let v = if value.is_finite() { value } else { default };
+    Duration::from_secs_f64(v.clamp(lo, hi))
 }
 
 /// Exchange is source of truth for open size; keeps economics + quoting in sync when WS fills lag.
@@ -566,6 +609,7 @@ pub async fn run(args: RunArgs, dry_run: bool) -> Result<()> {
                 BookFeedKind::Bybit(bybit_env),
                 None,
                 None,
+                None,
             )
                 .await
         });
@@ -586,6 +630,7 @@ async fn run_symbol_loop(
     book_kind: BookFeedKind,
     instrument: Option<(f64, f64, f64)>,
     account: Option<Arc<AccountFlags>>,
+    fill_feed: Option<watch::Receiver<mm_delta::PrivateFeedState>>,
 ) -> Result<()> {
     let cfg = StrategyConfig::from_env_for_symbol(&symbol, env_f64_global);
 
@@ -604,13 +649,12 @@ async fn run_symbol_loop(
         BookFeedKind::Delta(env) => Some(mm_delta::spawn_ticker_poller(
             env,
             mm_delta::delta_product_symbol(&symbol),
-            Duration::from_millis(env_f64_for_symbol(&symbol, "MM_TICKER_POLL_MS", 3000.0).max(500.0) as u64),
+            secs_knob(env_f64_for_symbol(&symbol, "MM_TICKER_POLL_MS", 3000.0) / 1000.0, 3.0, 0.5, 3600.0),
             Duration::from_millis(2000),
         )),
         BookFeedKind::Bybit(_) => None,
     };
-    let ticker_stale_after =
-        Duration::from_secs_f64(env_f64_for_symbol(&symbol, "MM_TICKER_STALE_SEC", 30.0).max(1.0));
+    let ticker_stale_after = secs_knob(env_f64_for_symbol(&symbol, "MM_TICKER_STALE_SEC", 30.0), 30.0, 1.0, 3600.0);
 
     let fallback_instrument = instrument.unwrap_or((0.01, 0.001, 0.001));
     let (tick, step, min_qty) = if let Some(r) = &rest {
@@ -733,6 +777,10 @@ async fn run_symbol_loop(
     // inventory, and either can lag the other, so the adding side is sized against both readings.
     let mut last_venue_pos: Option<f64> = None;
     let mut last_reduce_only = Instant::now() - Duration::from_secs(2);
+    // Only with the check on: a waived start (MM_FILL_FEED_REQUIRED=0) chose to run on the reconcile alone.
+    let mut feed_watch = (fill_feed.is_some() && fill_feed_required()).then(|| {
+        FeedWatch::new(secs_knob(env_f64_for_symbol(&symbol, "MM_FILL_FEED_DOWN_PULL_SEC", 30.0), 30.0, 5.0, 3600.0))
+    });
     let mut l3_pause_until: Option<Instant> = None;
     let mut reject_over_since: Option<Instant> = None;
 
@@ -937,7 +985,10 @@ async fn run_symbol_loop(
             .as_ref()
             .and_then(|rx| rx.borrow().clone())
             .filter(|t| t.received_at.elapsed() <= ticker_stale_after);
+        // A dry-run's inventory is whatever the economics file held at start and is never reconciled, so
+        // it gets no carry: dry-runs stay comparable with each other and with the shadow.
         let funding_bps = match (&ticker_rx, &rest) {
+            _ if dry_run => 0.0,
             (Some(_), _) => ticker
                 .as_ref()
                 .and_then(|t| t.funding_rate_pct)
@@ -1081,6 +1132,35 @@ async fn run_symbol_loop(
         if ask_qty <= 0.0 {
             plan.place_ask = false;
         }
+        let feed_state = fill_feed.as_ref().map(|f| {
+            let s = f.borrow();
+            (s.subscribed, s.fills, s.last_error.clone())
+        });
+        if let (Some(w), Some((up, _, why))) = (feed_watch.as_mut(), &feed_state) {
+            let health = w.check(*up, Instant::now());
+            match health {
+                FeedHealth::WentDown(d) => tracing::warn!(
+                    %symbol,
+                    down_s = d.as_secs_f64(),
+                    reason = why.as_deref().unwrap_or("none given"),
+                    "fills feed down; adding side off until the venue confirms it again"
+                ),
+                FeedHealth::Recovered(d) => {
+                    tracing::info!(%symbol, down_s = d.as_secs_f64(), "fills feed back; adding side on")
+                }
+                FeedHealth::Up | FeedHealth::Down => {}
+            }
+            if matches!(health, FeedHealth::WentDown(_) | FeedHealth::Down) {
+                // A side is pulled when it adds by either reading of the position; flat pulls both.
+                let venue = last_venue_pos.unwrap_or(inventory);
+                if adds_to_position(inventory, false) || adds_to_position(venue, false) {
+                    plan.place_bid = false;
+                }
+                if adds_to_position(inventory, true) || adds_to_position(venue, true) {
+                    plan.place_ask = false;
+                }
+            }
+        }
 
         let tol_bps = env_f64_for_symbol(&symbol, "MM_REQUOTE_TOL_BPS", 3.0);
 
@@ -1126,6 +1206,8 @@ async fn run_symbol_loop(
             mark_price: ticker.as_ref().and_then(|t| t.mark_price),
             spot_price: ticker.as_ref().and_then(|t| t.spot_price),
             ticker_age_ms: ticker.as_ref().map(|t| t.received_at.elapsed().as_millis() as u64),
+            fills_feed_up: feed_state.as_ref().map(|s| s.0),
+            fills_feed_fills: feed_state.as_ref().map(|s| s.1),
         };
         tracing::info!(target: "MM_METRICS", "{}", serde_json::to_string(&metrics)?);
 
@@ -1621,6 +1703,43 @@ mod tests {
         let err = size_clip_cap("KITEUSDT", 0.01, 100.0, false).unwrap_err().to_string();
         assert!(err.contains("MM_MAX_INVENTORY_KITEUSDT"), "{err}");
         assert!(size_clip_cap("ADAUSDT", f64::NAN, 1.0, false).is_err());
+    }
+
+    #[tokio::test]
+    async fn repeated_refusals_end_the_wait_early() {
+        let (tx, rx) = watch::channel(mm_delta::PrivateFeedState::default());
+        tokio::spawn(async move {
+            for _ in 0..2 {
+                tokio::time::sleep(Duration::from_millis(20)).await;
+                tx.send_modify(|s| {
+                    s.refusals += 1;
+                    s.last_error = Some("login refused: {\"success\":false}".into());
+                });
+            }
+            tokio::time::sleep(Duration::from_secs(30)).await; // keep the sender alive
+        });
+        let started = Instant::now();
+        let err = require_fill_feed(rx, Duration::from_secs(20), true).await.unwrap_err().to_string();
+        assert!(started.elapsed() < Duration::from_secs(2), "waited {:?}", started.elapsed());
+        assert!(err.contains("refused 2 times"), "{err}");
+        assert!(err.contains("login refused"), "{err}");
+    }
+
+    #[tokio::test]
+    async fn a_timeout_reports_the_wait_to_a_tenth_of_a_second() {
+        let (_tx, rx) = watch::channel(mm_delta::PrivateFeedState::default());
+        let err = require_fill_feed(rx, Duration::from_millis(150), true).await.unwrap_err().to_string();
+        assert!(err.contains("not confirmed within 0.1 s (no reply from the venue)"), "{err}");
+    }
+
+    #[test]
+    fn duration_knobs_never_panic() {
+        assert_eq!(secs_knob(20.0, 20.0, 1.0, 600.0), Duration::from_secs(20));
+        assert_eq!(secs_knob(f64::INFINITY, 20.0, 1.0, 600.0), Duration::from_secs(20));
+        assert_eq!(secs_knob(f64::NAN, 20.0, 1.0, 600.0), Duration::from_secs(20));
+        assert_eq!(secs_knob(-5.0, 20.0, 1.0, 600.0), Duration::from_secs(1));
+        assert_eq!(secs_knob(1e12, 20.0, 1.0, 600.0), Duration::from_secs(600));
+        assert_eq!(secs_knob(0.25, 3.0, 0.5, 3600.0), Duration::from_millis(500));
     }
 
     #[tokio::test]

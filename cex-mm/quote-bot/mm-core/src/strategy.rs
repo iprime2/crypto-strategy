@@ -600,6 +600,15 @@ pub fn clip_reducing_qty(
     shaped_qty.max(min_qty).min(abs_inv)
 }
 
+/// True when a fill on this side would grow the position (or open one from flat).
+pub fn adds_to_position(inventory: f64, side_is_sell: bool) -> bool {
+    if side_is_sell {
+        inventory <= 0.0
+    } else {
+        inventory >= 0.0
+    }
+}
+
 /// Size for one side's quote: `clip_reducing_qty`, plus the side that adds to the position may only fill
 /// the room left under `max_inv`, in whole lots of `step` (the venue rounds sizes to lots). Returns 0 when
 /// that room is below `min_qty` or an input is not finite, so the caller can switch the side off.
@@ -610,8 +619,7 @@ pub fn side_order_qty(inventory: f64, side_is_sell: bool, shaped_qty: f64, min_q
         return 0.0;
     }
     let qty = clip_reducing_qty(inventory, side_is_sell, shaped_qty, min_qty);
-    let adds = (side_is_sell && inventory <= 0.0) || (!side_is_sell && inventory >= 0.0);
-    if !adds || max_inv <= 0.0 {
+    if !adds_to_position(inventory, side_is_sell) || max_inv <= 0.0 {
         return qty;
     }
     let mut room = max_inv - inventory.abs();
@@ -1140,6 +1148,13 @@ mod tests {
         assert_eq!(side_order_qty(-650.0, true, 200.0, 1.0, 600.0, 1.0), 0.0);
         assert_eq!(side_order_qty(590.0, false, 200.0, 50.0, 600.0, 1.0), 0.0);
         assert_eq!(side_order_qty(550.0, false, 200.0, 50.0, 600.0, 1.0), 50.0);
+    }
+
+    #[test]
+    fn flat_adds_on_both_sides_and_a_position_on_one() {
+        assert!(adds_to_position(0.0, false) && adds_to_position(0.0, true));
+        assert!(adds_to_position(100.0, false) && !adds_to_position(100.0, true));
+        assert!(!adds_to_position(-100.0, false) && adds_to_position(-100.0, true));
     }
 
     #[test]

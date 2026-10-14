@@ -55,8 +55,15 @@ enum Commands {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // tungstenite logs every outgoing frame at trace, the signed private login included, so it is capped
+    // at info whatever RUST_LOG says.
     tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_default_env().add_directive("mm_bot=info".parse()?))
+        .with_env_filter(
+            EnvFilter::from_default_env()
+                .add_directive("mm_bot=info".parse()?)
+                .add_directive("tungstenite=info".parse()?)
+                .add_directive("tokio_tungstenite=info".parse()?),
+        )
         .init();
     let cli = Cli::parse();
     match cli.command {

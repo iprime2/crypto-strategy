@@ -172,6 +172,12 @@ pub struct MmMetrics {
     pub spot_price: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ticker_age_ms: Option<u64>,
+    /// Private fills feed (runs with keys): the venue confirms the subscription on the current connection,
+    /// and the fills it has delivered since start.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fills_feed_up: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fills_feed_fills: Option<u64>,
 }
 
 #[cfg(test)]
@@ -206,9 +212,9 @@ mod tests {
 
     #[test]
     fn fixed_mode_ignores_funding_carry_like_the_shadow() {
-        // The shadow holds no inventory, so its funding carry is always 0. A live DISM bot holding
-        // inventory gets one from the venue (12 Oct: +150 bps with 2 ADA, from a units bug); it must
-        // move neither the fair nor the quotes, nor trip the fair-jump defence and drop a side.
+        // A dry-run (the shadow) is given a funding carry of 0. A live DISM bot holding inventory gets
+        // one from the venue (12 Oct: +150 bps with 2 ADA, from a units bug); it must move neither the
+        // fair nor the quotes, nor trip the fair-jump defence and drop a side.
         let run = |carry: f64| {
             compute_quote_cex(
                 &fixed_cfg(), 0.25, 1e-5, 2.0, 600.0, 200.0, 30.0, 1.5, 0.0, 0.0, 0.0, Some(0.25),
