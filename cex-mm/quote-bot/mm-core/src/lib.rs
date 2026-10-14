@@ -179,6 +179,15 @@ pub struct MmMetrics {
     pub fills_feed_up: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fills_feed_fills: Option<u64>,
+    /// Binance best bid and ask with their sizes (bookTicker `b`, `a`, `B`, `A`), for a microprice reference.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub binance_bid: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub binance_ask: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub binance_bid_qty: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub binance_ask_qty: Option<f64>,
 }
 
 #[cfg(test)]

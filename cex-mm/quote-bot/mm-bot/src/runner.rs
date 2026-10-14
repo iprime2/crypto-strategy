@@ -1208,6 +1208,10 @@ async fn run_symbol_loop(
             ticker_age_ms: ticker.as_ref().map(|t| t.received_at.elapsed().as_millis() as u64),
             fills_feed_up: feed_state.as_ref().map(|s| s.0),
             fills_feed_fills: feed_state.as_ref().map(|s| s.1),
+            binance_bid: (bbo.bid > 0.0).then_some(bbo.bid),
+            binance_ask: (bbo.ask > 0.0).then_some(bbo.ask),
+            binance_bid_qty: bbo.bid_qty,
+            binance_ask_qty: bbo.ask_qty,
         };
         tracing::info!(target: "MM_METRICS", "{}", serde_json::to_string(&metrics)?);
 
