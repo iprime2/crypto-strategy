@@ -188,6 +188,30 @@ pub struct MmMetrics {
     pub binance_bid_qty: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub binance_ask_qty: Option<f64>,
+    /// Delta depth mid (`depth::depth_mid`): where cumulative size reaches `depth_qty` contracts per side
+    /// (`MM_BASIS_DEPTH_USD`). Per side: the depth price, its level (0 = touch) and the size priced better.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub depth_mid: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub depth_bid_px: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub depth_ask_px: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub depth_bid_lvl: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub depth_ask_lvl: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub depth_bid_inner: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub depth_ask_inner: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub depth_qty: Option<f64>,
+    /// Age of the last ob_l2 snapshot (ms).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub depth_age_ms: Option<u64>,
+    /// Why there is no depth mid this loop: no_feed, stale, empty_side, thin, crossed, invalid.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub depth_none: Option<&'static str>,
 }
 
 #[cfg(test)]

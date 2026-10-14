@@ -239,6 +239,9 @@ pub async fn run_delta(args: RunArgs, dry_run: bool) -> Result<()> {
         fill_feed = Some(feed_rx);
     }
 
+    // One public ob_l2 connection for every symbol (dry-runs too).
+    let mut depth_rxs = mm_delta::spawn_depth_feed(delta_env, &symbols);
+
     let mut tasks = JoinSet::new();
     for symbol in symbols {
         let args = args.clone();
@@ -251,6 +254,7 @@ pub async fn run_delta(args: RunArgs, dry_run: bool) -> Result<()> {
             .get(&symbol)
             .ok()
             .map(|m| (m.tick_size, m.contract_value, m.contract_value));
+        let depth_rx = depth_rxs.remove(&symbol);
         tasks.spawn(async move {
             run_symbol_loop(
                 symbol,
@@ -262,6 +266,7 @@ pub async fn run_delta(args: RunArgs, dry_run: bool) -> Result<()> {
                 instrument,
                 account,
                 fill_feed,
+                depth_rx,
             )
             .await
         });
@@ -610,6 +615,7 @@ pub async fn run(args: RunArgs, dry_run: bool) -> Result<()> {
                 None,
                 None,
                 None,
+                None,
             )
                 .await
         });
@@ -631,6 +637,7 @@ async fn run_symbol_loop(
     instrument: Option<(f64, f64, f64)>,
     account: Option<Arc<AccountFlags>>,
     fill_feed: Option<watch::Receiver<mm_delta::PrivateFeedState>>,
+    depth_rx: Option<mm_delta::DepthRx>,
 ) -> Result<()> {
     let cfg = StrategyConfig::from_env_for_symbol(&symbol, env_f64_global);
 
@@ -655,6 +662,10 @@ async fn run_symbol_loop(
         BookFeedKind::Bybit(_) => None,
     };
     let ticker_stale_after = secs_knob(env_f64_for_symbol(&symbol, "MM_TICKER_STALE_SEC", 30.0), 30.0, 1.0, 3600.0);
+    // Delta depth mid: where cumulative size reaches MM_BASIS_DEPTH_USD per side (ob_l2). Logged only for now;
+    // it is the candidate live basis source our own quotes cannot move (plans/live-basis.plan.md).
+    let depth_usd = env_f64_for_symbol(&symbol, "MM_BASIS_DEPTH_USD", 2000.0);
+    let depth_stale_after = secs_knob(env_f64_for_symbol(&symbol, "MM_DEPTH_STALE_MS", 2000.0) / 1000.0, 2.0, 0.1, 3600.0);
 
     let fallback_instrument = instrument.unwrap_or((0.01, 0.001, 0.001));
     let (tick, step, min_qty) = if let Some(r) = &rest {
@@ -663,6 +674,7 @@ async fn run_symbol_loop(
         fallback_instrument
     };
     tracing::info!(%symbol, tick, min_qty, "instrument");
+    let contract_value = step; // Delta's instrument tuple is (tick, contract value, contract value)
 
     let max_inv = env_f64_for_symbol(&symbol, "MM_MAX_INVENTORY", 0.01);
     let clip_cap = size_clip_cap(&symbol, max_inv, min_qty, dry_run)?;
@@ -985,6 +997,19 @@ async fn run_symbol_loop(
             .as_ref()
             .and_then(|rx| rx.borrow().clone())
             .filter(|t| t.received_at.elapsed() <= ticker_stale_after);
+        let depth = depth_rx.as_ref().map(|rx| rx.borrow().clone());
+        let depth_qty = top
+            .mid()
+            .and_then(|m| mm_core::depth::contracts_for_notional(depth_usd, m, contract_value));
+        let depth_read: Option<Result<mm_core::depth::DepthMid, &'static str>> = depth.as_ref().map(|d| match d {
+            None => Err("no_feed"),
+            Some(d) if d.received_at.elapsed() > depth_stale_after => Err("stale"),
+            Some(d) => {
+                let q = depth_qty.ok_or("invalid")?;
+                mm_core::depth::depth_mid(&d.bids, &d.asks, q, q).map_err(|e| e.as_str())
+            }
+        });
+        let depth_ok = depth_read.as_ref().and_then(|r| r.as_ref().ok());
         // A dry-run's inventory is whatever the economics file held at start and is never reconciled, so
         // it gets no carry: dry-runs stay comparable with each other and with the shadow.
         let funding_bps = match (&ticker_rx, &rest) {
@@ -1212,6 +1237,16 @@ async fn run_symbol_loop(
             binance_ask: (bbo.ask > 0.0).then_some(bbo.ask),
             binance_bid_qty: bbo.bid_qty,
             binance_ask_qty: bbo.ask_qty,
+            depth_mid: depth_ok.map(|d| d.mid),
+            depth_bid_px: depth_ok.map(|d| d.bid.price),
+            depth_ask_px: depth_ok.map(|d| d.ask.price),
+            depth_bid_lvl: depth_ok.map(|d| d.bid.level as u32),
+            depth_ask_lvl: depth_ok.map(|d| d.ask.level as u32),
+            depth_bid_inner: depth_ok.map(|d| d.bid.inner_size),
+            depth_ask_inner: depth_ok.map(|d| d.ask.inner_size),
+            depth_qty: depth.as_ref().and(depth_qty),
+            depth_age_ms: depth.as_ref().and_then(|d| d.as_ref()).map(|d| d.received_at.elapsed().as_millis() as u64),
+            depth_none: depth_read.as_ref().and_then(|r| r.as_ref().err().copied()),
         };
         tracing::info!(target: "MM_METRICS", "{}", serde_json::to_string(&metrics)?);
 
