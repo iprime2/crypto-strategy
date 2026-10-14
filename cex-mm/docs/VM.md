@@ -51,8 +51,11 @@ ssh -i ~/.ssh/dism-tokyo -N -L 8788:127.0.0.1:8788 ubuntu@<elastic-ip>   # dashb
 rsync -az -e 'ssh -i ~/.ssh/dism-tokyo' ubuntu@<elastic-ip>:crypto-strategy/cex-mm/artifacts/shadow/ artifacts/shadow-vm/
 ```
 
-Four symbols write about 0.55 GB a day; the 30 GB disk holds about 45 days. Copy runs off with the `rsync` line
-above (it has no `--delete`, so local copies survive), then let the housekeeping timer delete old run directories.
+Four symbols write about 1.15 GB a day since 14 Oct 2026 (measured on a 30-min run: `MM_METRICS` lines grew from
+about 780 to 1,170 bytes with the depth and Binance size fields, about 0.95 GB a day, plus about 0.2 GB a day of
+`delta_mainnet_book_*.jsonl`). The ~15 GB free then lasts about 13 days, so enable the housekeeping timer: at 14
+days it keeps about 16 GB of runs. Copy runs off with the `rsync` line above (it has no `--delete`, so local copies
+survive), then let the housekeeping timer delete old run directories.
 
 ### Housekeeping
 

@@ -319,7 +319,7 @@ status() {
     echo "  Not restarted automatically. Last errors:"
     { grep -E "ERROR|WARN|panicked" "$run/bot.log" || true; } | tail -5 | sed 's/^/    /'
   fi
-  # One pass over the last 64 MB (about 10 h of log), not the whole never-rotated file.
+  # One pass over the last 64 MB (about 6 h of log), not the whole never-rotated file.
   tail -c 67108864 "$run/bot.log" | awk -v full="$(stat -c %s "$run/bot.log")" '
     /MM_METRICS/ { last = $0; when = substr($0, 1, 27) }
     /MM_ORDER/ { orders++ }
