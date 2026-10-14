@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Delete old shadow-test run directories so the VM disk does not fill (about 0.5 GB a day).
+"""Delete old shadow-test run directories so the VM disk does not fill (about 1.15 GB a day since 14 Oct 2026).
 
 A run directory is a direct child of artifacts/shadow/ named like scripts/shadow.sh names it
 (`date -u +%Y%m%dT%H%M%SZ`, e.g. 20261006T161427Z). One is deleted when the newest mtime of the

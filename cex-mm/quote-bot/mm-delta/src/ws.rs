@@ -85,7 +85,8 @@ fn redact(s: &str, secrets: &[&str]) -> String {
         .fold(s.to_string(), |acc, x| acc.replace(x, "<redacted>"))
 }
 
-fn present(v: Option<&Value>) -> Option<&Value> {
+/// A venue field that carries something: not missing, null or a blank string.
+pub(crate) fn present(v: Option<&Value>) -> Option<&Value> {
     v.filter(|e| match e {
         Value::Null => false,
         Value::String(s) => !s.trim().is_empty(),

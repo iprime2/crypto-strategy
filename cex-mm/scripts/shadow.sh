@@ -50,7 +50,7 @@ start() {
     >"$run/dry-run.log" 2>&1 </dev/null &
   echo $! >"$run/dry-run.pid"
   setsid nohup env -i HOME="$HOME" PATH="/usr/bin:/bin" RUST_LOG=info NO_COLOR=1 \
-    "$BIN" record-delta --symbols "$symbols" --env mainnet --out-dir "$run" --channels trades \
+    "$BIN" record-delta --symbols "$symbols" --env mainnet --out-dir "$run" --channels trades,ob_l2,mark_price \
     >"$run/recorder.log" 2>&1 </dev/null &
   echo $! >"$run/recorder.pid"
   sleep 3
@@ -86,6 +86,27 @@ status() {
   echo "quote samples: ${metrics:-0}   recorded trades: ${trades:-0}"
   echo "disk: $(du -sh "$CURRENT/" | cut -f1)"
   echo "last quote: $(grep MM_METRICS "$CURRENT/dry-run.log" 2>/dev/null | tail -1 | cut -c1-27)"
+  # Depth book (ob_l2): the last sample per symbol, and today's recorded book file.
+  tail -n 400 "$CURRENT/dry-run.log" 2>/dev/null | grep MM_METRICS | python3 -c '
+import json, sys
+last = {}
+for l in sys.stdin:
+    try:
+        m = json.loads(l[l.index("{"):])
+    except ValueError:
+        continue
+    last[m.get("symbol")] = m
+for s, m in sorted(last.items()):
+    d, age, why = m.get("depth_mid"), m.get("depth_age_ms"), m.get("depth_none", "no depth fields")
+    print("depth %s: %s" % (s, "mid %s age %s ms" % (d, age) if d is not None else "none (%s)" % why))
+' 2>/dev/null || true
+  local book
+  book="$(ls -1 "$CURRENT"/delta_mainnet_book_*.jsonl 2>/dev/null | tail -1)" || true # runs before 14 Oct have none
+  if [[ -n "$book" ]]; then
+    echo "book file: $(basename "$book") $(du -h "$book" | cut -f1)"
+  else
+    echo "book file: none"
+  fi
   grep -E "WARN|ERROR" "$CURRENT/dry-run.log" "$CURRENT/recorder.log" 2>/dev/null | tail -3 || true
 }
 

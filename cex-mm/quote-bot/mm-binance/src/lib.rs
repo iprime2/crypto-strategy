@@ -14,6 +14,10 @@ pub struct BinanceBbo {
     pub bid: f64,
     pub ask: f64,
     pub mid: f64,
+    /// Sizes at the best bid and ask, when the message carries them (`B`, `A`). On a one-tick book they place
+    /// the price inside the tick: the mid alone moves in whole-tick steps (4.2 bps on ADA).
+    pub bid_qty: Option<f64>,
+    pub ask_qty: Option<f64>,
     /// Messages received so far. A count that stops changing means the feed went silent, even when the
     /// price would not have moved (ADA's mid can sit unchanged for minutes).
     pub seq: u64,
@@ -29,7 +33,22 @@ fn parse_book_ticker(text: &str, seq: u64) -> Option<BinanceBbo> {
     let parsed: BookTickerMsg = serde_json::from_str(text).ok()?;
     let bid: f64 = parsed.bid.parse().ok()?;
     let ask: f64 = parsed.ask.parse().ok()?;
-    (bid > 0.0 && ask > bid).then(|| BinanceBbo { bid, ask, mid: (bid + ask) / 2.0, seq })
+    let size = |v: Option<serde_json::Value>| {
+        match v? {
+            serde_json::Value::String(s) => s.parse::<f64>().ok(),
+            serde_json::Value::Number(n) => n.as_f64(),
+            _ => None,
+        }
+        .filter(|q| q.is_finite() && *q >= 0.0)
+    };
+    (bid > 0.0 && ask > bid).then(|| BinanceBbo {
+        bid,
+        ask,
+        mid: (bid + ask) / 2.0,
+        bid_qty: size(parsed.bid_qty),
+        ask_qty: size(parsed.ask_qty),
+        seq,
+    })
 }
 
 #[derive(Debug, Deserialize)]
@@ -38,6 +57,10 @@ struct BookTickerMsg {
     bid: String,
     #[serde(rename = "a")]
     ask: String,
+    #[serde(rename = "B", default)]
+    bid_qty: Option<serde_json::Value>,
+    #[serde(rename = "A", default)]
+    ask_qty: Option<serde_json::Value>,
 }
 
 /// `MM_BINANCE_WS_BASE` overrides the stream host, e.g. `wss://data-stream.binance.vision/ws`
@@ -117,6 +140,19 @@ pub async fn run_book_ticker(symbol: &str, tx: watch::Sender<BinanceBbo>) -> Res
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn book_ticker_carries_the_touch_sizes_when_sent() {
+        let m = r#"{"u":1,"s":"ADAUSDT","b":"0.2400","B":"88935","a":"0.2401","A":"31847.5"}"#;
+        let bbo = parse_book_ticker(m, 1).unwrap();
+        assert_eq!((bbo.bid_qty, bbo.ask_qty), (Some(88935.0), Some(31847.5)));
+        // Missing or bad sizes leave the prices usable.
+        let bbo = parse_book_ticker(r#"{"b":"0.2400","a":"0.2401","B":"n/a"}"#, 2).unwrap();
+        assert_eq!((bbo.bid, bbo.bid_qty, bbo.ask_qty), (0.24, None, None));
+        // A size sent as a number, or an odd type, never costs the price.
+        let bbo = parse_book_ticker(r#"{"b":"0.2400","a":"0.2401","B":10,"A":[1]}"#, 3).unwrap();
+        assert_eq!((bbo.bid_qty, bbo.ask_qty), (Some(10.0), None));
+    }
 
     #[test]
     fn book_ticker_parses_and_numbers_messages() {
