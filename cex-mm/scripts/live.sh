@@ -63,12 +63,17 @@ check_profile() {
   local bad
   bad="$( { grep -E '^[A-Z0-9_]+=' "$PROFILE" || true; } | { grep -vE '^[A-Z0-9_]+=[^[:space:]"'"'"'#]*$' || true; } | cut -d= -f1 | tr '\n' ' ')"
   [[ -z "${bad// /}" ]] || die "$PROFILE: quotes, spaces or an inline comment in ${bad% }; the bot would ignore them"
-  # The Binance-anchored fair is for the shadow test until its live basis source is settled; the bot refuses it
-  # live too. artifacts/research/2026-10-13-live-run-pickoff.md
-  local w
-  w="$( { grep -E '^MM_FAIR_ANCHOR_WEIGHT=' "$PROFILE" || true; } | tail -n 1 | cut -d= -f2-)"
-  [[ -z "$w" || "$w" =~ ^0+(\.0*)?$ ]] \
-    || die "$PROFILE: MM_FAIR_ANCHOR_WEIGHT=$w is for the shadow test only (set it to 0 for a live run); see artifacts/research/2026-10-13-live-run-pickoff.md"
+  # The Binance-anchored fair is for the shadow test until its depth basis source passes the gate in
+  # plans/live-basis.plan.md: every anchor weight key (global or per symbol) must be 0 and no live flag may be
+  # set. Lifting this is a deliberate edit here, after the gate, not a profile change.
+  local line k w
+  while IFS= read -r line; do
+    k="${line%%=*}"; w="${line#*=}"
+    [[ "$w" =~ ^0+(\.0*)?$ ]] \
+      || die "$PROFILE: $k=$w is for the shadow test only (set it to 0 for a live run); see plans/live-basis.plan.md"
+  done < <(grep -E '^MM_FAIR_ANCHOR_WEIGHT(_[A-Z0-9]+)?=' "$PROFILE" || true)
+  line="$(grep -E '^MM_FAIR_ANCHOR_LIVE(_[A-Z0-9]+)?=' "$PROFILE" | head -n 1 || true)"
+  [[ -z "$line" ]] || die "$PROFILE: $line is not allowed until the live basis gate passes (plans/live-basis.plan.md); remove it"
 }
 
 # Alive and not a zombie (an orphan's zombie can linger until its new parent reaps it).

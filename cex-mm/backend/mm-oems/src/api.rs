@@ -18,7 +18,7 @@ use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 
 use crate::analytics::{choose_bucket, validate_analytics_range};
-use crate::config_guard::find_forbidden_secret_key;
+use crate::config_guard::{find_forbidden_secret_key, find_profile_only_key};
 use crate::db::{self, Db};
 use crate::delta::{DeltaClient, VenueEnv};
 use crate::runtime::{Runtimes, StrategyRuntime};
@@ -247,6 +247,13 @@ async fn post_config(
     }
     if !body.is_object() {
         return err_json(StatusCode::BAD_REQUEST, "invalid_config", "config body must be a JSON object");
+    }
+    if let Some(key) = find_profile_only_key(&body) {
+        return err_json(
+            StatusCode::BAD_REQUEST,
+            "profile_only",
+            format!("config must not set '{key}': anchor and basis settings come from the profile file only"),
+        );
     }
     let db = match db_required(&st) {
         Ok(d) => d,
