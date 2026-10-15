@@ -239,7 +239,8 @@ pub struct MmMetrics {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub anchor_off_reason: Option<&'static str>,
     /// The basis average's own clock (seconds on the loop's monotonic clock) and sample count, so a replay
-    /// can rebuild it exactly.
+    /// can rebuild it exactly: initialise from any logged row's `basis_bps`, `basis_n` and `basis_t` and
+    /// continue (the samples taken during the unlogged vol warm-up are not in the log).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub basis_t: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
