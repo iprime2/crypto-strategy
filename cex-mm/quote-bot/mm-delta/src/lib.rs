@@ -12,7 +12,7 @@ pub use depth_feed::{parse_ob_l2, spawn_depth_feed, DepthRx, DepthSnapshot};
 pub use products::{delta_product_symbol, mm_symbol_from_delta, ProductCatalog};
 pub use rest::{funding_carry_bps, DeltaRest, FillRole};
 pub use ticker::{parse_ticker, spawn_ticker_poller, TickerPoller, TickerSnapshot};
-pub use ws::{DeltaPrivateWs, PrivateFeedState, PrivateWsTimings};
+pub use ws::{parse_user_trade, DeltaPrivateWs, PrivateFeedState, PrivateWsTimings, UserTrade};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DeltaEnvironment {

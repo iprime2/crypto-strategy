@@ -1759,37 +1759,36 @@ fn handle_delta_fill_row(
     snipe: &Arc<Mutex<SnipeTracker>>,
     last_jump: &Arc<Mutex<Option<Instant>>>,
 ) {
-    let side = row.get("S").and_then(|s| s.as_str()).unwrap_or("");
-    let contracts: i64 = row.get("s").and_then(|v| v.as_i64()).unwrap_or(0);
-    let qty = products.base_qty_from_contracts(mm_symbol, contracts);
-    let price: f64 = row
-        .get("p")
-        .and_then(|s| s.as_str())
-        .unwrap_or("0")
-        .parse()
-        .unwrap_or(0.0);
-    let bought = side.eq_ignore_ascii_case("buy");
+    // Delta sends the size as a string and `i` is the product id: before 15 Oct 2026 this read a size of 0
+    // and used one id per product, so the OEMS (unique on trade id) kept only the first fill.
+    let Some(fill) = mm_delta::parse_user_trade(row) else {
+        tracing::warn!(symbol = %mm_symbol, frame = %row.to_string().chars().take(300).collect::<String>(), "fill frame not understood; skipped (the reconcile will catch the position)");
+        return;
+    };
+    let qty = products.base_qty_from_contracts(mm_symbol, fill.contracts);
+    let price = fill.price;
+    let bought = fill.bought;
+    tracing::info!(
+        symbol = %mm_symbol,
+        side = if bought { "buy" } else { "sell" },
+        contracts = fill.contracts,
+        price,
+        maker = fill.maker,
+        fill_id = %fill.fill_id,
+        order_id = ?fill.order_id,
+        "fill from the private feed"
+    );
     if let Ok(mut e) = eco.lock() {
         e.on_fill(bought, qty, price, 0.0);
         let _ = persist_economics(econ_path, &e);
     }
     let fair_at_fill = *markout.fair_rx.borrow();
     markout.on_fill(bought, fair_at_fill);
-    let trade_id = row
-        .get("i")
-        .or_else(|| row.get("id"))
-        .or_else(|| row.get("t"))
-        .map(|v| match v {
-            serde_json::Value::String(s) => s.clone(),
-            serde_json::Value::Number(n) => n.to_string(),
-            _ => format!("delta-{}-{}", mm_symbol, Utc::now().timestamp_millis()),
-        })
-        .unwrap_or_else(|| format!("delta-{}-{}", mm_symbol, Utc::now().timestamp_millis()));
     let fill_side = if bought { "buy" } else { "sell" };
     let mid = if fair_at_fill > 0.0 { fair_at_fill } else { price };
     crate::oems::post_fill(
-        &trade_id,
-        None,
+        &fill.fill_id,
+        fill.client_order_id.as_deref(),
         mm_symbol,
         fill_side,
         price,
