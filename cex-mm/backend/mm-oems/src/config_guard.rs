@@ -13,7 +13,7 @@ const FORBIDDEN_KEYS: &[&str] = &[
 
 /// Env-name prefixes the UI and API may not override: the anchored fair's weight, live flag and basis source
 /// are live-safety settings that `scripts/live.sh` checks in the profile file (plans/live-basis.plan.md).
-const PROFILE_ONLY_PREFIXES: &[&str] = &["MM_FAIR_ANCHOR", "MM_BASIS_"];
+const PROFILE_ONLY_PREFIXES: &[&str] = &["MM_FAIR_ANCHOR", "MM_BASIS_", "MM_DEPTH_"];
 
 /// Returns the first top-level key of `body` whose bot env name starts with a profile-only prefix.
 pub fn find_profile_only_key(body: &serde_json::Value) -> Option<String> {
@@ -89,7 +89,7 @@ mod tests {
 
     #[test]
     fn anchor_and_basis_keys_are_profile_only() {
-        for k in ["MM_FAIR_ANCHOR_WEIGHT", "MM_FAIR_ANCHOR_WEIGHT_ADAUSDT", "MM_FAIR_ANCHOR_LIVE", "MM_BASIS_SOURCE", "mm_basis_depth_qty_adausdt"] {
+        for k in ["MM_FAIR_ANCHOR_WEIGHT", "MM_FAIR_ANCHOR_WEIGHT_ADAUSDT", "MM_FAIR_ANCHOR_LIVE", "MM_FAIR_ANCHOR_OFF_PULL_SEC", "MM_BASIS_SOURCE", "mm_basis_depth_qty_adausdt", "MM_DEPTH_FEED", "MM_DEPTH_STALE_MS"] {
             let body = json!({"spread_bps": 5, k: "depth"});
             assert_eq!(find_profile_only_key(&body).as_deref(), Some(k), "{k}");
         }

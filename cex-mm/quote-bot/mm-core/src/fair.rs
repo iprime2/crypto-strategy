@@ -5,9 +5,9 @@ use crate::{BookTop, QuoteExtensions};
 /// Without an anchor the lead uses the recent Binance move, never the Binance price level: the two
 /// venues list different contracts, so the raw level gap is a biased, noisy offset. With an anchor
 /// (`anchor_fair`: the Binance mid moved onto Delta's level by a measured basis, see `BasisEma`), the
-/// fair is pulled toward it by `anchor_weight`, and both the move lead and the OFI drift are scaled by
-/// `1 - anchor_weight`: the anchor already carries the move, and OFI's denominator is the L1 size, which
-/// in a live run is our own resting quote (31 bps on the real 13 Oct 2026 book; `plans/live-basis.plan.md`).
+/// fair is pulled toward it by `anchor_weight`, the move lead is scaled by `1 - anchor_weight` (the anchor
+/// already carries the move), and the OFI drift is switched off: its denominator is the L1 size, which in a
+/// live run is our own resting quote (31 bps on the real 13 Oct 2026 book; `plans/live-basis.plan.md`).
 pub fn resolve_fair_cex(fair_native: f64, book: Option<BookTop>, ext: QuoteExtensions) -> f64 {
     let mut fair = fair_native;
     if let Some(b) = book {
@@ -27,7 +27,7 @@ pub fn resolve_fair_cex(fair_native: f64, book: Option<BookTop>, ext: QuoteExten
     if ext.lead_max_bps > 0.0 {
         shift_bps = shift_bps.clamp(-ext.lead_max_bps, ext.lead_max_bps);
     }
-    let ofi_bps = (1.0 - anchor_w) * ext.ofi_drift_bps;
+    let ofi_bps = if anchor_w > 0.0 { 0.0 } else { ext.ofi_drift_bps };
     fair *= 1.0 + (shift_bps + ofi_bps + ext.funding_carry_bps) / 10_000.0;
     fair
 }
@@ -218,6 +218,11 @@ impl BasisEma {
         self.value_bps
     }
 
+    /// Samples behind the average (0 before the first).
+    pub fn samples(&self) -> u64 {
+        self.samples
+    }
+
     /// Seconds of samples behind the average at `now` (0 before the first sample).
     pub fn warm_sec(&self, now: f64) -> f64 {
         if self.value_bps.is_some() {
@@ -346,17 +351,16 @@ mod tests {
     }
 
     #[test]
-    fn an_anchored_fair_ignores_ofi_in_proportion_to_the_weight() {
+    fn an_anchored_fair_ignores_ofi() {
         // Live, OFI's denominator is our own resting quote at the touch: a constant own touch must not move
-        // an anchored fair. Fully anchored, a 30 bps OFI drift contributes nothing; half anchored, half.
+        // an anchored fair. At any anchor weight above 0 a 30 bps OFI drift contributes nothing.
         let ofi = QuoteExtensions { ofi_drift_bps: 30.0, ..Default::default() };
         let base = resolve_fair_cex(2700.0, None, QuoteExtensions::default());
         assert!(((resolve_fair_cex(2700.0, None, ofi) - base * (1.0 + 30.0 / 10_000.0)) / base).abs() < 1e-12);
         let full = QuoteExtensions { anchor_fair: Some(2710.0), anchor_weight: 1.0, ofi_drift_bps: 30.0, ..Default::default() };
         assert!((resolve_fair_cex(2700.0, None, full) - 2710.0).abs() < 1e-9);
         let half = QuoteExtensions { anchor_fair: Some(2710.0), anchor_weight: 0.5, ofi_drift_bps: 30.0, ..Default::default() };
-        let expected = 2705.0 * (1.0 + 15.0 / 10_000.0);
-        assert!((resolve_fair_cex(2700.0, None, half) - expected).abs() < 1e-9);
+        assert!((resolve_fair_cex(2700.0, None, half) - 2705.0).abs() < 1e-9);
     }
 
     fn env<'a>(pairs: &'a [(&'a str, &'a str)]) -> impl Fn(&str) -> Option<String> + 'a {

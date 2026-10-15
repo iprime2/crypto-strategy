@@ -106,6 +106,16 @@ impl FeedWatch {
         }
     }
 
+    /// A watch that starts in the pulled state, for a guard that must hold until its input has been good
+    /// at least once (a live start with the anchor on): the first `check(true)` reports `Recovered`.
+    pub fn starting_down(pull_after: Duration, now: Instant) -> Self {
+        Self {
+            pull_after,
+            down_since: Some(now),
+            pulled: true,
+        }
+    }
+
     /// `subscribed`: the venue confirms the fills subscription on the current connection.
     pub fn check(&mut self, subscribed: bool, now: Instant) -> FeedHealth {
         if subscribed {
@@ -116,10 +126,10 @@ impl FeedWatch {
             return FeedHealth::Up;
         }
         let down_for = now.saturating_duration_since(*self.down_since.get_or_insert(now));
-        if down_for <= self.pull_after {
-            FeedHealth::Up
-        } else if self.pulled {
+        if self.pulled {
             FeedHealth::Down
+        } else if down_for <= self.pull_after {
+            FeedHealth::Up
         } else {
             self.pulled = true;
             FeedHealth::WentDown(down_for)
@@ -330,6 +340,18 @@ mod tests {
         assert_eq!(w.check(false, t0 + ms(90_000)), FeedHealth::Down);
         assert_eq!(w.check(true, t0 + ms(95_000)), FeedHealth::Recovered(ms(95_000)));
         assert_eq!(w.check(true, t0 + ms(95_400)), FeedHealth::Up);
+    }
+
+    #[test]
+    fn a_watch_started_down_holds_until_the_first_good_check() {
+        let t0 = Instant::now();
+        let mut w = FeedWatch::starting_down(ms(10_000), t0);
+        assert_eq!(w.check(false, t0 + ms(400)), FeedHealth::Down, "no grace before the first good input");
+        assert_eq!(w.check(false, t0 + ms(59_000)), FeedHealth::Down);
+        assert_eq!(w.check(true, t0 + ms(60_000)), FeedHealth::Recovered(ms(60_000)));
+        // From then on the usual grace applies.
+        assert_eq!(w.check(false, t0 + ms(61_000)), FeedHealth::Up);
+        assert_eq!(w.check(false, t0 + ms(71_400)), FeedHealth::WentDown(ms(10_400)));
     }
 
     #[test]

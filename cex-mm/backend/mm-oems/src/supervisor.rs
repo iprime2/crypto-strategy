@@ -720,7 +720,8 @@ mod tests {
             "MM_LEAD_BETA": 0.8,
             "MM_SYMBOLS_EXTRA": ["ADAUSDT", "NEARUSDT"],
             "loop_ms": 400,
-            "delta_api_key": "nope"
+            "delta_api_key": "nope",
+            "MM_FAIR_ANCHOR_WEIGHT": 1
         });
         let mut pairs = config_env_pairs(&body);
         pairs.sort();

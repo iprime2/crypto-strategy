@@ -458,6 +458,41 @@ fn check_anchor_settings(symbols: &[String], dry_run: bool) -> Result<Vec<(Strin
     Ok(settings)
 }
 
+/// A depth book that can never yield a basis sample (feed off, an unusable threshold, or a threshold our own
+/// order could reach) is refused at start when the depth source is anchored: the anchor would stay off and a
+/// live run would pull every quote. Otherwise it is a warning, since the depth basis is then logged only.
+fn depth_source_check(
+    symbol: &str,
+    source: BasisSource,
+    anchor_weight: f64,
+    have_feed: bool,
+    depth_qty: Option<f64>,
+    depth_base_qty: f64,
+    base_qty: f64,
+) -> Result<()> {
+    let problem = if !have_feed {
+        (source == BasisSource::Depth).then(|| "MM_DEPTH_FEED=0 switches the depth feed off".to_string())
+    } else if depth_qty.is_none() {
+        Some(format!("MM_BASIS_DEPTH_QTY={depth_base_qty} is not a positive size"))
+    } else if depth_base_qty <= 2.0 * base_qty {
+        Some(format!(
+            "MM_BASIS_DEPTH_QTY={depth_base_qty} is not above twice the order size {base_qty}, so our own order could set the depth price"
+        ))
+    } else {
+        None
+    };
+    match problem {
+        None => Ok(()),
+        Some(p) if source == BasisSource::Depth && anchor_weight > 0.0 => {
+            anyhow::bail!("{symbol}: {p}; the anchored fair needs a usable depth book (MM_BASIS_SOURCE=depth)")
+        }
+        Some(p) => {
+            tracing::warn!(%symbol, "{p}; the depth basis is logged only for this symbol");
+            Ok(())
+        }
+    }
+}
+
 /// `MM_FILL_FEED_REQUIRED` (default on; "0" waives the start check and the mid-run pull).
 fn fill_feed_required() -> bool {
     std::env::var("MM_FILL_FEED_REQUIRED").map(|v| v.trim() != "0").unwrap_or(true)
@@ -705,14 +740,6 @@ async fn run_symbol_loop(
     let clip_cap = size_clip_cap(&symbol, max_inv, min_qty, dry_run)?;
     let base_qty = env_f64_for_symbol(&symbol, "MM_ORDER_QTY", min_qty.max(0.001));
     let depth_qty = mm_core::depth::contracts_for_qty(depth_base_qty, contract_value);
-    if depth_rx.is_some() {
-        if depth_qty.is_none() {
-            tracing::warn!(%symbol, depth_base_qty, contract_value, "MM_BASIS_DEPTH_QTY is not a positive size; no depth mid");
-        } else if depth_base_qty <= 2.0 * base_qty {
-            // Our own order alone could set the depth price. PR C refuses this once the depth book is a source.
-            tracing::warn!(%symbol, depth_base_qty, base_qty, "MM_BASIS_DEPTH_QTY is not above twice the order size");
-        }
-    }
 
     let mut vol_tracker = VolTracker::new(96);
     let kappa_est = KappaEstimator::default();
@@ -758,11 +785,14 @@ async fn run_symbol_loop(
     };
     let basis_max_age_sec = env_f64_for_symbol(&symbol, "MM_BASIS_MAX_AGE_SEC", basis_max_age_default).max(0.0);
     // Live, with the anchor on, an anchor off for longer than this pulls both quotes rather than quoting on
-    // the fallback fair, which reads our own quotes (plans/live-basis.plan.md). FeedWatch's outage logic fits.
+    // the fallback fair, which reads our own quotes (plans/live-basis.plan.md). FeedWatch's outage logic
+    // fits; it starts pulled, so the first quotes wait for the anchor instead of resting on that fair.
     let mut anchor_watch = (!dry_run && anchor_weight > 0.0).then(|| {
-        FeedWatch::new(secs_knob(env_f64_for_symbol(&symbol, "MM_ANCHOR_OFF_PULL_SEC", 10.0), 10.0, 1.0, 3600.0))
+        let pull_after = secs_knob(env_f64_for_symbol(&symbol, "MM_FAIR_ANCHOR_OFF_PULL_SEC", 10.0), 10.0, 1.0, 3600.0);
+        FeedWatch::starting_down(pull_after, Instant::now())
     });
     tracing::info!(%symbol, anchor_weight, basis_source = basis_source.as_str(), basis_max_age_sec, "basis source");
+    depth_source_check(&symbol, basis_source, anchor_weight, depth_rx.is_some(), depth_qty, depth_base_qty, base_qty)?;
     let binance_stale_after =
         Duration::from_millis(env_f64_for_symbol(&symbol, "MM_BINANCE_STALE_MS", 5000.0).max(0.0) as u64);
     let mut binance_seq: u64 = 0;
@@ -1000,7 +1030,8 @@ async fn run_symbol_loop(
             BasisSource::Book => top.mid(),
             BasisSource::Depth => depth_ok.and_then(|s| s.mid()).map(|d| d.mid),
         };
-        if basis.last_update().is_some_and(|t| lead_now - t > basis_max_age_sec) {
+        let basis_aged_out = basis.last_update().is_some_and(|t| lead_now - t > basis_max_age_sec);
+        if basis_aged_out {
             basis = new_basis(); // too old to trust: warm up again before anchoring
         }
         let mut basis_updated = false;
@@ -1018,12 +1049,12 @@ async fn run_symbol_loop(
         let anchor_off_reason: Option<&'static str> = (anchor_weight > 0.0 && anchor_fair.is_none()).then(|| {
             if !binance_fresh {
                 "binance_stale"
+            } else if basis_aged_out {
+                "basis_stale"
             } else if basis.value_bps().is_none() {
                 "no_source"
-            } else if basis.warm_sec(lead_now) < basis_warmup_sec {
-                "basis_warming"
             } else {
-                "basis_stale"
+                "basis_warming"
             }
         });
 
@@ -1237,7 +1268,7 @@ async fn run_symbol_loop(
                     reason = anchor_off_reason.unwrap_or("none"),
                     "anchor off; quotes pulled until it is back"
                 ),
-                FeedHealth::Recovered(d) => tracing::info!(%symbol, off_s = d.as_secs_f64(), "anchor back; quoting again"),
+                FeedHealth::Recovered(d) => tracing::info!(%symbol, off_s = d.as_secs_f64(), "anchor on; quoting"),
                 FeedHealth::Up | FeedHealth::Down => {}
             }
             if matches!(health, FeedHealth::WentDown(_) | FeedHealth::Down) {
@@ -1346,6 +1377,8 @@ async fn run_symbol_loop(
             basis_src: Some(basis_source.as_str()),
             basis_updated: Some(basis_updated),
             anchor_off_reason,
+            basis_t: Some(lead_now),
+            basis_n: Some(basis.samples()),
         };
         tracing::info!(target: "MM_METRICS", "{}", serde_json::to_string(&metrics)?);
 
@@ -1868,6 +1901,22 @@ mod tests {
         let (_tx, rx) = watch::channel(mm_delta::PrivateFeedState::default());
         let err = require_fill_feed(rx, Duration::from_millis(150), true).await.unwrap_err().to_string();
         assert!(err.contains("not confirmed within 0.1 s (no reply from the venue)"), "{err}");
+    }
+
+    #[test]
+    fn an_anchored_depth_source_needs_a_usable_depth_book() {
+        use BasisSource::{Book, Depth};
+        let ok = |s, w, feed, q, x, b| depth_source_check("ADAUSDT", s, w, feed, q, x, b).is_ok();
+        assert!(ok(Depth, 1.0, true, Some(10_000.0), 10_000.0, 200.0));
+        // Feed off, an unusable threshold, or X <= 2Q: refused only when the depth source is anchored.
+        assert!(!ok(Depth, 1.0, false, None, 10_000.0, 200.0));
+        assert!(!ok(Depth, 1.0, true, None, 0.0, 200.0));
+        assert!(!ok(Depth, 1.0, true, Some(400.0), 400.0, 200.0));
+        assert!(ok(Depth, 0.0, true, Some(400.0), 400.0, 200.0)); // logged only
+        assert!(ok(Book, 1.0, true, Some(400.0), 400.0, 200.0)); // logged only
+        assert!(ok(Book, 1.0, false, None, 10_000.0, 200.0)); // no depth at all is fine for the book source
+        let err = depth_source_check("ADAUSDT", Depth, 1.0, true, Some(400.0), 400.0, 200.0).unwrap_err().to_string();
+        assert!(err.starts_with("ADAUSDT: MM_BASIS_DEPTH_QTY=400 is not above twice the order size 200"), "{err}");
     }
 
     #[test]
