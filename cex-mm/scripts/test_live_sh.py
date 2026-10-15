@@ -1,5 +1,6 @@
 """Tests for live.sh against a fake cex-mm tree: a stub mm-bot, stub key check and dummy keys, so nothing reaches
-Delta and the real quote-bot/.env is never read. Linux only (/proc, setsid). CI does not run Python; run:
+Delta and the real quote-bot/.env is never read. Linux only (/proc, setsid). CI runs it on ubuntu (pr.yml,
+Python script tests); locally:
 
     cd cex-mm/scripts && python3 -m unittest -v test_live_sh
 """

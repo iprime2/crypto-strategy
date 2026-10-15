@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for scripts/shadow_housekeep.py (stdlib unittest; CI does not run Python).
+"""Tests for scripts/shadow_housekeep.py (stdlib unittest; CI runs it on ubuntu via pr.yml, Python script tests).
 
     cd cex-mm/scripts && python3 -m unittest -v test_shadow_housekeep
 """
