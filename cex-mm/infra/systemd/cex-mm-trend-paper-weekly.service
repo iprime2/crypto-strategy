@@ -1,0 +1,13 @@
+# User unit, rendered by infra/vm/setup.sh. Started by cex-mm-trend-paper-weekly.timer.
+# The weekly book from resource/07-trend-rule-and-prop-trading-research.md: the same rule as the daily book,
+# decided once a week on the Monday 00:00 UTC close, target vol 0.25, 10% no-trade band, its own state directory.
+[Unit]
+Description=Trend-following paper trader, weekly book: Monday rebalance on Delta India mainnet data (no keys, no orders)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=@CEX_MM@
+ExecStart=/usr/bin/python3 @CEX_MM@/scripts/trend_paper.py --weekly --target-vol 0.25 --band 0.10 --capital 1000 --state-dir @CEX_MM@/artifacts/trend/paper-weekly
+TimeoutStartSec=600

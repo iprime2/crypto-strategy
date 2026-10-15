@@ -36,7 +36,8 @@ STATIC = {
     "/common.css": ("common.css", "text/css; charset=utf-8"),
     "/charts.js": ("charts.js", "text/javascript; charset=utf-8"),
 }
-TREND_DIR = CEX_MM / "artifacts" / "trend" / "paper"  # written by scripts/trend_paper.py
+TREND_DIR = CEX_MM / "artifacts" / "trend" / "paper"  # written by scripts/trend_paper.py (the daily book)
+TREND_BOOKS = {"daily": "paper", "weekly": "paper-weekly"}  # sibling state directories, see docs/VM.md
 LIVE_CURRENT = CEX_MM / "artifacts" / "live" / "current"  # the real-money run, scripts/live.sh
 RECENT_MS = 60 * 60 * 1000  # full-resolution window kept for the live chart
 MAX_POINTS = 900
@@ -444,16 +445,24 @@ def build_payload(symbol: str | None, window_min: float | None) -> dict:
     }
 
 
-def trend_payload() -> dict:
-    """Paper trader state plus its journal (one line per daily rebalance)."""
+def trend_dir(book: str) -> Path:
+    """The daily book is TREND_DIR (or --trend-dir); the weekly book is its sibling directory."""
+    return TREND_DIR if book == "daily" else TREND_DIR.parent / TREND_BOOKS[book]
+
+
+def trend_payload(book: str = "daily") -> dict:
+    """Paper trader state plus its journal (one line per rebalance) for the daily or the weekly book."""
+    if book not in TREND_BOOKS:
+        book = "daily"
+    d = trend_dir(book)
     try:
-        state = json.loads((TREND_DIR / "state.json").read_text())
-        journal = [json.loads(line) for line in (TREND_DIR / "journal.jsonl").read_text().splitlines() if line.strip()]
+        state = json.loads((d / "state.json").read_text())
+        journal = [json.loads(line) for line in (d / "journal.jsonl").read_text().splitlines() if line.strip()]
     except FileNotFoundError:
-        return {"ok": False, "error": f"No paper trader state in {TREND_DIR}: it has not rebalanced yet"}
+        return {"ok": False, "book": book, "error": f"No paper trader state in {d}: the {book} book has not rebalanced yet"}
     if not journal:
-        return {"ok": False, "error": "The paper trader has not rebalanced yet"}
-    return {"ok": True, "state": state, "journal": journal, "server_time": int(time.time() * 1000)}
+        return {"ok": False, "book": book, "error": f"The {book} paper book has not rebalanced yet"}
+    return {"ok": True, "book": book, "state": state, "journal": journal, "server_time": int(time.time() * 1000)}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -489,7 +498,8 @@ class Handler(BaseHTTPRequestHandler):
             name, ctype = STATIC[url.path]
             self.send_body(200, (ROOT / "static" / name).read_bytes(), ctype)
         elif url.path == "/api/trend":
-            self.send_body(200, json.dumps(trend_payload()).encode(), "application/json")
+            book = parse_qs(url.query).get("book", ["daily"])[0]
+            self.send_body(200, json.dumps(trend_payload(book)).encode(), "application/json")
         else:
             self.send_body(404, b"not found", "text/plain")
 

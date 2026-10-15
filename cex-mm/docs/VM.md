@@ -36,6 +36,7 @@ git clone git@github.com:iprime2/crypto-strategy.git ~/crypto-strategy
 | `cex-mm-shadow-dashboard.service` | dashboard on 127.0.0.1:8788 |
 | `cex-mm-shadow-watchdog.timer` | every 2 min, restarts the test if the dry-run or recorder died |
 | `cex-mm-trend-paper.timer` | hourly `scripts/trend_paper.py`: rebalances the trend paper book once per UTC day (00:05 UTC) |
+| `cex-mm-trend-paper-weekly.timer` | hourly `scripts/trend_paper.py --weekly --target-vol 0.25 --band 0.10`: the weekly book from `resource/07`, rebalanced once per ISO week on the Monday 00:00 UTC close, state in `artifacts/trend/paper-weekly/` |
 | `cex-mm-shadow-housekeep.timer` | daily 03:30 UTC `scripts/shadow_housekeep.py --apply`: deletes shadow runs older than 14 days. Installed but **not enabled** by `setup.sh` (see [Housekeeping](#housekeeping)) |
 | `cex-mm-oems.service` | the OEMS on 127.0.0.1:8791. Installed but **not enabled** by `setup.sh` (see [OEMS (optional)](#oems-optional)) |
 
@@ -75,17 +76,24 @@ journalctl --user -u cex-mm-shadow-housekeep -n 30                   # what the 
 ## Trend paper trader
 
 `scripts/trend_paper.py` paper-trades the rule from `scripts/trend_backtest.py` on Delta mainnet public data:
-daily target weights from Delta closes, whole contracts, fills walked through the live L2 book, Delta funding.
-No keys, no orders. State and the daily journal live in `artifacts/trend/paper/` (`state.json`,
-`journal.jsonl`); the dashboard shows them at `/trend`.
+target weights from Delta closes, whole contracts, fills walked through the live L2 book, Delta funding.
+No keys, no orders. Two books run side by side, each in its own state directory (`state.json`, `journal.jsonl`),
+and a directory refuses a run with different settings:
+
+| Book | Unit | Settings | State | Dashboard |
+|---|---|---|---|---|
+| Daily (the 2026-10-08 memo's reference) | `cex-mm-trend-paper.timer` | one rebalance per UTC day, target vol 0.40 | `artifacts/trend/paper/` | `/trend` |
+| Weekly (the configuration `resource/07` says to trade) | `cex-mm-trend-paper-weekly.timer` | one rebalance per ISO week on the Monday 00:00 UTC close, target vol 0.25, 10% no-trade band | `artifacts/trend/paper-weekly/` | `/trend?book=weekly` |
 
 ```bash
-systemctl --user list-timers cex-mm-trend-paper.timer
-journalctl --user -u cex-mm-trend-paper -n 20        # one line per rebalance, or the error that will be retried
-systemctl --user start cex-mm-trend-paper            # run now (a no-op if today's rebalance is done)
+systemctl --user list-timers 'cex-mm-trend-paper*'
+journalctl --user -u cex-mm-trend-paper-weekly -n 20   # one line per rebalance, or the error that will be retried
+systemctl --user start cex-mm-trend-paper-weekly      # run now (a no-op if this week's rebalance is done)
+# The Monday order list for hand execution, from the weekly book's equity; prints and changes nothing:
+python3 scripts/trend_paper.py --weekly --target-vol 0.25 --band 0.10 --state-dir artifacts/trend/paper-weekly --orders-only
 ```
 
-Deleting `artifacts/trend/paper/` starts a new paper book at the next run.
+Deleting a book's directory starts a new paper book at the next run.
 
 
 ## Real-money run (`scripts/live.sh`)
