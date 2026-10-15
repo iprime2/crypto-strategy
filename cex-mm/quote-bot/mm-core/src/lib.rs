@@ -227,6 +227,15 @@ pub struct MmMetrics {
     /// `ask_thin` or `bid_empty_side,ask_thin`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub depth_none: Option<String>,
+    /// Where the basis average reads Delta's price (`MM_BASIS_SOURCE`: book or depth), whether it took a
+    /// sample this loop, and, with an anchor weight above 0, why the anchor is off this loop
+    /// (binance_stale, no_source, basis_warming, basis_stale).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub basis_src: Option<&'static str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub basis_updated: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub anchor_off_reason: Option<&'static str>,
 }
 
 #[cfg(test)]
