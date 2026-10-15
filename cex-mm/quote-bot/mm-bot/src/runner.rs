@@ -19,7 +19,8 @@ use crate::markout::MarkoutRuntime;
 use crate::oms::OmsState;
 use crate::account::{AccountConfig, AccountFlags};
 use crate::risk::{counts_toward_reject_kill, BookAge, BookWatch, DailyLossGuard, FeedHealth, FeedWatch};
-use crate::symbols::{env_f64_for_symbol, normalize_symbol, resolve_symbols_from_env};
+use crate::symbols::{env_f64_for_symbol, env_for_symbol, normalize_symbol, resolve_symbols_from_env};
+use mm_core::fair::BasisSource;
 use crate::universe::{UniverseOptions, resolve_universe};
 use std::collections::{HashMap, VecDeque};
 use std::path::PathBuf;
@@ -123,19 +124,7 @@ pub async fn run_delta(args: RunArgs, dry_run: bool) -> Result<()> {
             .context("load Delta products")?,
     );
 
-    if !dry_run {
-        // The Binance anchor is for the shadow test until its live basis source is settled (live, our own
-        // quotes are most of the Delta book the basis is read from). artifacts/research/2026-10-13-live-run-pickoff.md
-        for s in &symbols {
-            let w = env_f64_for_symbol(s, "MM_FAIR_ANCHOR_WEIGHT", 0.0);
-            if w > 0.0 && std::env::var("MM_FAIR_ANCHOR_LIVE").ok().as_deref() != Some("1") {
-                anyhow::bail!(
-                    "{s}: MM_FAIR_ANCHOR_WEIGHT={w} is for dry-runs (the shadow test); set it to 0 for a live run, \
-                     or MM_FAIR_ANCHOR_LIVE=1 once the live basis source is settled"
-                );
-            }
-        }
-    }
+    check_anchor_settings(&symbols, dry_run)?;
     if !dry_run {
         // Every symbol needs an inventory cap of at least one contract before any symbol starts quoting.
         for s in &symbols {
@@ -456,6 +445,19 @@ async fn require_fill_feed(
     )
 }
 
+/// The anchored fair's settings per symbol, checked before any order (`mm_core::fair::live_anchor_check`): a
+/// live run may anchor only on the depth source, since our own quotes are most of the L1 book the `book`
+/// source reads (plans/live-basis.plan.md). An unknown source is refused in dry-runs too.
+fn check_anchor_settings(symbols: &[String], dry_run: bool) -> Result<Vec<(String, mm_core::fair::AnchorSettings)>> {
+    let slugs: Vec<String> = symbols.iter().map(|s| normalize_symbol(s)).collect();
+    let settings = mm_core::fair::live_anchor_check(&slugs, !dry_run, |k| std::env::var(k).ok())
+        .map_err(|e| anyhow::anyhow!(e))?;
+    for (sym, s) in &settings {
+        tracing::info!(symbol = %sym, anchor_weight = s.weight, basis_source = s.source.as_str(), "anchor settings");
+    }
+    Ok(settings)
+}
+
 /// `MM_FILL_FEED_REQUIRED` (default on; "0" waives the start check and the mid-run pull).
 fn fill_feed_required() -> bool {
     std::env::var("MM_FILL_FEED_REQUIRED").map(|v| v.trim() != "0").unwrap_or(true)
@@ -535,6 +537,11 @@ pub async fn run(args: RunArgs, dry_run: bool) -> Result<()> {
     };
     let symbols = resolve_universe(args.universe_options(), bybit_env).await?;
     tracing::info!(count = symbols.len(), ?symbols, "mm universe");
+    for (sym, settings) in check_anchor_settings(&symbols, dry_run)? {
+        if settings.source == BasisSource::Depth {
+            anyhow::bail!("{sym}: MM_BASIS_SOURCE=depth needs the Delta ob_l2 feed; Bybit has only the book source");
+        }
+    }
 
     let creds = if dry_run {
         None
@@ -731,6 +738,11 @@ async fn run_symbol_loop(
     // Fair anchored to the Binance level (artifacts/research/2026-10-13-live-run-pickoff.md). Off unless
     // MM_FAIR_ANCHOR_WEIGHT > 0; the basis average is kept (and logged) either way.
     let anchor_weight = env_f64_for_symbol(&symbol, "MM_FAIR_ANCHOR_WEIGHT", 0.0).clamp(0.0, 1.0);
+    // Where the basis reads Delta's price (checked at start): the L1 mid, or the ob_l2 depth mid that our own
+    // quotes cannot move. The depth source gets a short max age, so a dead depth feed turns the anchor off fast.
+    let basis_source = env_for_symbol(&symbol, "MM_BASIS_SOURCE")
+        .and_then(|v| BasisSource::parse(&v))
+        .unwrap_or(BasisSource::Book);
     let basis_half_life = env_f64_for_symbol(&symbol, "MM_BASIS_HALFLIFE_SEC", 120.0).max(0.0);
     // One update covers at most two loops; each sample stays within MM_BASIS_CLAMP_BPS of the average.
     let new_basis = || {
@@ -740,7 +752,17 @@ async fn run_symbol_loop(
     };
     let mut basis = new_basis();
     let basis_warmup_sec = env_f64_for_symbol(&symbol, "MM_BASIS_WARMUP_SEC", 60.0).max(0.0);
-    let basis_max_age_sec = env_f64_for_symbol(&symbol, "MM_BASIS_MAX_AGE_SEC", 300.0).max(0.0);
+    let basis_max_age_default = match basis_source {
+        BasisSource::Book => 300.0,
+        BasisSource::Depth => 30.0,
+    };
+    let basis_max_age_sec = env_f64_for_symbol(&symbol, "MM_BASIS_MAX_AGE_SEC", basis_max_age_default).max(0.0);
+    // Live, with the anchor on, an anchor off for longer than this pulls both quotes rather than quoting on
+    // the fallback fair, which reads our own quotes (plans/live-basis.plan.md). FeedWatch's outage logic fits.
+    let mut anchor_watch = (!dry_run && anchor_weight > 0.0).then(|| {
+        FeedWatch::new(secs_knob(env_f64_for_symbol(&symbol, "MM_ANCHOR_OFF_PULL_SEC", 10.0), 10.0, 1.0, 3600.0))
+    });
+    tracing::info!(%symbol, anchor_weight, basis_source = basis_source.as_str(), basis_max_age_sec, "basis source");
     let binance_stale_after =
         Duration::from_millis(env_f64_for_symbol(&symbol, "MM_BINANCE_STALE_MS", 5000.0).max(0.0) as u64);
     let mut binance_seq: u64 = 0;
@@ -951,17 +973,40 @@ async fn run_symbol_loop(
             0.0
         };
 
-        // Basis from the Delta book, skipped while our own resting quote is the touch (live only): that
-        // mid would feed our fair back into the basis. A dry-run has no resting orders.
+        let depth = depth_rx.as_ref().map(|rx| rx.borrow().clone());
+        let depth_snap = depth.as_ref().and_then(|d| d.as_deref());
+        if depth_snap.is_some() && !depth_seen {
+            depth_seen = true;
+            tracing::info!(%symbol, "depth book streaming (ob_l2)");
+        }
+        let depth_read: Option<Result<mm_core::depth::DepthSides, String>> = depth.as_ref().map(|d| match d {
+            None => Err("no_feed".into()),
+            Some(d) if d.received_at.elapsed() > depth_stale_after => Err("stale".into()),
+            Some(d) => match depth_qty {
+                None => Err("invalid".into()),
+                Some(q) => mm_core::depth::depth_sides(&d.bids, &d.asks, q, q).map_err(|e| e.as_str().into()),
+            },
+        });
+        let depth_ok = depth_read.as_ref().and_then(|r| r.as_ref().ok());
+        let (depth_bid, depth_ask) = (depth_ok.and_then(|s| s.bid.ok()), depth_ok.and_then(|s| s.ask.ok()));
+
+        // The basis sample for this loop. Source `book`: the Delta L1 mid, skipped while our own resting
+        // quote is the touch (live only; a dry-run has no resting orders), since that mid would feed our
+        // fair back into the basis. Source `depth`: the ob_l2 depth mid from a fresh snapshot.
         let own_touch = oms.live.bid.is_some_and(|p| (p - top.best_bid).abs() < tick * 0.5)
             || oms.live.ask.is_some_and(|p| (p - top.best_ask).abs() < tick * 0.5);
+        let basis_sample = match basis_source {
+            BasisSource::Book if own_touch => None,
+            BasisSource::Book => top.mid(),
+            BasisSource::Depth => depth_ok.and_then(|s| s.mid()).map(|d| d.mid),
+        };
         if basis.last_update().is_some_and(|t| lead_now - t > basis_max_age_sec) {
             basis = new_basis(); // too old to trust: warm up again before anchoring
         }
-        if binance_fresh && !own_touch {
-            if let Some(delta_mid) = top.mid() {
-                basis.update(lead_now, delta_mid, binance_mid);
-            }
+        let mut basis_updated = false;
+        if let (true, Some(px)) = (binance_fresh, basis_sample) {
+            basis.update(lead_now, px, binance_mid);
+            basis_updated = true;
         }
         let basis_fresh = basis.warm_sec(lead_now) >= basis_warmup_sec
             && basis.last_update().is_some_and(|t| lead_now - t <= basis_max_age_sec);
@@ -970,6 +1015,17 @@ async fn run_symbol_loop(
         } else {
             None
         };
+        let anchor_off_reason: Option<&'static str> = (anchor_weight > 0.0 && anchor_fair.is_none()).then(|| {
+            if !binance_fresh {
+                "binance_stale"
+            } else if basis.value_bps().is_none() {
+                "no_source"
+            } else if basis.warm_sec(lead_now) < basis_warmup_sec {
+                "basis_warming"
+            } else {
+                "basis_stale"
+            }
+        });
 
         let jump_bps = last_fair
             .map(|lf| (fair_native - lf) / lf * 10_000.0)
@@ -1025,22 +1081,6 @@ async fn run_symbol_loop(
             .as_ref()
             .and_then(|rx| rx.borrow().clone())
             .filter(|t| t.received_at.elapsed() <= ticker_stale_after);
-        let depth = depth_rx.as_ref().map(|rx| rx.borrow().clone());
-        let depth_snap = depth.as_ref().and_then(|d| d.as_deref());
-        if depth_snap.is_some() && !depth_seen {
-            depth_seen = true;
-            tracing::info!(%symbol, "depth book streaming (ob_l2)");
-        }
-        let depth_read: Option<Result<mm_core::depth::DepthSides, String>> = depth.as_ref().map(|d| match d {
-            None => Err("no_feed".into()),
-            Some(d) if d.received_at.elapsed() > depth_stale_after => Err("stale".into()),
-            Some(d) => match depth_qty {
-                None => Err("invalid".into()),
-                Some(q) => mm_core::depth::depth_sides(&d.bids, &d.asks, q, q).map_err(|e| e.as_str().into()),
-            },
-        });
-        let depth_ok = depth_read.as_ref().and_then(|r| r.as_ref().ok());
-        let (depth_bid, depth_ask) = (depth_ok.and_then(|s| s.bid.ok()), depth_ok.and_then(|s| s.ask.ok()));
         // A dry-run's inventory is whatever the economics file held at start and is never reconciled, so
         // it gets no carry: dry-runs stay comparable with each other and with the shadow.
         let funding_bps = match (&ticker_rx, &rest) {
@@ -1188,6 +1228,23 @@ async fn run_symbol_loop(
         if ask_qty <= 0.0 {
             plan.place_ask = false;
         }
+        if let Some(w) = anchor_watch.as_mut() {
+            let health = w.check(anchor_fair.is_some(), Instant::now());
+            match health {
+                FeedHealth::WentDown(d) => tracing::warn!(
+                    %symbol,
+                    off_s = d.as_secs_f64(),
+                    reason = anchor_off_reason.unwrap_or("none"),
+                    "anchor off; quotes pulled until it is back"
+                ),
+                FeedHealth::Recovered(d) => tracing::info!(%symbol, off_s = d.as_secs_f64(), "anchor back; quoting again"),
+                FeedHealth::Up | FeedHealth::Down => {}
+            }
+            if matches!(health, FeedHealth::WentDown(_) | FeedHealth::Down) {
+                plan.place_bid = false;
+                plan.place_ask = false;
+            }
+        }
         let feed_state = fill_feed.as_ref().map(|f| {
             let s = f.borrow();
             (s.subscribed, s.fills, s.last_error.clone())
@@ -1286,6 +1343,9 @@ async fn run_symbol_loop(
                 Err(e) => Some(e.clone()),
                 Ok(sides) => mm_core::depth::side_reasons(sides),
             }),
+            basis_src: Some(basis_source.as_str()),
+            basis_updated: Some(basis_updated),
+            anchor_off_reason,
         };
         tracing::info!(target: "MM_METRICS", "{}", serde_json::to_string(&metrics)?);
 
