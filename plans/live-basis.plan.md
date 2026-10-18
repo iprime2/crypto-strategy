@@ -96,33 +96,38 @@ isProject: false
 ## Gate before asking for real money (ADA, ≥ 24 h shadow on the new build)
 Judged by `scripts/basis_replay.py`. Q comes from config, and every term derived from L1 is recomputed on a synthetic live book (the logged book plus our quotes): the mid/microprice blend, OFI, the post-only clamp, the fair-jump check and the fallback.
 
+**Owner's decision, 18 Oct 2026:** G1, G2, G3 and the 60 s lead (G4) decide. G5 exposure and the +5 s slope are diagnostics, printed but not in the verdict. Pick-off is judged only in the small, capped first live run with its pre-set stop (below). G6 is judged outside the replay.
+
 | | Gate | Why |
 |---|---|---|
 | G1 health | Depth snapshot ≤ 2 s old and anchor on, each on ≥ 95% of Binance-fresh rows. `basis_updated` means "updated this loop from a snapshot ≤ `MM_DEPTH_STALE_MS` old". | Feed uptime. It cannot fail on self-reference by design. |
 | G2 equivalence | p90 \|EMA basis_depth − EMA clean-L1 basis\| ≤ 1.5 bps, and pivot share ≤ 1% of rows. | Depth must reproduce the clean-book basis that the memo's evidence is about. |
 | G3 no self-reference | In the live-mode replay at the planned Q: p99 \|anchored fair (live book) − anchored fair (clean book)\| ≤ 0.5 bps. | Catches OFI-like leaks. |
-| G4 information | The slope of Delta's mid move at +5 s and +60 s on (fair − Delta mid) is at least the old fair's, with the 60 s difference CI above 0. | Binance-free evidence that the fair leads Delta (memo finding 3). |
-| G5 exposure | Side-averaged exposure at **+30 s and +60 s**: upper 95% CI ≤ +1 pp vs the clean old fair. Per-side guard +3 pp. | Convergence horizons. +1 s and +5 s are diagnostics only: there a fair that knew Delta's mid 60 s ahead fails by +28/+32 pp, because Delta lags. |
-| G6 live path | PR A merged; PR E merged or its absence accepted by the user. | 13 Oct failure modes. |
+| G4 60 s lead | The slope of Delta's mid move at +60 s on (fair − Delta mid) is at least the old fair's, with the difference CI above 0. The +5 s slope is a diagnostic. | Binance-free evidence that the fair leads Delta (memo finding 3). |
+| G5 exposure (diagnostic) | Side-averaged exposure at +30 s and +60 s against the bound upper 95% CI ≤ +1 pp vs the clean old fair, per-side +3 pp; +1 s and +5 s too. Not in the verdict. | On every real ADA window (13 Oct 2.65 h, 15 Oct 0.4 h, 15-18 Oct 64 h) a fair that knew Delta's future mid failed these, because Delta lags: they cannot judge a fair. |
+| G6 live path | PR A merged; the frozen-book watch merged; PR E merged or its absence accepted by the user. | 13 Oct failure modes, and the 17 Oct Delta freeze that the stale-book guard could not see. |
 
 The replay prints:
-- an oracle row (fair = future mid at +5 s and +60 s); no gate may rely on a metric the oracle fails;
+- two oracle rows (fair = future mid at +5 s and +60 s), each scored on every component (G4@5, G4@60, G5@30, G5@60). No gate may rely on a metric the oracle fails: if either oracle fails the deciding component G4@60, G4 is n/a and the verdict reads INCOMPLETE; a diagnostic an oracle fails is marked n/a. An oracle never fails its own horizon (its quotes sit 5 bps clear of the mid it knows), so the misses are cross-horizon. On the 13 Oct, 15 Oct and 15-18 Oct ADA windows the oracles failed G4@5, G5@30 and G5@60, never G4@60 (64 h: the +5 s oracle +3.6 / +4.4 pp more exposed at +30 / +60 s than the old fair; the +60 s oracle +4.7 pp at +30 s, and its +5 s slope 0.088 against the old fair's 0.160). That is why those three are diagnostics;
 - both baselines (the clean old fair, and the live-mode old fair after the OFI fix);
 - a depth-mid yardstick next to the L1-mid one, with recentred exposure;
 - a latency sensitivity at 0, 1 and 2 loops;
 - a **"not modelled"** block: inventory and side drops, takers arriving when our quote is stale, latency races, ghost orders, other makers reacting.
 
-The verdict reads PROVISIONAL under 24 h.
+Conventions the script fixes: the CI is a percentile block bootstrap on 5-min wall-clock blocks from the first row, 1000 reps, seed 1 (on 0.4 h that is 5 blocks); "exposed" is a resting quote within 1 bps of or through Delta's mid at +h; G3 is taken on rows anchored in both replays; G5 on rows where both sides rest in both variants; G1's depth threshold is the 2 s above regardless of the profile's `MM_DEPTH_STALE_MS`; the replay's basis max age follows PR C's default (300 s book, 30 s depth) unless `MM_BASIS_MAX_AGE_SEC` is set.
 
-## Pre-registered first live run (only if G1–G6 pass and the user says go)
-- ADA only. Size per the user; with OFI out of the fair, a smaller Q no longer adds self-reference.
+The verdict reads PROVISIONAL under 24 h (within one loop). Exit 0 means G1-G4 were all evaluated and passed; the diagnostics never change the exit code.
+
+## Pre-registered first live run (only if G1–G4 and G6 pass and the user says go)
+This is the only place pick-off is judged (owner's decision, 18 Oct 2026): the shadow cannot see takers reacting to our quotes.
+- ADA only. Small and capped: Q and the inventory cap set by the user before the start and written into the run's config; the protocol assumes no more than the 13 Oct run (200 contracts, cap 600). With OFI out of the fair, a smaller Q no longer adds self-reference.
 - **The existing stop rule:** PnL per $ < −2.6 bps at 300 fills or < 0 at 1,000, plus the $15 a day loss stop.
 - **Anchored aborts:**
   - live vs shadow `basis_depth` over the same period, p99 |difference| > 0.5 bps;
   - live anchor on < 95%;
   - |OFI term| > 0.5 bps;
   - the depth price within one tick of our own price on > 1% of rows (another maker pegging to us).
-- **Report:** bnet60, and the whole-order vs partial 60 s markout split with CIs, against 13 Oct.
+- **Report (the pick-off verdict):** capture at the fill, bnet60, and the whole-order vs partial 60 s markout split with CIs, against 13 Oct (capture +0.05 bps; whole-order fills −2.77 bps at 60 s, partial +0.71).
 - **Only this run can tell:** whether informed takers still pick off the anchored quotes; our requote latency against theirs after each 4.2 bps Binance tick; the inventory path; and whether other makers reprice around us.
 
 ## Work, in order
@@ -133,7 +138,7 @@ The verdict reads PROVISIONAL under 24 h.
 | **PR A** | Fill feed reconnects on every error (auth and error frames logged, task end logged). Ticker moves to the background poller with a timeout, and funding reads from it. The adding quote is clipped to cap − \|q\|. | `mm-delta/src/ws.rs`, `mm-delta/src/rest.rs`, `mm-bot/src/runner.rs`, `mm-core/src/strategy.rs`, `mm-bot/src/exchange.rs` | Tests: the reconnect loop against a local server; a ticker timeout does not block the loop; clip at the cap boundary. `cargo test --workspace --locked`. VM dry-run. |
 | **PR B** | Reconnect helper + `ob_l2` feed, depth price + reasons, the candidate fields, raw `ob_l2`/`mark_price` recording. No behaviour change. | `mm-core/src/fair.rs`, `mm-core/src/lib.rs`, `mm-delta/src/book.rs`, `mm-binance/src/lib.rs`, `mm-bot/src/runner.rs` (+ `record_delta.rs`, `shadow.sh` in a second commit) | Tests: the probe frame; dust; our order; the pivot band (others 1,850 + ours 200 at X = 2,000 moves the price); thin, crossed and empty sides; `contract_value` 100; B/A missing. A 30-min run beside the live shadow, joined on `ts_ms`: fair, bid, ask and basis are identical. |
 | **PR C** | Source knob, OFI out of the anchored fair, `live_anchor_check`, anchor-off pull, `live.sh` and OEMS guards, shadow profile on `depth` (BERA, DUSK and KITE weight 0, so ADA is the only anchored symbol; DUSK leaves the shadow). | `mm-bot/src/runner.rs`, `mm-core/src/fair.rs`, `scripts/live.sh` + `test_live_sh.py`, `backend/mm-oems/src/config_guard.rs`, `config/dism.env` | Unit tests for the check (per-symbol keys, unknown source, Bybit path) and for "constant own touch gives an OFI contribution of about 0". A 15-min VM dry-run with one forced `ob_l2` reconnect: G1 per symbol. |
-| **PR D** | `basis_replay.py` (stdlib), its tests, Python unittests in CI. | `scripts/basis_replay.py`, `scripts/test_basis_replay.py`, `.github/workflows/pr.yml` | Synthetic tests: gate starvation, depth immunity, pivot band, oracle row, block CI, `--exclude`, thin data exits 2, and a parity mode that reproduces livegate's 74.1 / 7.6. Manual QA: replay basis = logged `basis_bps` within 1e-6 on a PR C dry-run, rebuilt on the logged `basis_t` clock and `basis_n`; calibration against the real 13 Oct window (touch occupancy ±10 pp, spread p50 ±1 bps, OFI p90 ±1 bps). |
+| **PR D** | `basis_replay.py` (stdlib), its tests, Python unittests in CI. | `scripts/basis_replay.py`, `scripts/test_basis_replay.py`, `.github/workflows/pr.yml` | Synthetic tests: gate starvation, depth immunity, pivot band, oracle row, block CI, `--exclude`, thin data exits 2, and a parity mode that reproduces livegate's 74.1 / 7.6. Manual QA: replay basis = logged `basis_bps` within 1e-3 bps on a PR C dry-run (the log's `ts_ms` is integer ms while the bot's EMA clock is an `Instant`: a 1 ms error in the time weight at a 120 s half-life moves a 5 bps clamped sample by ~3e-5 bps; measured max 6e-5 bps on 15 Oct, 1e-4 on 13 Oct. Met on the PR C build's own shadow log, 18 Oct run `20261018T141012Z`, first 10 min: 100% of 1,488 ADA rows, max deviation under 1e-5 bps, because the replay runs the average on the logged `basis_t` and seeds and resyncs from `basis_n`; bid, ask and side flags reproduced on 100% of rows); calibration against the real 13 Oct window (touch occupancy ±10 pp, spread p50 ±1 bps, OFI p90 ±1 bps), touch occupancy meaning "a placed quote is within the requote tolerance of the touch" on both books. Result on 13 Oct: touch occupancy real 92.1% vs synthetic 96.6% PASS (a weak measure: the clean book with no order of ours scores 91.1% on it, and the old log has no own-touch flag), spread p50 real 8.42 vs synthetic 7.19 bps FAIL, OFI p90 real 1.85 vs synthetic 3.76 bps FAIL: UNCALIBRATED, so G3 from the synthetic book is n/a on that window (the live bot was two-sided on 86% of rows and its requote latency and fills are not modelled) and the first PR C live log, which logs the own-touch flag, must re-run it. |
 | **PR E** | Fills reach the OMS: an mpsc `FillEvent{order_id, contracts}` drained each loop; decrement on a partial fill; clear only when the venue says closed; ignore unknown or replaced ids. | `mm-bot/src/oms.rs`, `mm-bot/src/runner.rs`, `mm-delta/src/ws.rs` | Needs one real `v2/user_trades` frame captured on demo first (user's go-ahead). Tests: partial, full, stale id, unknown id. |
 
 **Sequence:**
@@ -143,6 +148,7 @@ The verdict reads PROVISIONAL under 24 h.
 4. PR C and PR D during the next 24 h.
 5. Run the replay and write the memo.
 6. The user decides on the live run under the protocol above.
+7. 18 Oct: the 64 h review (memo `2026-10-18-shadow-3day-review.md`) and the owner's gate decision above. PR C merged with ADA the only anchored symbol; the shadow restarted on it without DUSK (run `20261018T141012Z`, 14:10Z). The replay judges its first 24 h (from about 14:10Z on 19 Oct); the frozen-book watch is its own PR.
 
 **Stop:**
 - If `depth` fails G2 or G4, score `mark` (with a learned offset) in the replay before changing anything else.

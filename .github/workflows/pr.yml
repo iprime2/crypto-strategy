@@ -38,6 +38,18 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
 
+  python:
+    name: Python script tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # The scripts are stdlib-only on the runner's stock python3 (3.10+ syntax); test_live_sh.py needs
+      # Linux (/proc, setsid), which ubuntu-latest has. Run the suite one copy per machine: live.sh start
+      # scans /proc for any `mm-bot run` process, so two concurrent runs (two worktrees) make test_live_sh
+      # fail at random; CI jobs are isolated VMs, so this job is fine.
+      - run: python3 --version
+      - run: python3 -m unittest discover -s cex-mm/scripts -p 'test_*.py' -v
+
   security:
     name: Security scan
     runs-on: ubuntu-latest

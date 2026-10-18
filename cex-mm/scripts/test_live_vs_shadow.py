@@ -1,4 +1,5 @@
-"""Tests for live_vs_shadow.py (no network, no keys). CI does not run Python; run:
+"""Tests for live_vs_shadow.py (no network, no keys). CI runs it on ubuntu (pr.yml, Python script tests);
+locally:
 
     cd cex-mm/scripts && python3 -m unittest -v test_live_vs_shadow
 """
