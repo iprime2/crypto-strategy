@@ -18,7 +18,9 @@ use crate::exchange::QuotingRest;
 use crate::markout::MarkoutRuntime;
 use crate::oms::OmsState;
 use crate::account::{AccountConfig, AccountFlags};
-use crate::risk::{counts_toward_reject_kill, BookAge, BookWatch, DailyLossGuard, FeedHealth, FeedWatch};
+use crate::risk::{
+    counts_toward_reject_kill, BookAge, BookFreeze, BookWatch, DailyLossGuard, FeedHealth, FeedWatch, FrozenBookWatch,
+};
 use crate::symbols::{env_f64_for_symbol, env_for_symbol, normalize_symbol, resolve_symbols_from_env};
 use mm_core::fair::BasisSource;
 use crate::universe::{UniverseOptions, resolve_universe};
@@ -752,6 +754,12 @@ async fn run_symbol_loop(
     let book_stale_after =
         Duration::from_millis(env_f64_for_symbol(&symbol, "MM_BOOK_STALE_MS", 2000.0).max(100.0) as u64);
     let mut book_watch = BookWatch::new(book_stale_after);
+    let secs = |key: &str, default: f64| Duration::from_secs_f64(env_f64_for_symbol(&symbol, key, default).max(0.0));
+    let mut frozen_watch = FrozenBookWatch::new(
+        secs("MM_FROZEN_BOOK_SEC", 30.0),
+        env_f64_for_symbol(&symbol, "MM_FROZEN_BOOK_MOVE_BPS", 5.0).max(0.0),
+        secs("MM_FROZEN_BOOK_MAX_SEC", 120.0),
+    );
     let mut depth_seen = false;
     let mut stale_cancel_pending = false;
     let mut oms = OmsState::default();
@@ -946,6 +954,47 @@ async fn run_symbol_loop(
         if top.best_bid <= 0.0 || top.best_ask <= top.best_bid {
             continue;
         }
+
+        let bbo = *bbo_rx.borrow();
+        let binance_mid = bbo.mid;
+        if bbo.seq != binance_seq {
+            binance_seq = bbo.seq;
+            binance_msg_at = Some(Instant::now());
+        }
+        // A silent feed counts as stale even if the price would not have moved.
+        let binance_fresh = binance_mid > 0.0 && binance_msg_at.is_some_and(|t| t.elapsed() <= binance_stale_after);
+
+        // A book that keeps arriving but has stopped changing while Binance moves (17 Oct 2026): pull quotes and
+        // skip the loop, so neither the basis nor OFI, volatility or the fair learn the frozen book.
+        let top_now = [top.best_bid, top.best_ask, top.bid_qty, top.ask_qty];
+        match frozen_watch.check(top_now, binance_fresh.then_some(binance_mid), Instant::now()) {
+            BookFreeze::Live => {}
+            BookFreeze::Thawed(frozen) => {
+                tracing::info!(%symbol, frozen_ms = frozen.as_millis() as u64, "book fresh again: changing after a freeze");
+            }
+            freeze @ (BookFreeze::WentFrozen { .. } | BookFreeze::Frozen) => {
+                if let BookFreeze::WentFrozen { unchanged, binance_move_bps } = freeze {
+                    tracing::warn!(
+                        %symbol,
+                        unchanged_ms = unchanged.as_millis() as u64,
+                        binance_move_bps,
+                        "stale book: frozen, unchanged while frames arrive — cancel all"
+                    );
+                    oms.live.clear();
+                    stale_cancel_pending = rest.is_some();
+                }
+                if stale_cancel_pending {
+                    if let Some(r) = &rest {
+                        match r.cancel_all(&symbol).await {
+                            Ok(()) => stale_cancel_pending = false,
+                            Err(e) => tracing::warn!(%symbol, error = %e, "frozen-book cancel-all failed; retrying"),
+                        }
+                    }
+                }
+                continue;
+            }
+        }
+
         ofi.on_book(top.best_bid, top.bid_qty, top.best_ask, top.ask_qty);
 
         let fair_native = top.mid().unwrap_or((top.best_bid + top.best_ask) / 2.0);
@@ -965,14 +1014,6 @@ async fn run_symbol_loop(
             g.on_loop_decay(env_f64_for_symbol(&symbol, "MM_MARKOUT_DECAY", 0.85));
         }
 
-        let bbo = *bbo_rx.borrow();
-        let binance_mid = bbo.mid;
-        if bbo.seq != binance_seq {
-            binance_seq = bbo.seq;
-            binance_msg_at = Some(Instant::now());
-        }
-        // A silent feed counts as stale even if the price would not have moved.
-        let binance_fresh = binance_mid > 0.0 && binance_msg_at.is_some_and(|t| t.elapsed() <= binance_stale_after);
         if binance_mid > 0.0 && last_binance_mid > 0.0 {
             let jump_bps = (binance_mid - last_binance_mid) / last_binance_mid * 10_000.0;
             if jump_bps.abs() > 5.0 {

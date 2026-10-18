@@ -302,7 +302,9 @@ mod tests {
     fn guard_lines_become_their_own_events() {
         let cases = [
             ("2026-10-05T23:48:26Z  WARN mm_bot::runner: stale book — cancel all symbol=ADAUSDT age_ms=2400 limit_ms=2000", "warn", "stale_book"),
+            ("2026-10-17T19:30:49Z  WARN mm_bot::runner: stale book: frozen, unchanged while frames arrive — cancel all symbol=ADAUSDT unchanged_ms=30000 binance_move_bps=5.4", "warn", "stale_book"),
             ("2026-10-05T23:48:29Z  INFO mm_bot::runner: book fresh again symbol=ADAUSDT outage_ms=3200", "info", "book_fresh"),
+            ("2026-10-17T20:13:58Z  INFO mm_bot::runner: book fresh again: changing after a freeze symbol=ADAUSDT frozen_ms=2588800", "info", "book_fresh"),
             ("2026-10-05T23:40:00Z  INFO mm_bot::account: dead man's switch armed heartbeat_id=mm-bot-adausd ttl_ms=15000", "info", "dead_mans_switch"),
             ("2026-10-05T23:41:00Z  WARN mm_bot::account: heartbeat ack failed; Delta cancels our orders if this lasts past the TTL heartbeat_id=mm-bot-adausd", "warn", "dead_mans_switch"),
             ("2026-10-05T23:42:00Z ERROR mm_bot::account: daily loss limit hit pnl_usd=-15.2 limit_usd=15", "error", "account_halt"),
@@ -322,8 +324,9 @@ mod tests {
         }
         let mut st = TelemetryState::default();
         st.ingest(cases[0].0, Utc::now());
-        st.ingest(cases[4].0, Utc::now());
-        assert_eq!((st.counters.stale_books, st.counters.halts), (1, 1));
+        st.ingest(cases[1].0, Utc::now()); // a frozen book counts as a stale-book cancel
+        st.ingest(cases[6].0, Utc::now());
+        assert_eq!((st.counters.stale_books, st.counters.halts), (2, 1));
     }
 
     #[test]
