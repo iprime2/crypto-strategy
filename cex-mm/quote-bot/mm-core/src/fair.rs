@@ -5,8 +5,9 @@ use crate::{BookTop, QuoteExtensions};
 /// Without an anchor the lead uses the recent Binance move, never the Binance price level: the two
 /// venues list different contracts, so the raw level gap is a biased, noisy offset. With an anchor
 /// (`anchor_fair`: the Binance mid moved onto Delta's level by a measured basis, see `BasisEma`), the
-/// fair is pulled toward it by `anchor_weight` and the move lead is scaled by `1 - anchor_weight`, since
-/// the anchor already carries the move.
+/// fair is pulled toward it by `anchor_weight`, the move lead is scaled by `1 - anchor_weight` (the anchor
+/// already carries the move), and the OFI drift is switched off: its denominator is the L1 size, which in a
+/// live run is our own resting quote (31 bps on the real 13 Oct 2026 book; `plans/live-basis.plan.md`).
 pub fn resolve_fair_cex(fair_native: f64, book: Option<BookTop>, ext: QuoteExtensions) -> f64 {
     let mut fair = fair_native;
     if let Some(b) = book {
@@ -26,8 +27,96 @@ pub fn resolve_fair_cex(fair_native: f64, book: Option<BookTop>, ext: QuoteExten
     if ext.lead_max_bps > 0.0 {
         shift_bps = shift_bps.clamp(-ext.lead_max_bps, ext.lead_max_bps);
     }
-    fair *= 1.0 + (shift_bps + ext.ofi_drift_bps + ext.funding_carry_bps) / 10_000.0;
+    let ofi_bps = if anchor_w > 0.0 { 0.0 } else { ext.ofi_drift_bps };
+    fair *= 1.0 + (shift_bps + ofi_bps + ext.funding_carry_bps) / 10_000.0;
     fair
+}
+
+/// Basis sources the anchored fair can read. `Book` is the Delta L1 mid, which live is mostly our own
+/// quotes; `Depth` is the `ob_l2` depth price (`depth.rs`), which our quotes cannot move.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BasisSource {
+    Book,
+    Depth,
+}
+
+impl BasisSource {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s.trim().to_ascii_lowercase().as_str() {
+            "book" => Some(Self::Book),
+            "depth" => Some(Self::Depth),
+            _ => None,
+        }
+    }
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Book => "book",
+            Self::Depth => "depth",
+        }
+    }
+}
+
+/// The anchor settings of one symbol, resolved from `MM_<KEY>_<SYMBOL>` then `MM_<KEY>`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct AnchorSettings {
+    pub weight: f64,
+    pub source: BasisSource,
+}
+
+/// Resolves and checks the anchor settings of every symbol. `get` returns the raw value of an environment
+/// key; `symbols` are the slugs used in per-symbol keys. Always refused: an unreadable weight, or a basis
+/// source that is neither `book` nor `depth`. In a live run (`live`), a symbol with a positive anchor
+/// weight is refused unless `MM_FAIR_ANCHOR_LIVE` names its source and that source is `depth`: the only
+/// source our own quotes cannot move. `1` is not a source name. Used by the Delta and Bybit start paths;
+/// `scripts/live.sh` and the OEMS keep their own, stricter, guards.
+pub fn live_anchor_check(
+    symbols: &[String],
+    live: bool,
+    get: impl Fn(&str) -> Option<String>,
+) -> Result<Vec<(String, AnchorSettings)>, String> {
+    let resolve = |key: &str, sym: &str| get(&format!("{key}_{sym}")).or_else(|| get(key));
+    let mut out = Vec::with_capacity(symbols.len());
+    for sym in symbols {
+        let weight = match resolve("MM_FAIR_ANCHOR_WEIGHT", sym) {
+            None => 0.0,
+            Some(v) => v
+                .trim()
+                .parse::<f64>()
+                .ok()
+                .filter(|w| w.is_finite())
+                .ok_or_else(|| format!("{sym}: MM_FAIR_ANCHOR_WEIGHT={v} is not a number"))?,
+        };
+        let source_raw = resolve("MM_BASIS_SOURCE", sym).unwrap_or_else(|| "book".into());
+        let source = BasisSource::parse(&source_raw)
+            .ok_or_else(|| format!("{sym}: MM_BASIS_SOURCE={source_raw} is not book or depth"))?;
+        if live && weight > 0.0 {
+            let flag = resolve("MM_FAIR_ANCHOR_LIVE", sym);
+            match flag.as_deref().map(str::trim) {
+                Some("depth") if source == BasisSource::Depth => {}
+                Some("depth") => {
+                    return Err(format!(
+                        "{sym}: MM_FAIR_ANCHOR_LIVE=depth but MM_BASIS_SOURCE={}; a live anchor reads only the depth book",
+                        source.as_str()
+                    ))
+                }
+                Some(other) => {
+                    return Err(format!(
+                        "{sym}: MM_FAIR_ANCHOR_LIVE={other} is not a basis source; the only source allowed live is depth \
+                         (MM_FAIR_ANCHOR_LIVE=depth with MM_BASIS_SOURCE=depth), or set MM_FAIR_ANCHOR_WEIGHT to 0"
+                    ))
+                }
+                None => {
+                    return Err(format!(
+                        "{sym}: MM_FAIR_ANCHOR_WEIGHT={weight} is for dry-runs (the shadow test); set it to 0 for a live run, \
+                         or MM_FAIR_ANCHOR_LIVE=depth with MM_BASIS_SOURCE=depth"
+                    ))
+                }
+            }
+        }
+        out.push((sym.clone(), AnchorSettings { weight: weight.clamp(0.0, 1.0), source }));
+    }
+    Ok(out)
 }
 
 /// The Binance mid moved onto Delta's price level: `binance_mid * (1 + basis_bps)`.
@@ -127,6 +216,11 @@ impl BasisEma {
 
     pub fn value_bps(&self) -> Option<f64> {
         self.value_bps
+    }
+
+    /// Samples behind the average (0 before the first).
+    pub fn samples(&self) -> u64 {
+        self.samples
     }
 
     /// Seconds of samples behind the average at `now` (0 before the first sample).
@@ -254,6 +348,76 @@ mod tests {
         assert_eq!(resolve_fair_cex(2700.0, None, nan_w), base);
         let big_w = QuoteExtensions { anchor_fair: Some(2710.0), anchor_weight: 3.0, ..Default::default() };
         assert!((resolve_fair_cex(2700.0, None, big_w) - 2710.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn an_anchored_fair_ignores_ofi() {
+        // Live, OFI's denominator is our own resting quote at the touch: a constant own touch must not move
+        // an anchored fair. At any anchor weight above 0 a 30 bps OFI drift contributes nothing.
+        let ofi = QuoteExtensions { ofi_drift_bps: 30.0, ..Default::default() };
+        let base = resolve_fair_cex(2700.0, None, QuoteExtensions::default());
+        assert!(((resolve_fair_cex(2700.0, None, ofi) - base * (1.0 + 30.0 / 10_000.0)) / base).abs() < 1e-12);
+        let full = QuoteExtensions { anchor_fair: Some(2710.0), anchor_weight: 1.0, ofi_drift_bps: 30.0, ..Default::default() };
+        assert!((resolve_fair_cex(2700.0, None, full) - 2710.0).abs() < 1e-9);
+        let half = QuoteExtensions { anchor_fair: Some(2710.0), anchor_weight: 0.5, ofi_drift_bps: 30.0, ..Default::default() };
+        assert!((resolve_fair_cex(2700.0, None, half) - 2705.0).abs() < 1e-9);
+    }
+
+    fn env<'a>(pairs: &'a [(&'a str, &'a str)]) -> impl Fn(&str) -> Option<String> + 'a {
+        move |k| pairs.iter().find(|(key, _)| *key == k).map(|(_, v)| v.to_string())
+    }
+
+    fn syms(list: &[&str]) -> Vec<String> {
+        list.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn live_anchor_check_allows_only_the_depth_source_live() {
+        let ok = live_anchor_check(
+            &syms(&["ADAUSDT"]),
+            true,
+            env(&[("MM_FAIR_ANCHOR_WEIGHT", "1"), ("MM_FAIR_ANCHOR_LIVE", "depth"), ("MM_BASIS_SOURCE", "depth")]),
+        )
+        .unwrap();
+        assert_eq!(ok[0].1, AnchorSettings { weight: 1.0, source: BasisSource::Depth });
+        // No flag, the old `1`, and a flag for a book source are all refused live.
+        for extra in [vec![], vec![("MM_FAIR_ANCHOR_LIVE", "1")], vec![("MM_FAIR_ANCHOR_LIVE", "depth"), ("MM_BASIS_SOURCE", "book")]] {
+            let mut pairs = vec![("MM_FAIR_ANCHOR_WEIGHT", "1")];
+            pairs.extend(extra.iter().copied());
+            let err = live_anchor_check(&syms(&["ADAUSDT"]), true, env(&pairs)).unwrap_err();
+            assert!(err.starts_with("ADAUSDT: "), "{err}");
+        }
+        // Weight 0 passes live whatever the flag says; the same settings pass in a dry-run.
+        assert!(live_anchor_check(&syms(&["ADAUSDT"]), true, env(&[("MM_FAIR_ANCHOR_WEIGHT", "0")])).is_ok());
+        assert!(live_anchor_check(&syms(&["ADAUSDT"]), false, env(&[("MM_FAIR_ANCHOR_WEIGHT", "1")])).is_ok());
+    }
+
+    #[test]
+    fn live_anchor_check_resolves_per_symbol_keys_first() {
+        // ADA anchored on depth, KITE's weight 0 by its own key: both allowed live; DUSK falls back to the
+        // global weight 1 with the book source and is refused.
+        let pairs = [
+            ("MM_FAIR_ANCHOR_WEIGHT", "1"),
+            ("MM_FAIR_ANCHOR_LIVE", "depth"),
+            ("MM_BASIS_SOURCE_ADAUSDT", "depth"),
+            ("MM_FAIR_ANCHOR_WEIGHT_KITEUSDT", "0"),
+        ];
+        let res = live_anchor_check(&syms(&["ADAUSDT", "KITEUSDT"]), true, env(&pairs)).unwrap();
+        assert_eq!(res[0].1.source, BasisSource::Depth);
+        assert_eq!(res[1].1, AnchorSettings { weight: 0.0, source: BasisSource::Book });
+        let err = live_anchor_check(&syms(&["ADAUSDT", "DUSKUSDT"]), true, env(&pairs)).unwrap_err();
+        assert!(err.starts_with("DUSKUSDT: MM_FAIR_ANCHOR_LIVE=depth but MM_BASIS_SOURCE=book"), "{err}");
+    }
+
+    #[test]
+    fn live_anchor_check_refuses_bad_values_in_dry_runs_too() {
+        let err = live_anchor_check(&syms(&["ADAUSDT"]), false, env(&[("MM_BASIS_SOURCE", "mark")])).unwrap_err();
+        assert_eq!(err, "ADAUSDT: MM_BASIS_SOURCE=mark is not book or depth");
+        let err = live_anchor_check(&syms(&["ADAUSDT"]), false, env(&[("MM_FAIR_ANCHOR_WEIGHT", "yes")])).unwrap_err();
+        assert_eq!(err, "ADAUSDT: MM_FAIR_ANCHOR_WEIGHT=yes is not a number");
+        assert!(live_anchor_check(&syms(&["ADAUSDT"]), false, env(&[("MM_FAIR_ANCHOR_WEIGHT", "inf")])).is_err());
+        assert_eq!(BasisSource::parse(" Depth "), Some(BasisSource::Depth));
+        assert_eq!(BasisSource::parse("l1"), None);
     }
 
     #[test]

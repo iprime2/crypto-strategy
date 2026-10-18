@@ -25,6 +25,8 @@ const GROUPS: { title: string; keys: RegExp }[] = [
 ]
 
 const KEY_RE = /^MM_[A-Z0-9_]+$/
+// Anchor, basis and depth settings come from the profile file; the OEMS rejects them, so a stored one is not resent.
+const PROFILE_ONLY_RE = /^MM_(FAIR_ANCHOR|BASIS_|DEPTH_)/
 
 function grouped(cfg: EffectiveConfig): { title: string; keys: string[] }[] {
   const keys = Object.keys(cfg.values).sort()
@@ -187,7 +189,7 @@ function ConfigPanel({ cfg, running }: { cfg: EffectiveConfig; running: boolean 
         }
         onConfirm={async () => {
           const body: Record<string, string> = {}
-          for (const [k, v] of Object.entries(overrides)) if (KEY_RE.test(k)) body[k] = String(v)
+          for (const [k, v] of Object.entries(overrides)) if (KEY_RE.test(k) && !PROFILE_ONLY_RE.test(k)) body[k] = String(v)
           Object.assign(body, changes)
           const r = await saveOverrides(strategyId, body)
           if (r.restarted && !r.restarted.ok) throw new Error(`Saved v${r.version}, but restart failed: ${r.restarted.error ?? 'unknown'}`)

@@ -227,6 +227,24 @@ pub struct MmMetrics {
     /// `ask_thin` or `bid_empty_side,ask_thin`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub depth_none: Option<String>,
+    /// Where the basis average reads Delta's price (`MM_BASIS_SOURCE`: book or depth), whether it took a
+    /// sample this loop, and, with an anchor weight above 0, why the anchor is off this loop
+    /// (binance_stale, basis_stale: the average aged past `MM_BASIS_MAX_AGE_SEC` and restarted, no_source,
+    /// basis_warming). These are the loop's decisions; `depth_age_ms` and `binance_age_ms` are stamped at
+    /// log time and are diagnostics only.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub basis_src: Option<&'static str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub basis_updated: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub anchor_off_reason: Option<&'static str>,
+    /// The basis average's own clock (seconds on the loop's monotonic clock) and sample count, so a replay
+    /// can rebuild it exactly: initialise from any logged row's `basis_bps`, `basis_n` and `basis_t` and
+    /// continue (the samples taken during the unlogged vol warm-up are not in the log).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub basis_t: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub basis_n: Option<u64>,
 }
 
 #[cfg(test)]

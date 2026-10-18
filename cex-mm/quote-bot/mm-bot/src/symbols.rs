@@ -36,6 +36,12 @@ pub fn resolve_symbols_from_env() -> Vec<String> {
     )]
 }
 
+/// `KEY_{SYMBOL}` then `KEY`, as a string.
+pub fn env_for_symbol(symbol: &str, key: &str) -> Option<String> {
+    let slug = normalize_symbol(symbol);
+    std::env::var(format!("{key}_{slug}")).ok().or_else(|| std::env::var(key).ok())
+}
+
 /// Global env, then `KEY_{SYMBOL}` override (e.g. `MM_ORDER_QTY_ETHUSDT`).
 pub fn env_f64_for_symbol(symbol: &str, key: &str, default: f64) -> f64 {
     let slug = normalize_symbol(symbol);
