@@ -20,30 +20,33 @@ finding 2). This script replays a shadow run's MM_METRICS rows through the bot's
                  mode our order is inserted into the recorded ladder (--book / run dir), so a pivot
                  (others' inside size in [X - q, X)) or the 15-level cap can move it, as on the venue.
 
-Gates (PASS/FAIL with numbers; see the plan for the reasons):
+Deciding gates (PASS/FAIL with numbers; see the plan for the reasons):
   G1 health        depth snapshot <= 2 s old, and anchor on, each on >= 95% of Binance-fresh rows
   G2 equivalence   p90 |EMA basis(depth) - EMA basis(clean L1)| <= 1.5 bps; pivot share <= 1% of rows
   G3 self-ref      live mode at q: p99 |anchored fair(live book) - anchored fair(clean book)| <= 0.5 bps
-  G4 information   slope of Delta's mid move at +5 s / +60 s on (fair - mid) >= the clean old fair's, and the
-                   60 s difference's block-bootstrap 95% CI (5-min blocks) above 0
-  G5 exposure      side-averaged exposure at +30 s / +60 s: upper 95% CI <= +1 pp vs the clean old fair;
-                   per-side guard +3 pp (+1 s / +5 s are diagnostics only: there Delta's lag fails even an
-                   oracle)
-Also printed: two oracle rows (fair = the future mid at +5 s and +60 s), each scored on every gate component
-(G4@5, G4@60, G5@30, G5@60). The plan's rule "no gate may rely on a metric the oracle fails" is applied across
-horizons: a component either oracle fails is marked n/a and the gate cannot PASS on it (an oracle never fails
-its own horizon: its quotes sit 5 bps clear of the mid it knows, so the rule's bite is cross-horizon, e.g.
-the +60 s oracle's exposure at +30 s). Both baselines (clean old fair; live-mode old fair with the OFI term
+  G4 60 s lead     slope of Delta's mid move at +60 s on (fair - mid) >= the clean old fair's, and the
+                   difference's block-bootstrap 95% CI (5-min blocks) above 0
+Diagnostics, printed but not in the verdict (the owner's decision of 18 Oct 2026, plan): the +5 s slope, and
+  G5 exposure      side-averaged exposure at +30 s / +60 s against the bound upper 95% CI <= +1 pp vs the clean
+                   old fair, per-side +3 pp (+1 s / +5 s too). On every real window so far a fair that knew
+                   Delta's future mid failed these, so they cannot judge a fair; pick-off is judged only in the
+                   pre-registered first live run (small, capped, with a pre-set stop).
+Also printed: two oracle rows (fair = the future mid at +5 s and +60 s), each scored on every component (G4@5,
+G4@60, G5@30, G5@60). The plan's rule "no gate may rely on a metric the oracle fails" applies to the deciding
+component: if either oracle fails G4@60, G4 is n/a and the verdict reads INCOMPLETE. A diagnostic an oracle
+fails is marked n/a too (an oracle never fails its own horizon: its quotes sit 5 bps clear of the mid it
+knows, so the misses are cross-horizon, e.g. the +60 s oracle's exposure at +30 s). Both baselines (clean old fair; live-mode old fair with the OFI term
 removed), a depth-mid yardstick in its own frame (x = fair - depth mid, y = future depth mid - depth mid,
 recentred), the latency sensitivity, and a "not modelled" block. The verdict reads PROVISIONAL under 24 h of
 covered data (the --exclude'd span does not count). --parity prints the livegate-equivalent numbers (basis
 updated %, anchored %) with the settings the replica used.
 
-Exit code: 0 every gate G1-G5 evaluated and passed; 1 a gate fails; 2 thin data (under --min-hours /
---min-rows of covered data) or unusable input / options; 3 INCOMPLETE (a gate was not evaluated: shadow mode
-has no G3, a log without depth fields has no G1/G2, an oracle-failed component, or an uncalibrated synthetic
-live book under --calibrate). With several symbols: 2 if any symbol is thin, else 1 if any gate fails, else 3
-if any gate is unevaluated, else 0. Stdlib only.
+Exit code: 0 every deciding gate (G1-G4) evaluated and passed; 1 a deciding gate fails; 2 thin data (under
+--min-hours / --min-rows of covered data) or unusable input / options; 3 INCOMPLETE (a deciding gate was not
+evaluated: shadow mode has no G3, a log without depth fields has no G1/G2, an oracle fails G4@60, or an
+uncalibrated synthetic live book under --calibrate). The diagnostics never change the exit code. With several
+symbols: 2 if any symbol is thin, else 1 if any gate fails, else 3 if any gate is unevaluated, else 0. Stdlib
+only.
 
     python3 scripts/basis_replay.py --run-dir artifacts/shadow/<run> --symbol ADAUSDT --mode live --source depth
     python3 scripts/basis_replay.py --metrics dry-run.log --config config.txt --book delta_mainnet_book_*.jsonl \\
@@ -95,6 +98,7 @@ GATE_H = (30, 60)
 DIAG_H = (1, 5)
 SLOPE_H = (5, 60)
 ORACLE_H = (5, 60)  # the plan's oracle row: fair = the future mid at +5 s and +60 s
+DECIDING = ("G4@60",)  # the components that decide a gate; G4@5 and G5@30/60 are diagnostics (plan, 18 Oct)
 FUTURE_TOL_MS = 2000.0
 BLOCK_MS = 300_000.0
 EXPOSED_BPS = 1.0
@@ -1506,12 +1510,12 @@ def evaluate(symbol: str, rows: list[Row], st: Settings, tick: float, q: float, 
     new_v = Variant(f"new fair ({args.mode}, {source})", under.fair, under.qbid, under.qask)
     sc = score_variant(new_v, old_v, ts, mid, fresh, boot, blocks)
 
-    # Oracle rows first (the plan: fair = the future mid at +5 s and +60 s), each scored on every gate component;
-    # a component either oracle fails is ruled out of its gate (the plan's "no gate may rely on a metric the
-    # oracle fails"). An oracle cannot fail its own horizon (its quotes sit 5 bps clear of the mid it knows, its
-    # slope there is 1), so the rule bites across horizons: the +60 s oracle's exposure at +30 s, the +5 s
-    # oracle's at +60 s, and the +60 s oracle's +5 s slope. The +1 s / +5 s exposures are diagnostics only.
-    ruled_out: dict[str, str] = {}  # component -> the oracle(s) that fail it
+    # Oracle rows first (the plan: fair = the future mid at +5 s and +60 s), each scored on every component. A
+    # deciding component either oracle fails is ruled out of its gate (the plan's "no gate may rely on a metric
+    # the oracle fails"); a diagnostic one is marked n/a. An oracle cannot fail its own horizon (its quotes sit
+    # 5 bps clear of the mid it knows, its slope there is 1), so the misses are cross-horizon: the +60 s
+    # oracle's exposure at +30 s, the +5 s oracle's at +60 s, and the +60 s oracle's +5 s slope.
+    oracle_fails: dict[str, str] = {}  # component -> the oracle(s) that fail it
     oracle_lines = []
     rec["oracle"] = {}
     for h in ORACLE_H:
@@ -1522,7 +1526,7 @@ def evaluate(symbol: str, rows: list[Row], st: Settings, tick: float, q: float, 
         comps = gate_components(osc)
         fails = [k for k, v in comps.items() if not v]
         for f in fails:
-            ruled_out[f] = f"{ruled_out[f]}, oracle+{h}" if f in ruled_out else f"oracle+{h}"
+            oracle_fails[f] = f"{oracle_fails[f]}, oracle+{h}" if f in oracle_fails else f"oracle+{h}"
         o5, o60 = osc["slope"][5], osc["slope"][60]
         e30, e60 = osc["expo"][30], osc["expo"][60]
         oracle_lines.append(
@@ -1534,25 +1538,31 @@ def evaluate(symbol: str, rows: list[Row], st: Settings, tick: float, q: float, 
             f"{osc['expo'][1].get('diff', NAN):+.1f} +5 s {osc['expo'][5].get('diff', NAN):+.1f} pp); "
             f"fails: {', '.join(fails) or 'none'}")
         rec["oracle"][str(h)] = {"slope": osc["slope"], "expo": osc["expo"], "components": comps, "fails": fails}
+    ruled_out = {k: v for k, v in oracle_fails.items() if k in DECIDING}
     rec["ruled_out"] = ruled_out
 
     s5, s60 = sc["slope"][5], sc["slope"][60]
     comps_new = gate_components(sc)
-    c4 = {k: None if k in ruled_out else comps_new[k] for k in ("G4@5", "G4@60")}
+    c4 = {"G4@60": None if "G4@60" in ruled_out else comps_new["G4@60"]}
+    d4 = {"G4@5": None if "G4@5" in oracle_fails else comps_new["G4@5"]}
     g4 = gate_verdict(c4)
     gates["G4"] = g4
     if g4 is None:
-        notes["G4"] = "oracle fails " + ", ".join(k for k, v in c4.items() if v is None)
+        notes["G4"] = "oracle fails G4@60"
 
     def comp(k: str, v: bool | None) -> str:
-        return pf(v, f"n/a ({ruled_out[k]} fails it)" if k in ruled_out else "n/a")
+        return pf(v, f"n/a ({oracle_fails[k]} fails it)" if k in oracle_fails else "n/a")
 
-    say(f"G4 information (slope of Delta's mid move on fair - mid, n {s60['n']}): +5 s new {s5['new']:.3f} old "
-        f"{s5['old']:.3f} [new >= old] {comp('G4@5', c4['G4@5'])}; +60 s new {s60['new']:.3f} old {s60['old']:.3f}, diff "
-        f"{s60['diff']:+.3f} CI {fmt_ci(s60['ci'])} [new >= old; CI60 > 0] {comp('G4@60', c4['G4@60'])}  =>  "
-        f"{pf(g4, 'n/a (' + notes.get('G4', '') + ')')}")
+    def diag(k: str, v: bool | None) -> str:
+        return "met" if v else (f"n/a ({oracle_fails[k]} fails it)" if k in oracle_fails else "n/a") if v is None else "missed"
+
+    say(f"G4 60 s lead (slope of Delta's mid move on fair - mid, n {s60['n']}): +60 s new {s60['new']:.3f} old "
+        f"{s60['old']:.3f}, diff {s60['diff']:+.3f} CI {fmt_ci(s60['ci'])} [new >= old; CI60 > 0] "
+        f"{comp('G4@60', c4['G4@60'])}  =>  {pf(g4, 'n/a (' + notes.get('G4', '') + ')')}; diagnostic +5 s new "
+        f"{s5['new']:.3f} old {s5['old']:.3f} [new >= old] {diag('G4@5', d4['G4@5'])}")
     rec["G4"] = {str(h): sc["slope"][h] for h in SLOPE_H}
     rec["G4"]["components"] = c4
+    rec["G4"]["diagnostic"] = d4
     rec["G4"]["pass"] = g4
 
     c5: dict[str, bool | None] = {}
@@ -1560,19 +1570,18 @@ def evaluate(symbol: str, rows: list[Row], st: Settings, tick: float, q: float, 
     for h in GATE_H:
         e = sc["expo"][h]
         k = f"G5@{h}"
-        c5[k] = None if k in ruled_out else comps_new[k]
+        c5[k] = None if k in oracle_fails else comps_new[k]
         if e["n"] == 0:
-            parts.append(f"+{h} s: no scored rows {comp(k, c5[k])}")
+            parts.append(f"+{h} s: no scored rows {diag(k, c5[k])}")
             continue
         parts.append(f"+{h} s new {e['avg']:.2f}% (bid {e['bid']:.2f} ask {e['ask']:.2f}) old {e['old_avg']:.2f}% "
                      f"diff {e['diff']:+.2f} pp CI {fmt_ci(e['ci'])}, per side {e['diff_bid']:+.2f}/{e['diff_ask']:+.2f} pp "
-                     f"{comp(k, c5[k])}")
+                     f"{diag(k, c5[k])}")
     g5 = gate_verdict(c5)
-    gates["G5"] = g5
-    if g5 is None:
-        notes["G5"] = "oracle fails " + ", ".join(k for k, v in c5.items() if v is None)
-    say(f"G5 exposure (side-averaged, within {EXPOSED_BPS:g} bps of or through the future mid, vs the clean old fair): "
-        + "; ".join(parts) + f" [upper CI <= +1 pp; per side <= +3 pp]  =>  {pf(g5, 'n/a (' + notes.get('G5', '') + ')')}")
+    g5_text = "met" if g5 else "missed" if g5 is False else "n/a (oracle fails " + ", ".join(k for k, v in c5.items() if v is None) + ")"
+    say(f"G5 exposure (diagnostic, not in the verdict; side-averaged, within {EXPOSED_BPS:g} bps of or through the "
+        f"future mid, vs the clean old fair): " + "; ".join(parts)
+        + f" [bound: upper CI <= +1 pp; per side <= +3 pp]  =>  bound {g5_text}")
     diag = []
     for h in DIAG_H:
         e = sc["expo"][h]
@@ -1581,7 +1590,8 @@ def evaluate(symbol: str, rows: list[Row], st: Settings, tick: float, q: float, 
     say("  diagnostics only (Delta lags; an oracle fails here): " + "; ".join(diag))
     rec["G5"] = {str(h): sc["expo"][h] for h in (1, 5, 30, 60)}
     rec["G5"]["components"] = c5
-    rec["G5"]["pass"] = g5
+    rec["G5"]["bound_met"] = g5
+    rec["G5"]["diagnostic"] = True
     out_lines.extend(oracle_lines)
     if ruled_out:
         say(f"  RULE (plan): no gate may rely on a metric the oracle fails: " + "; ".join(f"{k} ({v})" for k, v in ruled_out.items())
@@ -1679,7 +1689,7 @@ def evaluate(symbol: str, rows: list[Row], st: Settings, tick: float, q: float, 
             f"stale {ps['stale_ms']:g} ms)")
 
     say("Not modelled: " + "; ".join(NOT_MODELLED) + ".")
-    main_gates = ("G1", "G2", "G3", "G4", "G5")
+    main_gates = ("G1", "G2", "G3", "G4")
     failed = [k for k in main_gates if gates.get(k) is False]
     unevaluated = [k for k in main_gates if gates.get(k) is None]
     if failed:
@@ -1697,7 +1707,9 @@ def evaluate(symbol: str, rows: list[Row], st: Settings, tick: float, q: float, 
         verdict += "; not evaluated: " + ", ".join(f"{k} ({notes.get(k, '')})" for k in unevaluated)
     if cal is not None and not cal["ok"]:
         verdict += "; synthetic live book UNCALIBRATED: G3 and the live-mode rows are provisional"
-    verdict += "; G6 (live path: PR A merged, PR E merged or waived) is judged outside this script"
+    verdict += ("; the +5 s slope and G5 exposure are diagnostics, and pick-off is judged only in the pre-registered "
+                "first live run (plan); G6 (live path: PR A merged, the frozen-book watch merged, PR E merged or "
+                "waived) is judged outside this script")
     say(f"Verdict: {verdict}")
     rec["gates"] = gates
     rec["gate_notes"] = notes

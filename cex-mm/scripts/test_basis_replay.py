@@ -432,7 +432,7 @@ class Cli(unittest.TestCase):
         with contextlib.redirect_stdout(buf), self.assertRaises(SystemExit):
             br.main(["--help"])
         out = buf.getvalue()
-        self.assertIn("Exit code: 0 every gate G1-G5 evaluated and passed; 1 a gate fails; 2 thin data", out)
+        self.assertIn("Exit code: 0 every deciding gate (G1-G4) evaluated and passed; 1 a deciding gate fails; 2 thin data", out)
         for text in ("(default: shadow)", "(default: 0,1,2)", "(default: 400.0)", "(default: 1.0)", "(default: 500)",
                      "(default: 1000)", "(default: 1)"):
             self.assertIn(text, out)
@@ -987,9 +987,15 @@ class GateVerdicts(unittest.TestCase):
             self.assertEqual(code, 0, out)
             self.assertIn("Verdict: PROVISIONAL PASS (0.33 h covered < 24 h)", out)
             rec = read_json(out_json)["results"][0]
-            self.assertEqual(rec["gates"], {"G1": True, "G2": True, "G3": True, "G4": True, "G5": True})
+            # G1-G4 decide; G4 on the 60 s lead only. The 5 s slope and G5 exposure are diagnostics.
+            self.assertEqual(rec["gates"], {"G1": True, "G2": True, "G3": True, "G4": True})
             self.assertEqual(rec["ruled_out"], {})
+            self.assertEqual(rec["G4"]["components"], {"G4@60": True})
+            self.assertEqual(rec["G4"]["diagnostic"], {"G4@5": True})
             self.assertEqual(rec["G5"]["components"], {"G5@30": True, "G5@60": True})
+            self.assertTrue(rec["G5"]["diagnostic"])
+            self.assertIn("G5 exposure (diagnostic, not in the verdict;", out)
+            self.assertIn("pick-off is judged only in the pre-registered first live run", out)
             # Both oracles are scored on all four components here and fail none.
             self.assertEqual(sorted(rec["oracle"]), ["5", "60"])
             for h in ("5", "60"):
@@ -1022,8 +1028,8 @@ class GateVerdicts(unittest.TestCase):
 
     def test_an_oracle_failing_a_component_rules_it_out_across_horizons(self):
         # 8 min of the lead fixture with no EMA warm-up: the +60 s oracle, scored at +30 s, is more exposed
-        # than the old fair on the bid side (+5.4 pp > 3, upper CI > 1): G5@30 cannot judge a fair here and
-        # is n/a, G5 is n/a, nothing fails, exit 3. (An oracle never fails its own horizon.)
+        # than the old fair on the bid side (+5.4 pp > 3, upper CI > 1), so G5@30 cannot judge a fair here. G5
+        # is a diagnostic, so the deciding gates G1-G4 all pass: exit 0. (An oracle never fails its own horizon.)
         with tempfile.TemporaryDirectory() as d:
             common = self._lead_fixture(d, n=1200)
             with open(os.path.join(d, "config.txt"), "a") as f:
@@ -1031,30 +1037,33 @@ class GateVerdicts(unittest.TestCase):
             out_json = os.path.join(d, "o.json")
             code, out = run_main(common[:-4] + ["--min-hours", "0.1", "--boot", "50", "--mode", "live", "--source", "depth", "--json", out_json])
             rec = read_json(out_json)["results"][0]
-            self.assertEqual(rec["ruled_out"], {"G5@30": "oracle+60"})
+            self.assertEqual(rec["ruled_out"], {})  # only deciding components are ruled out
             self.assertEqual(rec["oracle"]["60"]["fails"], ["G5@30"])
             self.assertEqual(rec["oracle"]["60"]["components"]["G5@60"], True)  # its own horizon
             self.assertEqual(rec["oracle"]["5"]["fails"], [])
             self.assertGreater(rec["oracle"]["60"]["expo"]["30"]["diff_bid"], 3.0)
             self.assertEqual(rec["G5"]["components"], {"G5@30": None, "G5@60": True})
-            self.assertEqual(rec["G4"]["components"], {"G4@5": True, "G4@60": True})
-            self.assertEqual(rec["gates"], {"G1": True, "G2": True, "G3": True, "G4": True, "G5": None})
+            self.assertEqual(rec["G4"]["components"], {"G4@60": True})
+            self.assertEqual(rec["gates"], {"G1": True, "G2": True, "G3": True, "G4": True})
             self.assertIn("pp n/a (oracle+60 fails it)", out)
-            self.assertIn("=>  n/a (oracle fails G5@30)", out)
             self.assertIn("oracle (fair = mid +60 s): slope +5 s", out)
             self.assertIn("fails: G5@30", out)
-            self.assertIn("RULE (plan): no gate may rely on a metric the oracle fails: G5@30 (oracle+60) cannot judge a fair on this window and are marked n/a above", out)
-            self.assertIn("Verdict: PROVISIONAL INCOMPLETE (0.13 h covered < 24 h); not evaluated: G5 (oracle fails G5@30)", out)
-            self.assertEqual(code, 3, out)
+            self.assertNotIn("RULE (plan)", out)
+            self.assertIn("Verdict: PROVISIONAL PASS (0.13 h covered < 24 h)", out)
+            self.assertEqual(code, 0, out)
             # Under two 5-min blocks every CI is undefined: both oracles fail G4@60, G5@30 and G5@60.
             code, out = run_main(common[:-4] + ["--min-hours", "0.05", "--boot", "50", "--mode", "live", "--source", "depth",
                                                 "--json", out_json, "--to", str(int(br.parse_time("2023-11-14T22:19:20Z")))])
             rec = read_json(out_json)["results"][0]
             self.assertEqual(rec["rows"], 900)
-            self.assertEqual(rec["ruled_out"], {k: "oracle+5, oracle+60" for k in ("G4@60", "G5@30", "G5@60")})
-            self.assertEqual(rec["G4"]["components"], {"G4@5": True, "G4@60": None})
+            self.assertEqual(rec["ruled_out"], {"G4@60": "oracle+5, oracle+60"})
+            for h in ("5", "60"):
+                self.assertEqual(rec["oracle"][h]["fails"], ["G4@60", "G5@30", "G5@60"])
+            self.assertEqual(rec["G4"]["components"], {"G4@60": None})
             self.assertEqual(code, 3, out)
-            self.assertIn("not evaluated: G4 (oracle fails G4@60), G5 (oracle fails G5@30, G5@60)", out)
+            self.assertIn("RULE (plan): no gate may rely on a metric the oracle fails: G4@60 (oracle+5, oracle+60)", out)
+            self.assertIn("not evaluated: G4 (oracle fails G4@60)", out)
+            self.assertNotIn("not evaluated: G4 (oracle fails G4@60), G5", out)
 
     def test_a_thin_symbol_next_to_a_failing_one_exits_2(self):
         with tempfile.TemporaryDirectory() as d:
