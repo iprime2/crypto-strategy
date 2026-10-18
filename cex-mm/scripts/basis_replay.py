@@ -144,7 +144,7 @@ class Settings:
     jump_bps: float = 12.0  # MM_FAIR_JUMP_BPS
     jump_defensive: bool = True  # MM_FAIR_JUMP_DEFENSIVE
     anchor_weight: float = 1.0  # MM_FAIR_ANCHOR_WEIGHT
-    ofi_anchored: bool = False  # PR C design: no OFI term while anchored (True = as coded on main today)
+    ofi_anchored: bool = False  # PR C design: no OFI term while anchored (True = the fair as coded before PR C)
 
     @property
     def max_step_sec(self) -> float:
@@ -233,6 +233,11 @@ class Row:
     daip: float | None
     dts: int | None  # depth_ts_us
     basis_src: str | None
+    # PR C fields: the average's own clock (the bot's Instant, in s), its sample count, and whether this loop
+    # updated it. With them the replay rebuilds the average exactly from any row; older logs leave them None.
+    basis_t: float | None = None
+    basis_n: int | None = None
+    basis_updated: bool | None = None
 
     @property
     def mid(self) -> float:
@@ -296,6 +301,9 @@ def parse_metrics_row(line: str) -> tuple[str, Row] | None:
         daip=_opt(m, "depth_ask_inner_px"),
         dts=int(m["depth_ts_us"]) if m.get("depth_ts_us") is not None else None,
         basis_src=m.get("basis_src"),
+        basis_t=_opt(m, "basis_t"),
+        basis_n=int(m["basis_n"]) if m.get("basis_n") is not None else None,
+        basis_updated=bool(m["basis_updated"]) if m.get("basis_updated") is not None else None,
     )
 
 
@@ -603,13 +611,27 @@ class Seed:
     note: str
 
 
+def ema_clock(r: Row) -> float:
+    """The average's clock at this row, in seconds: the bot's own (basis_t, PR C logs), else the log's ts_ms. Only
+    differences matter, so the two never mix within one log."""
+    return r.basis_t if r.basis_t is not None else r.ts / 1000.0
+
+
 def infer_seed(rows: list[Row], st: Settings) -> Seed | None:
-    """Seed the EMA from the first logged basis_bps: the sample count from the first update's alpha, the
-    warm-up start from the first logged `anchored` flip (warm_sec >= warmup there)."""
+    """Seed the EMA from the first logged basis_bps. The sample count is the logged basis_n (PR C logs), else
+    inferred from the first update's alpha (book-source logs). The warm-up start is the first sample when
+    basis_n is 1, else the first logged `anchored` flip (warm_sec >= warmup there)."""
     first = next((i for i, r in enumerate(rows) if r.basis is not None), None)
     if first is None:
         return None
     r0 = rows[first]
+    if r0.basis_n is not None:
+        flip = next((r for r in rows[first:] if r.anchored), None)
+        if r0.basis_n <= 1 or flip is None:
+            first_t = ema_clock(r0)
+        else:
+            first_t = ema_clock(flip) - st.warmup_sec
+        return Seed(r0.basis, max(r0.basis_n, 1), first_t, f"n0={r0.basis_n} from the logged basis_n")
     samples = 1_000_000  # past the warm-up: alpha is the time weight alone
     note = "warm-up over"
     updates = 0
@@ -641,7 +663,8 @@ def infer_seed(rows: list[Row], st: Settings) -> Seed | None:
 class Replay:
     mode: str
     fair: list[float] = field(default_factory=list)  # the fair under test (OFI per Settings.ofi_anchored)
-    fair_asis: list[float] = field(default_factory=list)  # as coded on main: OFI term also while anchored
+    fair_asis: list[float] = field(default_factory=list)  # the fair the logging build quoted (see fair_ofi / fair)
+    fair_ofi: list[float] = field(default_factory=list)  # as coded before PR C: the OFI term also while anchored
     fair_old: list[float] = field(default_factory=list)  # no anchor, on this mode's book (as coded)
     fair_old_noofi: list[float] = field(default_factory=list)  # no anchor, OFI term removed
     anchored: list[bool] = field(default_factory=list)
@@ -685,12 +708,14 @@ def replay(rows: list[Row], st: Settings, tick: float, q: float, mode: str = "sh
     log), so take the logged basis_bps and ofi at the first row after the gap."""
     live = mode == "live"
     out = Replay(mode)
+    # A PR C build logs basis_src and quotes the anchored fair without the OFI term; older builds kept it.
+    pr_c_log = any(r.basis_src is not None for r in rows)
     prev_ts: float | None = None
     gap_ms = 1.5 * st.loop_sec * 1000.0
     ema = BasisEma(st.half_life_sec, st.max_step_sec, st.clamp_bps)
     skip_first_update = False
     if seed is not None:
-        ema.value, ema.samples, ema.first_t, ema.last_t = seed.value, seed.samples, seed.first_t, rows[0].ts / 1000.0
+        ema.value, ema.samples, ema.first_t, ema.last_t = seed.value, seed.samples, seed.first_t, ema_clock(rows[0])
         skip_first_update = True
     ofi = OfiTracker(OFI_WINDOW)
     hist: collections.deque[tuple[float, float]] = collections.deque()
@@ -703,7 +728,7 @@ def replay(rows: list[Row], st: Settings, tick: float, q: float, mode: str = "sh
     half_tick = tick * 0.5
 
     for i, r in enumerate(rows):
-        t = r.ts / 1000.0
+        t = ema_clock(r)
         gap = prev_ts is not None and r.ts - prev_ts > gap_ms
         prev_gap_ts = prev_ts if prev_ts is not None else r.ts
         if gap:
@@ -811,8 +836,12 @@ def replay(rows: list[Row], st: Settings, tick: float, q: float, mode: str = "sh
         if resync and gap and r.basis is not None and ema.value is not None:
             ema.value = r.basis
             ema.last_t = t
-            # The hidden loops also counted as warm-up samples (alpha = max(time weight, 1/n)).
-            ema.samples += max(int(round((r.ts - prev_gap_ts) / (st.loop_sec * 1000.0))) - 1, 0)
+            # The hidden loops also counted as warm-up samples (alpha = max(time weight, 1/n)): logged (PR C), or
+            # estimated from the gap.
+            if r.basis_n is not None:
+                ema.samples = r.basis_n
+            else:
+                ema.samples += max(int(round((r.ts - prev_gap_ts) / (st.loop_sec * 1000.0))) - 1, 0)
             out.resyncs += 1  # the OFI window stays a plain replica: its entries are not logged, only its sum
         lu = ema.last_update()
         warm = ema.warm_sec(t) >= st.warmup_sec
@@ -823,12 +852,12 @@ def replay(rows: list[Row], st: Settings, tick: float, q: float, mode: str = "sh
         anchored = anchor is not None
 
         ofi_drift = ofi.drift_bps(st.ofi_beta, bq + aq)
-        fair_asis = resolve_fair(native, micro, anchor, st.anchor_weight, st.lead_beta, move, st.lead_max_bps, ofi_drift)
-        if st.anchor_weight > 0.0 and not st.ofi_anchored:
-            # PR C: with an anchor weight above 0 the OFI term never reads our own L1, in the fallback either.
-            fair = resolve_fair(native, micro, anchor, st.anchor_weight, st.lead_beta, move, st.lead_max_bps, 0.0)
-        else:
-            fair = fair_asis
+        fair_ofi = resolve_fair(native, micro, anchor, st.anchor_weight, st.lead_beta, move, st.lead_max_bps, ofi_drift)
+        # PR C: with an anchor weight above 0 the OFI term never reads our own L1, in the fallback either.
+        fair_pr_c = (resolve_fair(native, micro, anchor, st.anchor_weight, st.lead_beta, move, st.lead_max_bps, 0.0)
+                     if st.anchor_weight > 0.0 else fair_ofi)
+        fair = fair_ofi if st.ofi_anchored else fair_pr_c
+        fair_asis = fair_pr_c if pr_c_log else fair_ofi
         fair_old = resolve_fair(native, micro, None, 0.0, st.lead_beta, move, st.lead_max_bps, ofi_drift)
         fair_old_noofi = resolve_fair(native, micro, None, 0.0, st.lead_beta, move, st.lead_max_bps, 0.0)
 
@@ -852,6 +881,7 @@ def replay(rows: list[Row], st: Settings, tick: float, q: float, mode: str = "sh
 
         out.fair.append(fair)
         out.fair_asis.append(fair_asis)
+        out.fair_ofi.append(fair_ofi)
         out.fair_old.append(fair_old)
         out.fair_old_noofi.append(fair_old_noofi)
         out.anchored.append(anchored)
@@ -1381,7 +1411,7 @@ def evaluate(symbol: str, rows: list[Row], st: Settings, tick: float, q: float, 
         + (f"  skipped {skipped} unusable MM_METRICS lines" if skipped else "")
         + f"  tick {tick:g}  q {q:g} contracts  X {x_contracts if x_contracts else 'n/a'}  mode {args.mode}  source {source}  "
         f"latency {primary_lat}  loop {st.loop_sec * 1000:.0f} ms  anchor weight {st.anchor_weight:g}  basis max age "
-        f"{st.max_age_sec:g} s  OFI while anchored: {'on (as coded)' if st.ofi_anchored else 'off (PR C)'}")
+        f"{st.max_age_sec:g} s  OFI while anchored: {'on (pre-PR C)' if st.ofi_anchored else 'off (PR C)'}")
     rec: dict = {"symbol": symbol, "rows": len(rows), "hours": hours, "excluded_hours": excluded_h, "skipped_lines": skipped,
                  "tick": tick, "q": q, "depth_qty": x_contracts, "mode": args.mode, "source": source, "latency": primary_lat,
                  "settings": st.__dict__.copy()}
@@ -1481,7 +1511,7 @@ def evaluate(symbol: str, rows: list[Row], st: Settings, tick: float, q: float, 
         live = lives[primary_lat]
         ref = clean[source]
         d3 = [abs(live.fair[i] / ref.fair[i] - 1.0) * 1e4 for i in range(n)]
-        d3a = [abs(live.fair_asis[i] / ref.fair_asis[i] - 1.0) * 1e4 for i in range(n)]
+        d3a = [abs(live.fair_ofi[i] / ref.fair_ofi[i] - 1.0) * 1e4 for i in range(n)]
         both_idx = [i for i in range(n) if live.anchored[i] and ref.anchored[i]]
         both = [d3[i] for i in both_idx]
         both_asis = [d3a[i] for i in both_idx]
@@ -1495,10 +1525,10 @@ def evaluate(symbol: str, rows: list[Row], st: Settings, tick: float, q: float, 
             f"replays, n {len(both)}): p99 |fair(live book) - fair(clean book)| {p99:.3f} bps [<= 0.5] (p50 "
             f"{percentile(both, 50):.3f}, max {max(both) if both else NAN:.3f}); all rows p99 {percentile(d3, 99):.3f} "
             f"(the fallback old fair reads our own mid live; PR C pulls quotes after {10} s anchor-off); anchored "
-            f"flags differ on {mismatch:.2f}% of rows; as coded today with the OFI term in the anchored fair: p99 "
+            f"flags differ on {mismatch:.2f}% of rows; with the OFI term in the anchored fair (as before PR C): p99 "
             f"{p99a:.3f} bps  {pf(g3)}")
         rec["G3"] = {"p99_bps": p99, "p50_bps": percentile(both, 50), "max_bps": max(both) if both else NAN, "n": len(both),
-                     "all_rows_p99_bps": percentile(d3, 99), "anchored_mismatch_pct": mismatch, "p99_as_coded_bps": p99a, "pass": g3}
+                     "all_rows_p99_bps": percentile(d3, 99), "anchored_mismatch_pct": mismatch, "p99_ofi_in_bps": p99a, "pass": g3}
     else:
         gates["G3"] = None
         notes["G3"] = "shadow mode"
@@ -1750,7 +1780,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--latency", default="0,1,2", help="loops of delay on the replayed quotes; the first is the one judged")
     ap.add_argument("--loop-ms", type=float, default=400.0, help="the bot's --loop-ms (max_step = 2 loops, gap detection); shadow.sh uses 400")
     ap.add_argument("--anchor-weight", type=float, help="override MM_FAIR_ANCHOR_WEIGHT (0 = the old fair, as a run without the key)")
-    ap.add_argument("--ofi-anchored", action="store_true", help="keep the OFI term in the anchored fair (as coded on main today); default = PR C's design, OFI out while anchored")
+    ap.add_argument("--ofi-anchored", action="store_true", help="keep the OFI term in the anchored fair (as coded before PR C, merged 18 Oct 2026); default = PR C's design, OFI out while anchored")
     ap.add_argument("--cold-start", action="store_true", help="do not seed the EMA from the first logged basis")
     ap.add_argument("--parity", action="store_true", help="print the livegate-equivalent numbers (basis updated %%, anchored %%)")
     ap.add_argument("--calibrate", metavar="LIVE_LOG", help="a real live run's MM_METRICS log: compare its book with the synthetic "

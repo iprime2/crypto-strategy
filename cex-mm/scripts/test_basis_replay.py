@@ -386,6 +386,27 @@ class AgreementUsesTheAsCodedFair(unittest.TestCase):
         self.assertLess(agr["place_flags_pct"], 100.0)
 
 
+    def test_a_pr_c_log_is_checked_against_the_fair_without_the_ofi_term(self):
+        # A PR C build (its log carries basis_src) quotes the anchored fair without the OFI term. Its own bid /
+        # ask / side flags must be reproduced, while the OFI-in fair stays available for G3's comparison.
+        rows = make_rows(1200, vol_bps=1.0, seed=21, size_jitter=20_000.0)
+        for r in rows:
+            r.basis_src = "book"
+        st = settings()
+        rep = br.replay(rows, st, TICK, 200.0, "shadow", "book")
+        self.assertEqual(rep.fair_asis, rep.fair)
+        self.assertGreater(sum(1 for a, b in zip(rep.fair_ofi, rep.fair) if a != b), 100)
+        for i, r in enumerate(rows):
+            r.bid, r.ask = rep.pbid_asis[i], rep.pask_asis[i]
+            r.place_bid, r.place_ask = rep.place_bid_asis[i], rep.place_ask_asis[i]
+        agr = br.agreement(rows, rep)
+        self.assertEqual((agr["bid_exact_pct"], agr["ask_exact_pct"], agr["place_flags_pct"]), (100.0, 100.0, 100.0))
+        # Without basis_src (a pre-PR C log) the as-coded fair keeps the OFI term while anchored.
+        for r in rows:
+            r.basis_src = None
+        old = br.replay(rows, st, TICK, 200.0, "shadow", "book")
+        self.assertEqual(old.fair_asis, old.fair_ofi)
+
 class ParitySynthetic(unittest.TestCase):
     """Tight spread for the first 120 s (our quotes sit outside the touch: the basis samples), then a 12 bps
     spread (our quotes are the touch: starved). Known answer: updated = the tight rows, anchored = every row
@@ -490,6 +511,36 @@ class Cli(unittest.TestCase):
         self.assertEqual(agr["anchored_agree_pct"], 100.0)
         cold = br.agreement(rows, br.replay(rows, st, TICK, 200.0, "shadow", "book"))
         self.assertLess(cold["basis_agree_pct"], 100.0)
+
+    def test_a_pr_c_log_seeds_and_clocks_the_ema_from_basis_n_and_basis_t(self):
+        # A PR C log carries basis_n and basis_t (the average's own clock, an Instant). This one starts with the
+        # bot, while the average is still a running mean (alpha = 1/n for about 3 min at a 120 s half-life), the
+        # clock wanders from ts_ms by a few ms, and 14 loops inside that phase were not logged (an L3 pause).
+        full = make_rows(1500, vol_bps=2.0, seed=19)
+        rng = random.Random(5)
+        ema = br.BasisEma(120.0, 0.8, 5.0)
+        for r in full:
+            r.basis_t = 4321.0 + (r.ts - full[0].ts) / 1000 + rng.uniform(-0.004, 0.004)
+            r.dbp, r.dap = r.bb - rng.randint(0, 3) * TICK, r.ba + rng.randint(0, 3) * TICK  # depth sits behind the touch
+            r.depth_mid = (r.dbp + r.dap) / 2
+            ema.update(r.basis_t, r.depth_mid, r.bn)
+            r.basis, r.basis_n, r.basis_src, r.basis_updated = ema.value, ema.samples, "depth", True
+            r.anchored = ema.warm_sec(r.basis_t) >= 60.0
+        logged = full[:200] + full[214:]
+        st = settings()
+        seed = br.infer_seed(logged, st)
+        self.assertEqual(seed.samples, 1)
+        self.assertIn("basis_n", seed.note)
+        rep = br.replay(logged, st, TICK, 200.0, "shadow", "depth", seed=seed, resync=True)
+        agr = br.agreement(logged, rep)
+        self.assertEqual(agr["basis_agree_pct"], 100.0, agr)
+        self.assertEqual(agr["anchored_agree_pct"], 100.0)
+        # Without the two fields (a PR B log) the same rows are not reproduced: ts_ms and an inferred seed.
+        for r in logged:
+            r.basis_t, r.basis_n = None, None
+        bare = br.agreement(logged, br.replay(logged, st, TICK, 200.0, "shadow", "depth",
+                                              seed=br.infer_seed(logged, st), resync=True))
+        self.assertLess(bare["basis_agree_pct"], 90.0)
 
     def test_tick_inference(self):
         self.assertEqual(br.infer_tick(make_rows(100)), 1e-5)
