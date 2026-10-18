@@ -247,6 +247,17 @@ class LiveSh(unittest.TestCase):
         self.assertNotEqual(r.returncode, 0)
         self.assertIn("MM_FAIR_ANCHOR_WEIGHT=1 is for the shadow test only", r.stderr)
         self.assertEqual(self.stub_calls("run"), [])
+        # A per-symbol weight and the live flag are refused too; zero weights pass.
+        prof = self.root / "config" / "dism.env"
+        base = re.sub(r"(?m)^MM_FAIR_ANCHOR_WEIGHT=.*$", "MM_FAIR_ANCHOR_WEIGHT=0", prof.read_text())
+        for extra, msg in (("MM_FAIR_ANCHOR_WEIGHT_ADAUSDT=0.5\n", "MM_FAIR_ANCHOR_WEIGHT_ADAUSDT=0.5 is for the shadow test only"),
+                           ("MM_FAIR_ANCHOR_LIVE=depth\n", "MM_FAIR_ANCHOR_LIVE=depth is not allowed"),
+                           ("MM_FAIR_ANCHOR_LIVE_ADAUSDT=depth\n", "MM_FAIR_ANCHOR_LIVE_ADAUSDT=depth is not allowed")):
+            prof.write_text(base + extra)
+            r = self.live("start", "--confirm", "START REAL")
+            self.assertNotEqual(r.returncode, 0, extra)
+            self.assertIn(msg, r.stderr)
+        self.assertEqual(self.stub_calls("run"), [])
 
     def test_start_refuses_a_profile_value_the_bot_would_misread(self):
         self.start_shadow()

@@ -9,7 +9,9 @@ Type=oneshot
 RemainAfterExit=yes
 WorkingDirectory=@CEX_MM@
 Environment=PATH=%h/.cargo/bin:%h/.local/bin-wrappers:/usr/local/bin:/usr/bin:/bin
-Environment=SHADOW_SYMBOLS=ADAUSDT,KITEUSDT,BERAUSDT,DUSKUSDT
+# DUSK left the shadow on 18 Oct: STOP in the simulator at every width, and the anchor cannot follow its
+# basis (artifacts/research/2026-10-18-shadow-3day-review.md).
+Environment=SHADOW_SYMBOLS=ADAUSDT,KITEUSDT,BERAUSDT
 # The network can come up after the user manager; wait for DNS before building and connecting.
 ExecStartPre=/bin/sh -c 'until getent hosts api.india.delta.exchange >/dev/null; do sleep 2; done'
 ExecStart=@CEX_MM@/scripts/shadow.sh start ${SHADOW_SYMBOLS}

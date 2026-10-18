@@ -406,7 +406,7 @@ fn env_value(v: &Value) -> Option<String> {
     }
 }
 
-/// Config body → env pairs for the bot. Secret-looking keys are dropped.
+/// Config body → env pairs for the bot. Secret-looking keys and profile-only keys are dropped.
 pub fn config_env_pairs(body: &Value) -> Vec<(String, String)> {
     let Some(obj) = body.as_object() else {
         return Vec::new();
@@ -414,7 +414,9 @@ pub fn config_env_pairs(body: &Value) -> Vec<(String, String)> {
     let mut out = Vec::new();
     for (k, v) in obj {
         let single = Value::Object([(k.clone(), v.clone())].into_iter().collect());
-        if crate::config_guard::find_forbidden_secret_key(&single).is_some() {
+        if crate::config_guard::find_forbidden_secret_key(&single).is_some()
+            || crate::config_guard::find_profile_only_key(&single).is_some()
+        {
             continue;
         }
         if let (Some(name), Some(val)) = (env_key_for(k), env_value(v)) {
@@ -718,7 +720,8 @@ mod tests {
             "MM_LEAD_BETA": 0.8,
             "MM_SYMBOLS_EXTRA": ["ADAUSDT", "NEARUSDT"],
             "loop_ms": 400,
-            "delta_api_key": "nope"
+            "delta_api_key": "nope",
+            "MM_FAIR_ANCHOR_WEIGHT": 1
         });
         let mut pairs = config_env_pairs(&body);
         pairs.sort();
