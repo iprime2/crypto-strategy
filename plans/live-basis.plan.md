@@ -96,17 +96,19 @@ isProject: false
 ## Gate before asking for real money (ADA, ≥ 24 h shadow on the new build)
 Judged by `scripts/basis_replay.py`. Q comes from config, and every term derived from L1 is recomputed on a synthetic live book (the logged book plus our quotes): the mid/microprice blend, OFI, the post-only clamp, the fair-jump check and the fallback.
 
+**Owner's decision, 18 Oct 2026:** G1, G2, G3 and the 60 s lead (G4) decide. G5 exposure and the +5 s slope are diagnostics, printed but not in the verdict. Pick-off is judged only in the small, capped first live run with its pre-set stop (below). G6 is judged outside the replay.
+
 | | Gate | Why |
 |---|---|---|
 | G1 health | Depth snapshot ≤ 2 s old and anchor on, each on ≥ 95% of Binance-fresh rows. `basis_updated` means "updated this loop from a snapshot ≤ `MM_DEPTH_STALE_MS` old". | Feed uptime. It cannot fail on self-reference by design. |
 | G2 equivalence | p90 \|EMA basis_depth − EMA clean-L1 basis\| ≤ 1.5 bps, and pivot share ≤ 1% of rows. | Depth must reproduce the clean-book basis that the memo's evidence is about. |
 | G3 no self-reference | In the live-mode replay at the planned Q: p99 \|anchored fair (live book) − anchored fair (clean book)\| ≤ 0.5 bps. | Catches OFI-like leaks. |
-| G4 information | The slope of Delta's mid move at +5 s and +60 s on (fair − Delta mid) is at least the old fair's, with the 60 s difference CI above 0. | Binance-free evidence that the fair leads Delta (memo finding 3). |
-| G5 exposure | Side-averaged exposure at **+30 s and +60 s**: upper 95% CI ≤ +1 pp vs the clean old fair. Per-side guard +3 pp. | Convergence horizons. +1 s and +5 s are diagnostics only: there a fair that knew Delta's mid 60 s ahead fails by +28/+32 pp, because Delta lags. |
-| G6 live path | PR A merged; PR E merged or its absence accepted by the user. | 13 Oct failure modes. |
+| G4 60 s lead | The slope of Delta's mid move at +60 s on (fair − Delta mid) is at least the old fair's, with the difference CI above 0. The +5 s slope is a diagnostic. | Binance-free evidence that the fair leads Delta (memo finding 3). |
+| G5 exposure (diagnostic) | Side-averaged exposure at +30 s and +60 s against the bound upper 95% CI ≤ +1 pp vs the clean old fair, per-side +3 pp; +1 s and +5 s too. Not in the verdict. | On every real ADA window (13 Oct 2.65 h, 15 Oct 0.4 h, 15-18 Oct 64 h) a fair that knew Delta's future mid failed these, because Delta lags: they cannot judge a fair. |
+| G6 live path | PR A merged; the frozen-book watch merged; PR E merged or its absence accepted by the user. | 13 Oct failure modes, and the 17 Oct Delta freeze that the stale-book guard could not see. |
 
 The replay prints:
-- two oracle rows (fair = future mid at +5 s and +60 s), each scored on every gate component (G4@5, G4@60, G5@30, G5@60); no gate may rely on a metric the oracle fails: a component either oracle fails is n/a and its gate cannot PASS. An oracle never fails its own horizon (its quotes sit 5 bps clear of the mid it knows), so the rule bites across horizons. On the 13 Oct (2.65 h) and 15 Oct (0.4 h) ADA windows it rules out three of the four components: the +60 s oracle is +2.4 / +3.8 pp more exposed at +30 s than the old fair and its +5 s slope (0.09 / 0.11) is below the old fair's (0.11 / 0.14); the +5 s oracle is +3.3 / +4.9 pp more exposed at +60 s. G4@5, G5@30 and G5@60 are n/a there, G4@60 alone stands, and the verdict reads INCOMPLETE. If the 24 h run repeats that, the gate table must be amended (which components an oracle may be held to, or accept INCOMPLETE) before a live decision;
+- two oracle rows (fair = future mid at +5 s and +60 s), each scored on every component (G4@5, G4@60, G5@30, G5@60). No gate may rely on a metric the oracle fails: if either oracle fails the deciding component G4@60, G4 is n/a and the verdict reads INCOMPLETE; a diagnostic an oracle fails is marked n/a. An oracle never fails its own horizon (its quotes sit 5 bps clear of the mid it knows), so the misses are cross-horizon. On the 13 Oct, 15 Oct and 15-18 Oct ADA windows the oracles failed G4@5, G5@30 and G5@60, never G4@60 (64 h: the +5 s oracle +3.6 / +4.4 pp more exposed at +30 / +60 s than the old fair; the +60 s oracle +4.7 pp at +30 s, and its +5 s slope 0.088 against the old fair's 0.160). That is why those three are diagnostics;
 - both baselines (the clean old fair, and the live-mode old fair after the OFI fix);
 - a depth-mid yardstick next to the L1-mid one, with recentred exposure;
 - a latency sensitivity at 0, 1 and 2 loops;
@@ -114,17 +116,18 @@ The replay prints:
 
 Conventions the script fixes: the CI is a percentile block bootstrap on 5-min wall-clock blocks from the first row, 1000 reps, seed 1 (on 0.4 h that is 5 blocks); "exposed" is a resting quote within 1 bps of or through Delta's mid at +h; G3 is taken on rows anchored in both replays; G5 on rows where both sides rest in both variants; G1's depth threshold is the 2 s above regardless of the profile's `MM_DEPTH_STALE_MS`; the replay's basis max age follows PR C's default (300 s book, 30 s depth) unless `MM_BASIS_MAX_AGE_SEC` is set.
 
-The verdict reads PROVISIONAL under 24 h (within one loop).
+The verdict reads PROVISIONAL under 24 h (within one loop). Exit 0 means G1-G4 were all evaluated and passed; the diagnostics never change the exit code.
 
-## Pre-registered first live run (only if G1–G6 pass and the user says go)
-- ADA only. Size per the user; with OFI out of the fair, a smaller Q no longer adds self-reference.
+## Pre-registered first live run (only if G1–G4 and G6 pass and the user says go)
+This is the only place pick-off is judged (owner's decision, 18 Oct 2026): the shadow cannot see takers reacting to our quotes.
+- ADA only. Small and capped: Q and the inventory cap set by the user before the start and written into the run's config; the protocol assumes no more than the 13 Oct run (200 contracts, cap 600). With OFI out of the fair, a smaller Q no longer adds self-reference.
 - **The existing stop rule:** PnL per $ < −2.6 bps at 300 fills or < 0 at 1,000, plus the $15 a day loss stop.
 - **Anchored aborts:**
   - live vs shadow `basis_depth` over the same period, p99 |difference| > 0.5 bps;
   - live anchor on < 95%;
   - |OFI term| > 0.5 bps;
   - the depth price within one tick of our own price on > 1% of rows (another maker pegging to us).
-- **Report:** bnet60, and the whole-order vs partial 60 s markout split with CIs, against 13 Oct.
+- **Report (the pick-off verdict):** capture at the fill, bnet60, and the whole-order vs partial 60 s markout split with CIs, against 13 Oct (capture +0.05 bps; whole-order fills −2.77 bps at 60 s, partial +0.71).
 - **Only this run can tell:** whether informed takers still pick off the anchored quotes; our requote latency against theirs after each 4.2 bps Binance tick; the inventory path; and whether other makers reprice around us.
 
 ## Work, in order
@@ -145,6 +148,7 @@ The verdict reads PROVISIONAL under 24 h (within one loop).
 4. PR C and PR D during the next 24 h.
 5. Run the replay and write the memo.
 6. The user decides on the live run under the protocol above.
+7. 18 Oct: the 64 h review (memo `2026-10-18-shadow-3day-review.md`) and the owner's gate decision above. PR C merged with ADA the only anchored symbol; the shadow restarted on it without DUSK (run `20261018T141012Z`, 14:10Z). The replay judges its first 24 h (from about 14:10Z on 19 Oct); the frozen-book watch is its own PR.
 
 **Stop:**
 - If `depth` fails G2 or G4, score `mark` (with a learned offset) in the replay before changing anything else.
