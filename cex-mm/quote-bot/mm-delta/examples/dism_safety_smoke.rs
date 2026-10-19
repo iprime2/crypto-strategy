@@ -83,12 +83,12 @@ async fn main() -> Result<()> {
 
     // 3. Dead man's switch: arm, ack once with a 5 s TTL, then go silent.
     let hb = "mm-bot-dms-smoke";
-    match rest.heartbeat_create(hb, &[delta_sym.clone()]).await {
+    match rest.heartbeat_create(hb, &[delta_sym.clone()], 5_000).await {
         Ok(()) => println!("3. heartbeat {hb} created"),
         Err(e) => println!("3. heartbeat create: {e:#}"),
     }
     // A restart creates the same id again: show what Delta answers.
-    match rest.heartbeat_create(hb, &[delta_sym.clone()]).await {
+    match rest.heartbeat_create(hb, &[delta_sym.clone()], 5_000).await {
         Ok(()) => println!("   create again: ok"),
         Err(e) => println!("   create again: {e:#}"),
     }

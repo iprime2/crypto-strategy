@@ -27,6 +27,8 @@ struct ApiEnvelope<T> {
 struct ApiError {
     code: Option<String>,
     message: Option<String>,
+    /// Delta's detail, e.g. `{"schema_errors":[{"message":"default_ttl is required",..}]}` for a bad_schema.
+    context: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -122,18 +124,36 @@ fn parse_order_leverage(text: &str) -> Result<f64> {
 }
 
 /// Dead man's switch: cancel all orders on these products when a heartbeat is missed. Schema from
-/// Delta's "Deadman Switch" guide (https://docs.delta.exchange/#deadman-switch), not the swagger.
-fn heartbeat_create_body(heartbeat_id: &str, delta_symbols: &[String]) -> serde_json::Value {
+/// Delta's "Deadman Switch" guide (https://docs.delta.exchange/#deadman-switch), not the swagger. Since
+/// 19 Oct 2026 (or earlier) Delta also requires `default_ttl` here and answers bad_schema ("default_ttl is
+/// required") without it; the bot passes the same TTL as its acks, in ms.
+fn heartbeat_create_body(heartbeat_id: &str, delta_symbols: &[String], default_ttl_ms: u64) -> serde_json::Value {
     json!({
         "heartbeat_id": heartbeat_id,
         "impact": "products",
         "product_symbols": delta_symbols,
         "config": [{ "action": "cancel_orders", "unhealthy_count": 1 }],
+        "default_ttl": default_ttl_ms,
     })
 }
 
 fn heartbeat_ack_body(heartbeat_id: &str, ttl_ms: u64) -> serde_json::Value {
     json!({ "heartbeat_id": heartbeat_id, "ttl": ttl_ms })
+}
+
+/// The error of a `success: false` reply, with Delta's context: "bad_schema" alone hid which field was missing
+/// on 19 Oct 2026. None when the call succeeded.
+fn failure_text(text: &str) -> Result<Option<String>> {
+    let parsed: ApiEnvelope<serde_json::Value> = serde_json::from_str(text)?;
+    if parsed.success != Some(false) {
+        return Ok(None);
+    }
+    let Some(e) = parsed.error else { return Ok(Some(text.to_string())) };
+    let base = e.message.or(e.code).unwrap_or_else(|| text.to_string());
+    Ok(Some(match e.context.filter(|c| !c.is_null()) {
+        Some(c) => format!("{base} {c}"),
+        None => base,
+    }))
 }
 
 #[derive(Debug, Deserialize)]
@@ -465,8 +485,8 @@ impl DeltaRest {
             .with_context(|| format!("{} (product {})", meta.symbol, meta.product_id))
     }
 
-    pub async fn heartbeat_create(&self, heartbeat_id: &str, delta_symbols: &[String]) -> Result<()> {
-        let body = heartbeat_create_body(heartbeat_id, delta_symbols).to_string();
+    pub async fn heartbeat_create(&self, heartbeat_id: &str, delta_symbols: &[String], default_ttl_ms: u64) -> Result<()> {
+        let body = heartbeat_create_body(heartbeat_id, delta_symbols, default_ttl_ms).to_string();
         let resp = self
             .signed_request(reqwest::Method::POST, "/v2/heartbeat/create", "", &body)
             .await?;
@@ -485,13 +505,10 @@ impl DeltaRest {
 
     async fn expect_success(what: &str, resp: reqwest::Response) -> Result<()> {
         let text = resp.text().await?;
-        let parsed: ApiEnvelope<serde_json::Value> =
-            serde_json::from_str(&text).with_context(|| format!("{what} json"))?;
-        if parsed.success == Some(false) {
-            let msg = parsed.error.and_then(|e| e.message.or(e.code)).unwrap_or(text);
-            anyhow::bail!("{what}: {msg}");
+        match failure_text(&text).with_context(|| format!("{what} json"))? {
+            Some(msg) => anyhow::bail!("{what}: {msg}"),
+            None => Ok(()),
         }
-        Ok(())
     }
 
     /// Delta accumulates resting orders if we only place; cancel before replace.
@@ -575,7 +592,7 @@ mod tests {
 
     #[test]
     fn heartbeat_bodies_match_the_dead_mans_switch_api() {
-        let create = heartbeat_create_body("dism-1", &["ADAUSD".to_string()]);
+        let create = heartbeat_create_body("dism-1", &["ADAUSD".to_string()], 15_000);
         assert_eq!(create["heartbeat_id"], "dism-1");
         // Delta's guide: impact is "products" (with product_symbols) or "contracts"; the swagger's
         // low/medium/high is rejected as bad_schema.
@@ -583,8 +600,23 @@ mod tests {
         assert_eq!(create["product_symbols"][0], "ADAUSD");
         assert_eq!(create["config"][0]["action"], "cancel_orders");
         assert_eq!(create["config"][0]["unhealthy_count"], 1);
+        // Required since 19 Oct 2026 or earlier (bad_schema "default_ttl is required" without it).
+        assert_eq!(create["default_ttl"], 15_000);
         let ack = heartbeat_ack_body("dism-1", 15_000);
         assert_eq!(ack["heartbeat_id"], "dism-1");
         assert_eq!(ack["ttl"], 15_000);
+    }
+
+    #[test]
+    fn a_failed_call_says_what_delta_objected_to() {
+        // Delta's reply on demo, 19 Oct 2026, to a heartbeat create without default_ttl.
+        let reply = r#"{"error":{"code":"bad_schema","context":{"schema_errors":[{"code":"validation_error","message":"default_ttl is required","param":""}]}},"success":false}"#;
+        let msg = failure_text(reply).unwrap().expect("a failure");
+        assert!(msg.starts_with("bad_schema") && msg.contains("default_ttl is required"), "{msg}");
+        assert_eq!(failure_text(r#"{"error":{"code":"not_found"},"success":false}"#).unwrap().as_deref(), Some("not_found"));
+        assert_eq!(failure_text(r#"{"success":true,"result":{"heartbeat_id":"x"}}"#).unwrap(), None);
+        // No message or code: the raw reply rather than an empty error.
+        assert_eq!(failure_text(r#"{"error":{},"success":false}"#).unwrap().as_deref(), Some(r#"{"error":{},"success":false}"#));
+        assert!(failure_text("<html>").is_err());
     }
 }

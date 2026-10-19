@@ -225,7 +225,7 @@ pub async fn arm_dead_mans_switch(rest: &DeltaRest, symbols: &[String], ttl_ms: 
         .map(|s| mm_delta::delta_product_symbol(s))
         .collect();
     let id = format!("mm-bot-{}", delta_symbols.join("-").to_ascii_lowercase());
-    rest.heartbeat_create(&id, &delta_symbols).await?;
+    rest.heartbeat_create(&id, &delta_symbols, ttl_ms).await?;
     rest.heartbeat_ack(&id, ttl_ms).await?;
     tracing::info!(heartbeat_id = %id, ttl_ms, "dead man's switch armed");
     let rest = rest.clone();
