@@ -135,6 +135,68 @@ pub fn classify_private_frame(v: &Value) -> PrivateFrame {
     PrivateFrame::Other
 }
 
+/// One of our fills from a `v2/user_trades` frame.
+#[derive(Debug, Clone, PartialEq)]
+pub struct UserTrade {
+    pub bought: bool,
+    /// Size in contracts (Delta sends it as a string).
+    pub contracts: i64,
+    pub price: f64,
+    /// Delta's fill id (`f`); failing that, order id and venue time, so two fills of one order stay apart.
+    pub fill_id: String,
+    pub order_id: Option<u64>,
+    pub client_order_id: Option<String>,
+    pub maker: bool,
+    pub venue_ts_us: Option<i64>,
+}
+
+fn json_num(v: Option<&Value>) -> Option<f64> {
+    match v? {
+        Value::String(s) => s.trim().parse::<f64>().ok(),
+        Value::Number(n) => n.as_f64(),
+        _ => None,
+    }
+    .filter(|x| x.is_finite())
+}
+
+fn json_text(v: Option<&Value>) -> Option<String> {
+    match v? {
+        Value::String(s) => Some(s.clone()),
+        Value::Number(n) => Some(n.to_string()),
+        _ => None,
+    }
+}
+
+/// Parses a `v2/user_trades` frame as Delta India sends it (captured 15 Oct 2026):
+/// `{"R":"normal","S":"buy","c":"<client id>","f":"<fill id>","i":84,"o":2175436569,"p":"81140.5","po":1,
+/// "r":"maker","s":"1","se":1,"sy":"BTCUSD","t":1792064274527989,"type":"v2/user_trades","u":...}`.
+/// `i` is the product id, not a trade id. `None` when the side, size or price cannot be read.
+pub fn parse_user_trade(v: &Value) -> Option<UserTrade> {
+    let side = v.get("S").and_then(|s| s.as_str())?;
+    let bought = match side.to_ascii_lowercase().as_str() {
+        "buy" => true,
+        "sell" => false,
+        _ => return None,
+    };
+    let size = json_num(v.get("s")).filter(|x| *x > 0.0)?;
+    let price = json_num(v.get("p")).filter(|x| *x > 0.0)?;
+    let order_id = json_num(v.get("o")).filter(|x| *x >= 0.0).map(|x| x as u64);
+    let venue_ts_us = json_num(v.get("t")).map(|x| x as i64);
+    let fill_id = json_text(v.get("f")).filter(|s| !s.is_empty()).or_else(|| {
+        Some(format!("{}-{}", order_id?, venue_ts_us?))
+    })?;
+    Some(UserTrade {
+        bought,
+        contracts: size.round() as i64,
+        price,
+        fill_id,
+        order_id,
+        client_order_id: json_text(v.get("c")).filter(|s| !s.is_empty()),
+        maker: v.get("r").and_then(|r| r.as_str()).map_or(true, |r| !r.eq_ignore_ascii_case("taker")),
+        venue_ts_us,
+    })
+}
+
 /// Timings for the private feed. `Default` is what the bot runs with.
 #[derive(Debug, Clone, Copy)]
 pub struct PrivateWsTimings {
@@ -488,6 +550,51 @@ mod tests {
 
     fn creds() -> DeltaCredentials {
         DeltaCredentials { api_key: "test-key-123".into(), api_secret: "test-secret".into() }
+    }
+
+    /// The frame captured on demo on 15 Oct 2026 (a 1-contract post-only BTCUSD bid filled as maker).
+    const REAL_FILL: &str = r#"{"R":"normal","S":"buy","c":"probe-1792064272244","f":"7257cf23e12c439e96894ef3ed6bfcd3","i":84,"o":2175436569,"p":"81140.5","po":1,"r":"maker","s":"1","se":1,"sy":"BTCUSD","t":1792064274527989,"type":"v2/user_trades","u":48589616}"#;
+
+    #[test]
+    fn parses_the_real_fill_frame() {
+        let v: Value = serde_json::from_str(REAL_FILL).unwrap();
+        assert_eq!(classify_private_frame(&v), PrivateFrame::Fill);
+        let t = parse_user_trade(&v).unwrap();
+        assert_eq!(
+            t,
+            UserTrade {
+                bought: true,
+                contracts: 1,
+                price: 81140.5,
+                fill_id: "7257cf23e12c439e96894ef3ed6bfcd3".into(),
+                order_id: Some(2175436569),
+                client_order_id: Some("probe-1792064272244".into()),
+                maker: true,
+                venue_ts_us: Some(1792064274527989),
+            }
+        );
+    }
+
+    #[test]
+    fn fill_fields_are_read_leniently_and_the_product_id_is_never_the_fill_id() {
+        let v: Value = serde_json::from_str(REAL_FILL).unwrap();
+        // Numbers instead of strings, a taker sell, no fill id: the id falls back to order id + venue time.
+        let mut w = v.clone();
+        w["s"] = json!(3);
+        w["p"] = json!(81140.5);
+        w["S"] = json!("sell");
+        w["r"] = json!("taker");
+        w.as_object_mut().unwrap().remove("f");
+        let t = parse_user_trade(&w).unwrap();
+        assert_eq!((t.bought, t.contracts, t.price, t.maker), (false, 3, 81140.5, false));
+        assert_eq!(t.fill_id, "2175436569-1792064274527989");
+        assert_ne!(t.fill_id, "84");
+        // Unreadable size, price or side: no fill rather than a zero-size one.
+        for (k, bad) in [("s", json!("x")), ("s", json!("0")), ("p", json!(null)), ("S", json!("short"))] {
+            let mut b = v.clone();
+            b[k] = bad;
+            assert!(parse_user_trade(&b).is_none(), "{k}");
+        }
     }
 
     fn fast() -> PrivateWsTimings {

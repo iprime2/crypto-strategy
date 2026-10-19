@@ -92,6 +92,14 @@ impl QuotingRest {
         }
     }
 
+    /// The venue's state of one order (`open`, `pending`, `closed`, `cancelled`) and its unfilled contracts.
+    pub async fn order_state(&self, order_id: u64) -> Result<(String, i64)> {
+        match self {
+            Self::Bybit(_) => anyhow::bail!("order state by id is Delta-only"),
+            Self::Delta(r) => r.order_state(order_id).await,
+        }
+    }
+
     pub fn cancel_before_requote(&self) -> bool {
         matches!(self, Self::Delta(_))
     }
