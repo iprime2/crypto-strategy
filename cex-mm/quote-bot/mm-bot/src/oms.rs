@@ -39,7 +39,16 @@ pub struct LiveQuotes {
     /// edit, decremented by fills; None when not known, and then fills never settle the side.
     pub bid_left: Option<i64>,
     pub ask_left: Option<i64>,
+    /// When the fills said the side's quote was done while the venue had not yet shown it closed. While set,
+    /// the loop asks the venue again each loop (`awaiting_venue`).
+    pub bid_done_at: Option<Instant>,
+    pub ask_done_at: Option<Instant>,
 }
+
+/// How long the loop keeps asking the venue about a quote the fills say is done before it believes a venue
+/// that still shows it open. On the 19 Oct 2026 demo QA, 13 of 45 such orders still read "open" about 150 ms
+/// after their last fill; each read closed when asked again 0.45-0.74 s later.
+pub const SETTLE_PATIENCE: Duration = Duration::from_secs(5);
 
 /// One of our fills from the private feed, sent to the loop of the symbol that placed the order.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -64,6 +73,22 @@ pub enum FillApplied {
     Filled { side: QuoteSide },
     /// Not one of the resting quotes (an order already replaced or cancelled, a reduce-only exit): ignored.
     Unknown,
+}
+
+/// What the venue's answer did to a quote the fills say is done.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Settled {
+    /// Closed or cancelled: the side is clear and the loop quotes it again.
+    Cleared,
+    /// Still shown open, or no answer, within `SETTLE_PATIENCE`: the loop asks again next time.
+    Waiting,
+    /// Still open once the patience ran out: the venue's unfilled size is the remainder from now on.
+    Resynced { left: i64 },
+    /// No usable answer once the patience ran out: stop asking. The quote stays tracked, and the requote
+    /// path asks the venue before it forgets it.
+    GaveUp,
+    /// The side has moved on to another order: nothing changed.
+    Moved,
 }
 
 /// Contracts the venue books for `qty_base`, rounded as `mm-delta` sends it; None below one contract.
@@ -107,12 +132,44 @@ impl LiveQuotes {
         self.bid = None;
         self.bid_id = None;
         self.bid_left = None;
+        self.bid_done_at = None;
     }
 
     pub fn clear_ask(&mut self) {
         self.ask = None;
         self.ask_id = None;
         self.ask_left = None;
+        self.ask_done_at = None;
+    }
+
+    /// The side's tracked remainder after a place or an edit the venue accepted: that order is not done.
+    pub fn set_left(&mut self, side: QuoteSide, left: Option<i64>) {
+        let (l, done_at) = self.track_mut(side);
+        *l = left;
+        *done_at = None;
+    }
+
+    /// The order to ask the venue about again: the side's quote the fills say is done, not yet shown closed.
+    pub fn awaiting_venue(&self, side: QuoteSide) -> Option<u64> {
+        match side {
+            QuoteSide::Bid => self.bid_done_at.and(self.bid_id),
+            QuoteSide::Ask => self.ask_done_at.and(self.ask_id),
+        }
+    }
+
+    /// When the fills said the side's quote was done, while the venue has not confirmed it.
+    pub fn done_at(&self, side: QuoteSide) -> Option<Instant> {
+        match side {
+            QuoteSide::Bid => self.bid_done_at,
+            QuoteSide::Ask => self.ask_done_at,
+        }
+    }
+
+    fn track_mut(&mut self, side: QuoteSide) -> (&mut Option<i64>, &mut Option<Instant>) {
+        match side {
+            QuoteSide::Bid => (&mut self.bid_left, &mut self.bid_done_at),
+            QuoteSide::Ask => (&mut self.ask_left, &mut self.ask_done_at),
+        }
     }
 
     pub fn clear_side(&mut self, side: QuoteSide) {
@@ -123,7 +180,7 @@ impl LiveQuotes {
     }
 
     /// Books one fill against the resting quote it belongs to. Fills of any other order change nothing.
-    pub fn apply_fill(&mut self, ev: FillEvent) -> FillApplied {
+    pub fn apply_fill(&mut self, ev: FillEvent, now: Instant) -> FillApplied {
         if ev.contracts <= 0 {
             return FillApplied::Unknown;
         }
@@ -134,10 +191,7 @@ impl LiveQuotes {
         } else {
             return FillApplied::Unknown;
         };
-        let left = match side {
-            QuoteSide::Bid => &mut self.bid_left,
-            QuoteSide::Ask => &mut self.ask_left,
-        };
+        let (left, done_at) = self.track_mut(side);
         let Some(n) = left.as_mut() else {
             return FillApplied::Partial { side, left: None };
         };
@@ -145,32 +199,47 @@ impl LiveQuotes {
         if *n > 0 {
             FillApplied::Partial { side, left: Some(*n) }
         } else {
+            done_at.get_or_insert(now);
             FillApplied::Filled { side }
         }
     }
 
-    /// Settles a quote the fills say is done, with the venue's `(state, unfilled)` for that order. Closed or
-    /// cancelled clears the side, so the loop quotes it again; still resting resyncs the remainder to the venue's
-    /// unfilled size; no answer leaves it tracked (the requote path asks again before it forgets it). A side
-    /// that has moved on to another order is not touched. Returns whether the side was cleared.
-    pub fn settle(&mut self, side: QuoteSide, order_id: u64, venue: Option<(&str, i64)>) -> bool {
-        let (id, left) = match side {
-            QuoteSide::Bid => (self.bid_id, &mut self.bid_left),
-            QuoteSide::Ask => (self.ask_id, &mut self.ask_left),
+    /// Settles a quote the fills say is done, with the venue's `(state, unfilled)` for that order (None: no
+    /// answer). Closed or cancelled clears the side, so the loop quotes it again. The venue's order state can
+    /// trail the fills feed, so an order it still shows open stays tracked and is asked about again until
+    /// `patience` has passed since the fills said it was done; only then does the venue's unfilled size become
+    /// the remainder. A side that has moved on to another order is not touched.
+    pub fn settle(
+        &mut self,
+        side: QuoteSide,
+        order_id: u64,
+        venue: Option<(&str, i64)>,
+        now: Instant,
+        patience: Duration,
+    ) -> Settled {
+        let id = match side {
+            QuoteSide::Bid => self.bid_id,
+            QuoteSide::Ask => self.ask_id,
         };
         if id != Some(order_id) {
-            return false;
+            return Settled::Moved;
         }
+        if venue.is_some_and(|(state, _)| venue_says_gone(state)) {
+            self.clear_side(side);
+            return Settled::Cleared;
+        }
+        let (left, done_at) = self.track_mut(side);
+        let since = *done_at.get_or_insert(now);
+        if now.saturating_duration_since(since) < patience {
+            return Settled::Waiting;
+        }
+        *done_at = None;
         match venue {
-            Some((state, _)) if venue_says_gone(state) => {
-                self.clear_side(side);
-                true
-            }
             Some((_, unfilled)) if unfilled > 0 => {
                 *left = Some(unfilled);
-                false
+                Settled::Resynced { left: unfilled }
             }
-            _ => false,
+            _ => Settled::GaveUp,
         }
     }
 
@@ -253,43 +322,82 @@ mod tests {
         live
     }
 
+    const P: Duration = SETTLE_PATIENCE;
+
+    fn ms(t0: Instant, n: u64) -> Instant {
+        t0 + Duration::from_millis(n)
+    }
+
     #[test]
     fn a_partial_fill_decrements_the_side_and_a_full_one_waits_for_the_venue() {
+        let t0 = Instant::now();
         let mut live = resting(200, 200);
         let ev = |order_id, contracts| FillEvent { order_id, contracts };
-        assert_eq!(live.apply_fill(ev(11, 50)), FillApplied::Partial { side: QuoteSide::Bid, left: Some(150) });
+        assert_eq!(live.apply_fill(ev(11, 50), t0), FillApplied::Partial { side: QuoteSide::Bid, left: Some(150) });
         assert_eq!((live.bid, live.bid_id, live.bid_left), (Some(0.2400), Some(11), Some(150)));
+        assert_eq!(live.awaiting_venue(QuoteSide::Bid), None);
         // The rest fills: the quote looks done, but it stays tracked until the venue says it is closed.
-        assert_eq!(live.apply_fill(ev(11, 150)), FillApplied::Filled { side: QuoteSide::Bid });
-        assert_eq!((live.bid, live.bid_id), (Some(0.2400), Some(11)));
-        assert!(live.settle(QuoteSide::Bid, 11, Some(("closed", 0))));
-        assert_eq!((live.bid, live.bid_id, live.bid_left), (None, None, None));
+        assert_eq!(live.apply_fill(ev(11, 150), t0), FillApplied::Filled { side: QuoteSide::Bid });
+        assert_eq!((live.bid, live.bid_id, live.awaiting_venue(QuoteSide::Bid)), (Some(0.2400), Some(11), Some(11)));
+        assert_eq!(live.settle(QuoteSide::Bid, 11, Some(("closed", 0)), ms(t0, 100), P), Settled::Cleared);
+        assert_eq!((live.bid, live.bid_id, live.bid_left, live.bid_done_at), (None, None, None, None));
         // The ask is untouched, and fills it independently.
         assert_eq!((live.ask_id, live.ask_left), (Some(12), Some(200)));
-        assert_eq!(live.apply_fill(ev(12, 260)), FillApplied::Filled { side: QuoteSide::Ask });
-        assert!(live.settle(QuoteSide::Ask, 12, Some(("closed", 0))));
+        assert_eq!(live.apply_fill(ev(12, 260), t0), FillApplied::Filled { side: QuoteSide::Ask });
+        assert_eq!(live.settle(QuoteSide::Ask, 12, Some(("closed", 0)), ms(t0, 100), P), Settled::Cleared);
         assert!(live.ask.is_none() && live.ask_id.is_none());
     }
 
     #[test]
-    fn the_venue_decides_whether_a_filled_looking_quote_is_gone() {
-        // Still open (a fill counted twice, or the edit kept more size than tracked): resync, keep quoting it.
+    fn a_venue_that_trails_the_fills_is_asked_again_until_it_shows_the_quote_closed() {
+        // 19 Oct 2026 demo: about 150 ms after the last fill the venue still showed the order open with its
+        // old size; asked again 0.5 s later it showed it closed.
+        let t0 = Instant::now();
+        let mut live = resting(200, 2);
+        assert_eq!(live.apply_fill(FillEvent { order_id: 12, contracts: 2 }, t0), FillApplied::Filled { side: QuoteSide::Ask });
+        assert_eq!(live.settle(QuoteSide::Ask, 12, Some(("open", 2)), ms(t0, 150), P), Settled::Waiting);
+        // Still tracked with the fills' remainder, not the venue's stale size, and asked about again.
+        assert_eq!((live.ask_id, live.ask_left, live.awaiting_venue(QuoteSide::Ask)), (Some(12), Some(0), Some(12)));
+        assert_eq!(live.settle(QuoteSide::Ask, 12, None, ms(t0, 550), P), Settled::Waiting);
+        assert_eq!(live.settle(QuoteSide::Ask, 12, Some(("closed", 0)), ms(t0, 950), P), Settled::Cleared);
+        assert_eq!((live.ask, live.ask_id, live.awaiting_venue(QuoteSide::Ask)), (None, None, None));
+        // The bid was never involved.
+        assert_eq!((live.bid_id, live.bid_left, live.awaiting_venue(QuoteSide::Bid)), (Some(11), Some(200), None));
+    }
+
+    #[test]
+    fn after_the_patience_the_venue_decides() {
+        let t0 = Instant::now();
+        // Still open after the patience (a fill counted twice, say): its unfilled size becomes the remainder.
         let mut live = resting(50, 200);
-        assert_eq!(live.apply_fill(FillEvent { order_id: 11, contracts: 50 }), FillApplied::Filled { side: QuoteSide::Bid });
-        assert!(!live.settle(QuoteSide::Bid, 11, Some(("open", 120))));
-        assert_eq!((live.bid_id, live.bid_left), (Some(11), Some(120)));
-        // No answer from the venue: keep it tracked rather than risk a second quote beside it.
-        assert!(!live.settle(QuoteSide::Bid, 11, None));
-        assert_eq!(live.bid_id, Some(11));
-        // A cancelled order is gone too.
-        assert!(live.settle(QuoteSide::Bid, 11, Some(("cancelled", 120))));
+        assert_eq!(live.apply_fill(FillEvent { order_id: 11, contracts: 50 }, t0), FillApplied::Filled { side: QuoteSide::Bid });
+        assert_eq!(live.settle(QuoteSide::Bid, 11, Some(("open", 120)), ms(t0, 4_900), P), Settled::Waiting);
+        assert_eq!(live.settle(QuoteSide::Bid, 11, Some(("open", 120)), ms(t0, 5_000), P), Settled::Resynced { left: 120 });
+        assert_eq!((live.bid_id, live.bid_left, live.awaiting_venue(QuoteSide::Bid)), (Some(11), Some(120), None));
+        // No answer for the whole patience: stop asking, but keep the quote tracked rather than risk a second
+        // one beside it (the requote path asks before it forgets it).
+        let mut live = resting(50, 200);
+        live.apply_fill(FillEvent { order_id: 11, contracts: 50 }, t0);
+        assert_eq!(live.settle(QuoteSide::Bid, 11, None, ms(t0, 5_000), P), Settled::GaveUp);
+        assert_eq!((live.bid_id, live.bid_left, live.awaiting_venue(QuoteSide::Bid)), (Some(11), Some(0), None));
+        // A cancelled order is gone, at any time.
+        assert_eq!(live.settle(QuoteSide::Bid, 11, Some(("cancelled", 0)), ms(t0, 9_000), P), Settled::Cleared);
         assert!(live.bid_id.is_none());
-        // The side moved on to another order before the answer came: nothing changes.
+    }
+
+    #[test]
+    fn a_side_that_moved_on_or_was_placed_again_is_not_settled() {
+        let t0 = Instant::now();
+        let mut live = resting(2, 200);
+        live.apply_fill(FillEvent { order_id: 11, contracts: 2 }, t0);
+        // The requote path replaced the order before the answer came: nothing changes.
         live.bid = Some(0.2401);
         live.bid_id = Some(21);
-        live.bid_left = Some(200);
-        assert!(!live.settle(QuoteSide::Bid, 11, Some(("closed", 0))));
+        live.set_left(QuoteSide::Bid, Some(200));
+        assert_eq!(live.settle(QuoteSide::Bid, 11, Some(("closed", 0)), ms(t0, 100), P), Settled::Moved);
         assert_eq!((live.bid_id, live.bid_left), (Some(21), Some(200)));
+        // A place or an accepted edit means the order rests: no venue check is pending for it.
+        assert_eq!(live.awaiting_venue(QuoteSide::Bid), None);
     }
 
     #[test]
@@ -298,14 +406,14 @@ mod tests {
         let before = (live.bid, live.bid_id, live.bid_left, live.ask, live.ask_id, live.ask_left);
         // A replaced order (cancelled, then a fill that was already in flight), a reduce-only exit, anything else.
         for id in [10, 13, 99] {
-            assert_eq!(live.apply_fill(FillEvent { order_id: id, contracts: 50 }), FillApplied::Unknown);
+            assert_eq!(live.apply_fill(FillEvent { order_id: id, contracts: 50 }, Instant::now()), FillApplied::Unknown);
         }
         // A zero or negative size is not a fill.
-        assert_eq!(live.apply_fill(FillEvent { order_id: 11, contracts: 0 }), FillApplied::Unknown);
+        assert_eq!(live.apply_fill(FillEvent { order_id: 11, contracts: 0 }, Instant::now()), FillApplied::Unknown);
         assert_eq!(before, (live.bid, live.bid_id, live.bid_left, live.ask, live.ask_id, live.ask_left));
         // After the bid is cleared, a late fill of its id is unknown too.
         live.clear_bid();
-        assert_eq!(live.apply_fill(FillEvent { order_id: 11, contracts: 50 }), FillApplied::Unknown);
+        assert_eq!(live.apply_fill(FillEvent { order_id: 11, contracts: 50 }, Instant::now()), FillApplied::Unknown);
     }
 
     #[test]
@@ -313,7 +421,7 @@ mod tests {
         // Without a known size, a fill cannot say the order is done: keep it (the requote path still pulls it).
         let mut live = resting(200, 200);
         live.bid_left = None;
-        assert_eq!(live.apply_fill(FillEvent { order_id: 11, contracts: 500 }), FillApplied::Partial { side: QuoteSide::Bid, left: None });
+        assert_eq!(live.apply_fill(FillEvent { order_id: 11, contracts: 500 }, Instant::now()), FillApplied::Partial { side: QuoteSide::Bid, left: None });
         assert_eq!((live.bid_id, live.bid_left), (Some(11), None));
     }
 

@@ -16,7 +16,10 @@ use mm_core::{
 };
 use crate::exchange::QuotingRest;
 use crate::markout::MarkoutRuntime;
-use crate::oms::{contracts_of, gone_after_cancel, left_after_edit, FillApplied, FillEvent, LiveQuotes, OmsState, QuoteSide};
+use crate::oms::{
+    contracts_of, gone_after_cancel, left_after_edit, FillApplied, FillEvent, LiveQuotes, OmsState, QuoteSide, Settled,
+    SETTLE_PATIENCE,
+};
 use crate::account::{AccountConfig, AccountFlags};
 use crate::risk::{
     counts_toward_reject_kill, BookAge, BookFreeze, BookWatch, DailyLossGuard, FeedHealth, FeedWatch, FrozenBookWatch,
@@ -937,25 +940,24 @@ async fn run_symbol_loop(
                 break;
             }
         }
+        // Quotes the fills said were done that the venue did not yet show closed: ask again (its order state can
+        // trail the fills feed by a few hundred ms).
+        for side in [QuoteSide::Bid, QuoteSide::Ask] {
+            if let Some(id) = oms.live.awaiting_venue(side) {
+                settle_with_venue(rest.as_ref(), &symbol, &mut oms.live, side, id).await;
+            }
+        }
         // Fills since the last loop, against the quotes they hit. A quote the fills say is done is forgotten only
         // once the venue says it is closed; then this loop quotes that side again.
         if let Some(rx) = fills_rx.as_mut() {
             while let Ok(ev) = rx.try_recv() {
-                match oms.live.apply_fill(ev) {
+                match oms.live.apply_fill(ev, Instant::now()) {
                     FillApplied::Partial { side, left } => {
                         tracing::info!(%symbol, ?side, order_id = ev.order_id, contracts = ev.contracts, left = ?left, "fill on a resting quote");
                     }
                     FillApplied::Filled { side } => {
-                        let venue = match &rest {
-                            Some(r) => r.order_state(ev.order_id).await,
-                            None => Err(anyhow::anyhow!("no REST client")),
-                        };
-                        let answer = venue.as_ref().ok().map(|(state, unfilled)| (state.as_str(), *unfilled));
-                        let cleared = oms.live.settle(side, ev.order_id, answer);
-                        match &venue {
-                            Ok(_) => tracing::info!(%symbol, ?side, order_id = ev.order_id, contracts = ev.contracts, venue = ?answer, cleared, "fill reached the quote's size"),
-                            Err(e) => tracing::warn!(%symbol, ?side, order_id = ev.order_id, error = %e, "fill reached the quote's size but the venue did not answer; kept tracked"),
-                        }
+                        tracing::info!(%symbol, ?side, order_id = ev.order_id, contracts = ev.contracts, "fill reached the quote's size");
+                        settle_with_venue(rest.as_ref(), &symbol, &mut oms.live, side, ev.order_id).await;
                     }
                     FillApplied::Unknown => {
                         tracing::debug!(%symbol, order_id = ev.order_id, contracts = ev.contracts, "fill of an order that is not a resting quote");
@@ -1580,7 +1582,7 @@ async fn run_symbol_loop(
                             && r.edit_post_only(&symbol, id, bid_qty, plan.bid).await.is_ok()
                         {
                             oms.live.bid = Some(plan.bid);
-                            oms.live.bid_left = left_after_edit(oms.live.bid_left, contracts_of(bid_qty, contract_value));
+                            oms.live.set_left(QuoteSide::Bid, left_after_edit(oms.live.bid_left, contracts_of(bid_qty, contract_value)));
                             need_bid = false;
                             tracing::info!(target: "MM_ORDER", %symbol, side = "buy", price = plan.bid, qty = bid_qty, "edited post-only");
                         } else if !pull_quote(r, &symbol, &mut oms.live, QuoteSide::Bid, id).await {
@@ -1598,7 +1600,7 @@ async fn run_symbol_loop(
                             && r.edit_post_only(&symbol, id, ask_qty, plan.ask).await.is_ok()
                         {
                             oms.live.ask = Some(plan.ask);
-                            oms.live.ask_left = left_after_edit(oms.live.ask_left, contracts_of(ask_qty, contract_value));
+                            oms.live.set_left(QuoteSide::Ask, left_after_edit(oms.live.ask_left, contracts_of(ask_qty, contract_value)));
                             need_ask = false;
                             tracing::info!(target: "MM_ORDER", %symbol, side = "sell", price = plan.ask, qty = ask_qty, "edited post-only");
                         } else if !pull_quote(r, &symbol, &mut oms.live, QuoteSide::Ask, id).await {
@@ -1639,7 +1641,7 @@ async fn run_symbol_loop(
                     risk.reject_count = risk.reject_count.saturating_sub(2);
                     oms.live.bid = Some(price);
                     oms.live.bid_id = placed.ok().flatten();
-                    oms.live.bid_left = contracts_of(bid_qty, contract_value);
+                    oms.live.set_left(QuoteSide::Bid, contracts_of(bid_qty, contract_value));
                     crate::oems::post_order(&link, &symbol, "buy", price, bid_qty, false, None);
                     tracing::info!(
                         target: "MM_ORDER",
@@ -1690,7 +1692,7 @@ async fn run_symbol_loop(
                     risk.reject_count = risk.reject_count.saturating_sub(2);
                     oms.live.bid = Some(plan.bid);
                     oms.live.bid_id = placed.ok().flatten();
-                    oms.live.bid_left = contracts_of(bid_qty, contract_value);
+                    oms.live.set_left(QuoteSide::Bid, contracts_of(bid_qty, contract_value));
                     crate::oems::post_order(&link, &symbol, "buy", plan.bid, bid_qty, false, None);
                     tracing::info!(
                         target: "MM_ORDER",
@@ -1731,7 +1733,7 @@ async fn run_symbol_loop(
                     risk.reject_count = risk.reject_count.saturating_sub(2);
                     oms.live.ask = Some(price);
                     oms.live.ask_id = placed.ok().flatten();
-                    oms.live.ask_left = contracts_of(ask_qty, contract_value);
+                    oms.live.set_left(QuoteSide::Ask, contracts_of(ask_qty, contract_value));
                     crate::oems::post_order(&link, &symbol, "sell", price, ask_qty, false, None);
                     tracing::info!(
                         target: "MM_ORDER",
@@ -1782,7 +1784,7 @@ async fn run_symbol_loop(
                     risk.reject_count = risk.reject_count.saturating_sub(2);
                     oms.live.ask = Some(plan.ask);
                     oms.live.ask_id = placed.ok().flatten();
-                    oms.live.ask_left = contracts_of(ask_qty, contract_value);
+                    oms.live.set_left(QuoteSide::Ask, contracts_of(ask_qty, contract_value));
                     crate::oems::post_order(&link, &symbol, "sell", plan.ask, ask_qty, false, None);
                     tracing::info!(
                         target: "MM_ORDER",
@@ -1857,6 +1859,34 @@ fn handle_delta_fill_row(
         s.record_fill(ms);
     }
     Some(fill)
+}
+
+/// Asks the venue about a quote the fills say is done and settles it (`LiveQuotes::settle`).
+async fn settle_with_venue(rest: Option<&QuotingRest>, symbol: &str, live: &mut LiveQuotes, side: QuoteSide, order_id: u64) {
+    let since = live.done_at(side);
+    let venue = match rest {
+        Some(r) => r.order_state(order_id).await,
+        None => Err(anyhow::anyhow!("no REST client")),
+    };
+    let answer = venue.as_ref().ok().map(|(state, unfilled)| (state.as_str(), *unfilled));
+    let now = Instant::now();
+    let waited_ms = since.map_or(0, |t| now.saturating_duration_since(t).as_millis() as u64);
+    match live.settle(side, order_id, answer, now, SETTLE_PATIENCE) {
+        Settled::Cleared => {
+            tracing::info!(%symbol, ?side, order_id, waited_ms, "venue shows the filled quote closed; quoting the side again");
+        }
+        Settled::Waiting => {
+            tracing::debug!(%symbol, ?side, order_id, waited_ms, venue = ?answer, "venue does not show the filled quote closed yet; asking again next loop");
+        }
+        Settled::Resynced { left } => {
+            tracing::warn!(%symbol, ?side, order_id, waited_ms, left, "venue still shows the quote open; its unfilled size is the remainder now");
+        }
+        Settled::GaveUp => {
+            let error = venue.as_ref().err().map(|e| format!("{e:#}"));
+            tracing::warn!(%symbol, ?side, order_id, waited_ms, venue = ?answer, ?error, "no usable answer on the filled quote; it stays tracked until the requote path checks it");
+        }
+        Settled::Moved => {}
+    }
 }
 
 /// Cancels one resting quote and forgets it once it is gone. A failed cancel asks the venue: closed or
