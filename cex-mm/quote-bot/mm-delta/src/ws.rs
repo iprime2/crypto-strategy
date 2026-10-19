@@ -135,7 +135,6 @@ pub fn classify_private_frame(v: &Value) -> PrivateFrame {
     PrivateFrame::Other
 }
 
-/// Timings for the private feed. `Default` is what the bot runs with.
 /// One of our fills from a `v2/user_trades` frame.
 #[derive(Debug, Clone, PartialEq)]
 pub struct UserTrade {
@@ -198,6 +197,7 @@ pub fn parse_user_trade(v: &Value) -> Option<UserTrade> {
     })
 }
 
+/// Timings for the private feed. `Default` is what the bot runs with.
 #[derive(Debug, Clone, Copy)]
 pub struct PrivateWsTimings {
     pub connect_timeout: Duration,

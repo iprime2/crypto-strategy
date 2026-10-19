@@ -16,7 +16,7 @@ use mm_core::{
 };
 use crate::exchange::QuotingRest;
 use crate::markout::MarkoutRuntime;
-use crate::oms::OmsState;
+use crate::oms::{contracts_of, gone_after_cancel, left_after_edit, FillApplied, FillEvent, LiveQuotes, OmsState, QuoteSide};
 use crate::account::{AccountConfig, AccountFlags};
 use crate::risk::{
     counts_toward_reject_kill, BookAge, BookFreeze, BookWatch, DailyLossGuard, FeedHealth, FeedWatch, FrozenBookWatch,
@@ -28,7 +28,7 @@ use std::collections::{HashMap, VecDeque};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use tokio::sync::watch;
+use tokio::sync::{mpsc, watch};
 use tokio::task::JoinSet;
 
 #[derive(Args, Clone)]
@@ -71,6 +71,8 @@ struct SymbolExecCtx {
     snipe: Arc<Mutex<SnipeTracker>>,
     last_jump: Arc<Mutex<Option<Instant>>>,
     economics_path: PathBuf,
+    /// Our fills, by order id, to the symbol's loop so it can tell which resting quote they hit (Delta only).
+    fills_tx: Option<mpsc::Sender<FillEvent>>,
 }
 
 #[derive(Clone, Copy)]
@@ -153,6 +155,7 @@ pub async fn run_delta(args: RunArgs, dry_run: bool) -> Result<()> {
 
     let exec_map: Arc<Mutex<HashMap<String, SymbolExecCtx>>> = Arc::new(Mutex::new(HashMap::new()));
     let products_fill = products.clone();
+    let mut fill_rxs: HashMap<String, mpsc::Receiver<FillEvent>> = HashMap::new();
 
     for symbol in &symbols {
         let path = economics_path_for(symbol);
@@ -175,6 +178,8 @@ pub async fn run_delta(args: RunArgs, dry_run: bool) -> Result<()> {
             MarkoutGuard::with_rolling_capacity(cfg.markout_rolling_window),
             AlphaMuEstimator::new(64),
         );
+        let (fills_tx, fills_rx) = mpsc::channel(256);
+        fill_rxs.insert(symbol.clone(), fills_rx);
         exec_map.lock().unwrap().insert(
             symbol.clone(),
             SymbolExecCtx {
@@ -183,6 +188,7 @@ pub async fn run_delta(args: RunArgs, dry_run: bool) -> Result<()> {
                 snipe: Arc::new(Mutex::new(SnipeTracker::default())),
                 last_jump: Arc::new(Mutex::new(None)),
                 economics_path: path,
+                fills_tx: Some(fills_tx),
             },
         );
     }
@@ -202,7 +208,14 @@ pub async fn run_delta(args: RunArgs, dry_run: bool) -> Result<()> {
                 let mm_sym = normalize_symbol(&mm_delta::mm_symbol_from_delta(delta_sym));
                 let Ok(guard) = map.lock() else { return };
                 let Some(ctx) = guard.get(&mm_sym) else { return };
-                handle_delta_fill_row(row, &prod, &mm_sym, &ctx.economics, &ctx.markout, &ctx.economics_path, &ctx.snipe, &ctx.last_jump);
+                let fill = handle_delta_fill_row(row, &prod, &mm_sym, &ctx.economics, &ctx.markout, &ctx.economics_path, &ctx.snipe, &ctx.last_jump);
+                if let (Some(order_id), Some(contracts), Some(tx)) =
+                    (fill.as_ref().and_then(|f| f.order_id), fill.as_ref().map(|f| f.contracts), &ctx.fills_tx)
+                {
+                    if tx.try_send(FillEvent { order_id, contracts }).is_err() {
+                        tracing::warn!(symbol = %mm_sym, order_id, "fill not passed to the quote loop (queue full or loop gone); the requote path will find the order");
+                    }
+                }
             })
             .await;
         });
@@ -251,6 +264,7 @@ pub async fn run_delta(args: RunArgs, dry_run: bool) -> Result<()> {
             .ok()
             .map(|m| (m.tick_size, m.contract_value, m.contract_value));
         let depth_rx = depth_rxs.remove(&symbol);
+        let fills_rx = fill_rxs.remove(&symbol);
         tasks.spawn(async move {
             run_symbol_loop(
                 symbol,
@@ -263,6 +277,7 @@ pub async fn run_delta(args: RunArgs, dry_run: bool) -> Result<()> {
                 account,
                 fill_feed,
                 depth_rx,
+                fills_rx,
             )
             .await
         });
@@ -623,6 +638,7 @@ pub async fn run(args: RunArgs, dry_run: bool) -> Result<()> {
                 snipe: Arc::new(Mutex::new(SnipeTracker::default())),
                 last_jump: Arc::new(Mutex::new(None)),
                 economics_path: path,
+                fills_tx: None,
             },
         );
     }
@@ -677,6 +693,7 @@ pub async fn run(args: RunArgs, dry_run: bool) -> Result<()> {
                 None,
                 None,
                 None,
+                None,
             )
                 .await
         });
@@ -699,6 +716,7 @@ async fn run_symbol_loop(
     account: Option<Arc<AccountFlags>>,
     fill_feed: Option<watch::Receiver<mm_delta::PrivateFeedState>>,
     depth_rx: Option<mm_delta::DepthRx>,
+    mut fills_rx: Option<mpsc::Receiver<FillEvent>>,
 ) -> Result<()> {
     let cfg = StrategyConfig::from_env_for_symbol(&symbol, env_f64_global);
 
@@ -917,6 +935,32 @@ async fn run_symbol_loop(
                 oms.live.clear();
                 tracing::error!(%symbol, daily_pnl_usd = risk.daily_pnl_usd, "account halt — orders cancelled, quoting stopped");
                 break;
+            }
+        }
+        // Fills since the last loop, against the quotes they hit. A quote the fills say is done is forgotten only
+        // once the venue says it is closed; then this loop quotes that side again.
+        if let Some(rx) = fills_rx.as_mut() {
+            while let Ok(ev) = rx.try_recv() {
+                match oms.live.apply_fill(ev) {
+                    FillApplied::Partial { side, left } => {
+                        tracing::info!(%symbol, ?side, order_id = ev.order_id, contracts = ev.contracts, left = ?left, "fill on a resting quote");
+                    }
+                    FillApplied::Filled { side } => {
+                        let venue = match &rest {
+                            Some(r) => r.order_state(ev.order_id).await,
+                            None => Err(anyhow::anyhow!("no REST client")),
+                        };
+                        let answer = venue.as_ref().ok().map(|(state, unfilled)| (state.as_str(), *unfilled));
+                        let cleared = oms.live.settle(side, ev.order_id, answer);
+                        match &venue {
+                            Ok(_) => tracing::info!(%symbol, ?side, order_id = ev.order_id, contracts = ev.contracts, venue = ?answer, cleared, "fill reached the quote's size"),
+                            Err(e) => tracing::warn!(%symbol, ?side, order_id = ev.order_id, error = %e, "fill reached the quote's size but the venue did not answer; kept tracked"),
+                        }
+                    }
+                    FillApplied::Unknown => {
+                        tracing::debug!(%symbol, order_id = ev.order_id, contracts = ev.contracts, "fill of an order that is not a resting quote");
+                    }
+                }
             }
         }
         // A dropped feed task counts as no update, so the book goes stale.
@@ -1517,7 +1561,11 @@ async fn run_symbol_loop(
         let mut need_ask = need_ask;
         if r.cancel_before_requote() {
             if oms.live.has_untracked() {
-                let _ = r.cancel_all(&symbol).await;
+                // Forget nothing the venue may still hold: retry next loop if the cancel-all fails.
+                if let Err(e) = r.cancel_all(&symbol).await {
+                    tracing::warn!(%symbol, error = %e, "cancel-all for an order without an id failed; retrying next loop");
+                    continue;
+                }
                 oms.live.clear();
                 need_bid = true;
                 need_ask = true;
@@ -1526,18 +1574,17 @@ async fn run_symbol_loop(
                     if let Some(id) = oms.live.bid_id {
                         let crosses = top.best_ask > 0.0 && plan.bid >= top.best_ask;
                         if !plan.place_bid {
-                            let _ = r.cancel_order(&symbol, id).await;
-                            oms.live.clear_bid();
+                            pull_quote(r, &symbol, &mut oms.live, QuoteSide::Bid, id).await;
                             need_bid = false;
                         } else if !crosses
                             && r.edit_post_only(&symbol, id, bid_qty, plan.bid).await.is_ok()
                         {
                             oms.live.bid = Some(plan.bid);
+                            oms.live.bid_left = left_after_edit(oms.live.bid_left, contracts_of(bid_qty, contract_value));
                             need_bid = false;
                             tracing::info!(target: "MM_ORDER", %symbol, side = "buy", price = plan.bid, qty = bid_qty, "edited post-only");
-                        } else {
-                            let _ = r.cancel_order(&symbol, id).await;
-                            oms.live.clear_bid();
+                        } else if !pull_quote(r, &symbol, &mut oms.live, QuoteSide::Bid, id).await {
+                            need_bid = false;
                         }
                     }
                 }
@@ -1545,18 +1592,17 @@ async fn run_symbol_loop(
                     if let Some(id) = oms.live.ask_id {
                         let crosses = top.best_bid > 0.0 && plan.ask <= top.best_bid;
                         if !plan.place_ask {
-                            let _ = r.cancel_order(&symbol, id).await;
-                            oms.live.clear_ask();
+                            pull_quote(r, &symbol, &mut oms.live, QuoteSide::Ask, id).await;
                             need_ask = false;
                         } else if !crosses
                             && r.edit_post_only(&symbol, id, ask_qty, plan.ask).await.is_ok()
                         {
                             oms.live.ask = Some(plan.ask);
+                            oms.live.ask_left = left_after_edit(oms.live.ask_left, contracts_of(ask_qty, contract_value));
                             need_ask = false;
                             tracing::info!(target: "MM_ORDER", %symbol, side = "sell", price = plan.ask, qty = ask_qty, "edited post-only");
-                        } else {
-                            let _ = r.cancel_order(&symbol, id).await;
-                            oms.live.clear_ask();
+                        } else if !pull_quote(r, &symbol, &mut oms.live, QuoteSide::Ask, id).await {
+                            need_ask = false;
                         }
                     }
                 }
@@ -1593,6 +1639,7 @@ async fn run_symbol_loop(
                     risk.reject_count = risk.reject_count.saturating_sub(2);
                     oms.live.bid = Some(price);
                     oms.live.bid_id = placed.ok().flatten();
+                    oms.live.bid_left = contracts_of(bid_qty, contract_value);
                     crate::oems::post_order(&link, &symbol, "buy", price, bid_qty, false, None);
                     tracing::info!(
                         target: "MM_ORDER",
@@ -1643,6 +1690,7 @@ async fn run_symbol_loop(
                     risk.reject_count = risk.reject_count.saturating_sub(2);
                     oms.live.bid = Some(plan.bid);
                     oms.live.bid_id = placed.ok().flatten();
+                    oms.live.bid_left = contracts_of(bid_qty, contract_value);
                     crate::oems::post_order(&link, &symbol, "buy", plan.bid, bid_qty, false, None);
                     tracing::info!(
                         target: "MM_ORDER",
@@ -1683,6 +1731,7 @@ async fn run_symbol_loop(
                     risk.reject_count = risk.reject_count.saturating_sub(2);
                     oms.live.ask = Some(price);
                     oms.live.ask_id = placed.ok().flatten();
+                    oms.live.ask_left = contracts_of(ask_qty, contract_value);
                     crate::oems::post_order(&link, &symbol, "sell", price, ask_qty, false, None);
                     tracing::info!(
                         target: "MM_ORDER",
@@ -1733,6 +1782,7 @@ async fn run_symbol_loop(
                     risk.reject_count = risk.reject_count.saturating_sub(2);
                     oms.live.ask = Some(plan.ask);
                     oms.live.ask_id = placed.ok().flatten();
+                    oms.live.ask_left = contracts_of(ask_qty, contract_value);
                     crate::oems::post_order(&link, &symbol, "sell", plan.ask, ask_qty, false, None);
                     tracing::info!(
                         target: "MM_ORDER",
@@ -1758,12 +1808,12 @@ fn handle_delta_fill_row(
     econ_path: &PathBuf,
     snipe: &Arc<Mutex<SnipeTracker>>,
     last_jump: &Arc<Mutex<Option<Instant>>>,
-) {
+) -> Option<mm_delta::UserTrade> {
     // Delta sends the size as a string and `i` is the product id: before 15 Oct 2026 this read a size of 0
     // and used one id per product, so the OEMS (unique on trade id) kept only the first fill.
     let Some(fill) = mm_delta::parse_user_trade(row) else {
         tracing::warn!(symbol = %mm_symbol, frame = %row.to_string().chars().take(300).collect::<String>(), "fill frame not understood; skipped (the reconcile will catch the position)");
-        return;
+        return None;
     };
     let qty = products.base_qty_from_contracts(mm_symbol, fill.contracts);
     let price = fill.price;
@@ -1805,6 +1855,35 @@ fn handle_delta_fill_row(
         .unwrap_or(u64::MAX);
     if let Ok(mut s) = snipe.lock() {
         s.record_fill(ms);
+    }
+    Some(fill)
+}
+
+/// Cancels one resting quote and forgets it once it is gone. A failed cancel asks the venue: closed or
+/// cancelled (it filled meanwhile) counts as gone. Otherwise a cancel-all clears the symbol and both sides are
+/// forgotten. If that fails too, the quote stays tracked and the next loop tries again: forgetting an order
+/// that may still rest would put a second quote beside it. Returns whether `side` is now clear.
+async fn pull_quote(r: &QuotingRest, symbol: &str, live: &mut LiveQuotes, side: QuoteSide, id: u64) -> bool {
+    let Err(cancel_err) = r.cancel_order(symbol, id).await else {
+        live.clear_side(side);
+        return true;
+    };
+    let state = r.order_state(id).await;
+    let answer = state.as_ref().ok().map(|(s, _)| s.as_str());
+    if gone_after_cancel(false, answer) {
+        live.clear_side(side);
+        return true;
+    }
+    tracing::warn!(%symbol, ?side, order_id = id, error = %cancel_err, venue_state = ?answer, "cancel failed and the venue does not say the quote is gone; cancelling all");
+    match r.cancel_all(symbol).await {
+        Ok(()) => {
+            live.clear();
+            true
+        }
+        Err(e) => {
+            tracing::warn!(%symbol, error = %e, "cancel-all failed too; the quote stays tracked and the next loop retries");
+            false
+        }
     }
 }
 
