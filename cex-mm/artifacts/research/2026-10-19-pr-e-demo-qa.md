@@ -17,7 +17,22 @@ Does PR E work against real venue behaviour: do fills reach the loop by order id
 3. **Post-only rejects:** 5 `immediate_execution_post_only` on places after the book moved; no risk kill, halt or taker fill.
 4. **Dead man's switch:** the first start refused with `heartbeat create: bad_schema`. Delta now requires `default_ttl` on create (PR #47). This run therefore ran without the switch (the demo default).
 
+## Second run: both fixes, dead man's switch on
+**Build:** 302c71f (#47 heartbeat `default_ttl`, #48 re-ask for up to 5 s) · **Run:** 18:03:55–18:13:58Z, same profile with `MM_DMS_TTL_MS=15000`; at the end the bot was killed with SIGKILL (no cancel, no disarm) and open orders were read every second for 40 s.
+
+| Check | Result |
+|---|---|
+| Switch arms | `dead man's switch armed heartbeat_id=mm-bot-btcusd ttl_ms=15000` |
+| Lapse cancels | One 2-contract bid resting at the kill (18:13:58.36); gone between 18:14:10.5 and 18:14:11.7, 12–13 s later (TTL 15 s, acks every 5 s) |
+| Fill routing | 28 fills, 54 contracts on Delta and on the bot's feed; same order ids, all maker |
+| Filled quotes | 26 reached their size: 20 read closed on the first ask (18–24 ms after the fill was processed), 4 on the next loop (418–419 ms); none resynced or gave up. The other 2 were pulled by the inventory cap (at −4 the ask was off for 175 of 176 and 84 of 84 loops) |
+| Wanted side unquoted after a fill | About one loop (0.4 s), against about 43 s in the first run |
+| Ghost orders | At most 1 buy and 1 sell open in 218 polls; 0 open after the backstop cancel-all |
+| Inventory | Bot −0.004 BTC = venue −4 contracts |
+
+The heartbeat was disabled after the run (ack with ttl 0), as the bot's clean exit does.
+
 ## Caveats
 - Demo flow is not mainnet flow; this proves plumbing, not edge.
 - The edit-size reading is one observation.
-- The stale-`open` fix and the heartbeat fix are not yet run against real orders.
+- Each check ran once, 10–15 minutes each; the lapse cancel was seen with one resting order.
