@@ -46,7 +46,7 @@
     <div class="scroll"><table id="dayTable"></table></div>
   </section>
 
-  <p class="foot">Rule (fixed before testing, <code>scripts/trend_backtest.py</code>): long-only, signal = mean sign of the 20, 60 and 120-day returns, each coin sized to the book's target vol over 9 coins, gross exposure capped at 2x. Daily book: target vol 0.40, rebalanced once a day after the 00:00 UTC close (the 2026-10-08 memo's reference; Delta prices Aug 2024 to Sep 2026: +19.4% a year, Sharpe 1.15, worst drawdown −14.1%). Weekly book: target vol 0.25, 10% no-trade band, rebalanced once a week on the Monday 00:00 UTC close (the configuration <code>resource/07</code> says to trade; forward expectation Sharpe 0.3 to 0.8). A paper test passes after 4 weeks if every rebalance runs and costs stay within 2x of the modelled 7.31 bps per unit traded. Public data only: no API keys, no orders.</p>
+  <p class="foot">Rule (fixed before testing, <code>scripts/trend_backtest.py</code>): long-only, signal = mean sign of the 20, 60 and 120-day returns, each coin sized to the book's target vol over 9 coins, gross exposure capped at 2x. Daily book: target vol 0.40, rebalanced once a day after the 00:00 UTC close (the 2026-10-08 memo's reference; Delta prices Aug 2024 to Sep 2026: +19.4% a year, Sharpe 1.15, worst drawdown −14.1%). Weekly book: target vol 0.25, 10% no-trade band, rebalanced once a week on the Monday 00:00 UTC close (the configuration <code>resource/07</code> says to trade; Delta prices Aug 2024 to Oct 2026 at $1,000 in whole contracts: +8.3% a year, Sharpe 0.81, worst drawdown −9.5%; forward expectation Sharpe 0.3 to 0.8, worst drawdown −15% to −25%). A paper test passes after 4 weeks if every rebalance runs and costs stay within 2x of the modelled 7.31 bps per unit traded. Public data only: no API keys, no orders.</p>
 </main>
 
 <script src="/charts.js"></script>
@@ -128,7 +128,7 @@ function renderTiles(d) {
   hero.appendChild(el("div", { class: `note ${signClass(ret)}` }, `${fmtPct(ret)} since start · ${fmtNum(days, 1)} days`));
   box.appendChild(hero);
   box.appendChild(tile("Backtest model", fmtUsd(last.model_equity), `${fmtPct(mret)} · paper − model ${fmtPct(ret - mret)}`));
-  box.appendChild(tile("Worst drawdown", fmtPct(maxDrawdown([s.capital].concat(p.paper)), 1), `backtest worst: −14.1%`));
+  box.appendChild(tile("Worst drawdown", fmtPct(maxDrawdown([s.capital].concat(p.paper)), 1), `backtest worst: ${WEEKLY ? "−9.5%" : "−14.1%"}`));
   const held = Object.keys(last.positions).length;
   box.appendChild(tile("Exposure", `${fmtNum(last.gross, 2)}x`, `${held} of 9 coins held · cap 2x`));
   const fees = j.reduce((a, r) => a + r.fees, 0), fund = j.reduce((a, r) => a + r.funding, 0);
@@ -142,7 +142,11 @@ function renderTiles(d) {
 function drawEquity(d) {
   const c = document.getElementById("equityChart");
   const p = points(d);
-  if (p.t.length < 2) { c.replaceChildren(el("div", { class: "empty" }, "The chart starts after the second daily rebalance (00:05 UTC)")); return; }
+  if (p.t.length < 2) {
+    const next = fmtDateTime(nextRebalance(d.state.last_rebalance_ts));
+    c.replaceChildren(el("div", { class: "empty" }, `The chart starts after the second ${BOOK} rebalance (next: ${next})`));
+    return;
+  }
   const f = frame(c, 260, { l: 64, r: 72, t: 12, b: 26 });
   const series = [
     { key: "paper", label: "Paper", color: cssVar("--series-1") },
