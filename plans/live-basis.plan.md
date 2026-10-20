@@ -120,7 +120,7 @@ The verdict reads PROVISIONAL under 24 h (within one loop). Exit 0 means G1-G4 w
 
 ## Pre-registered first live run (only if G1–G4 and G6 pass and the user says go)
 This is the only place pick-off is judged (owner's decision, 18 Oct 2026): the shadow cannot see takers reacting to our quotes.
-- ADA only. Small and capped: Q and the inventory cap set by the user before the start and written into the run's config; the protocol assumes no more than the 13 Oct run (200 contracts, cap 600). With OFI out of the fair, a smaller Q no longer adds self-reference. **Set 20 Oct 2026 (owner's approval, on a $292 account):** Q = 100 contracts (~$22), cap 300 (~$65, 22% of the account), daily loss stop $10; `config/dism.env` carries them and `MM_FAIR_ANCHOR_LIVE_ADAUSDT=depth`.
+- ADA only. Small and capped: Q and the inventory cap set by the user before the start and written into the run's config; the protocol assumes no more than the 13 Oct run (200 contracts, cap 600). With OFI out of the fair, a smaller Q no longer adds self-reference. **Set 20 Oct 2026 (owner's approval, on a $292 account):** Q = 100 contracts (~$22), cap 300 (~$65, 22% of the account), daily loss stop $10; `config/dism.env` carries them and `MM_FAIR_ANCHOR_LIVE_ADAUSDT=depth`. **Size ladder (owner, 20 Oct):** after 300 fills with PnL per $ ≥ +1 bp and no abort, stage 2 is Q = 200, cap 600, $15 daily stop; a third stage grows through capital or a second market, not a bigger quote.
 - **The existing stop rule:** PnL per $ < −2.6 bps at 300 fills or < 0 at 1,000, plus the $15 a day loss stop.
 - **Anchored aborts:**
   - live vs shadow `basis_depth` over the same period, p99 |difference| > 0.5 bps;
