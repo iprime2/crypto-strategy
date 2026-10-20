@@ -23,6 +23,7 @@ use crate::oms::{
 use crate::account::{AccountConfig, AccountFlags};
 use crate::risk::{
     counts_toward_reject_kill, BookAge, BookFreeze, BookWatch, DailyLossGuard, FeedHealth, FeedWatch, FrozenBookWatch,
+    VenueReading, VenueReconcile,
 };
 use crate::symbols::{env_f64_for_symbol, env_for_symbol, normalize_symbol, resolve_symbols_from_env};
 use mm_core::fair::BasisSource;
@@ -73,6 +74,8 @@ struct SymbolExecCtx {
     markout: MarkoutRuntime,
     snipe: Arc<Mutex<SnipeTracker>>,
     last_jump: Arc<Mutex<Option<Instant>>>,
+    /// When the fills feed last booked one of our fills: a venue position read right after it is still stale.
+    last_fill_at: Arc<Mutex<Option<Instant>>>,
     economics_path: PathBuf,
     /// Our fills, by order id, to the symbol's loop so it can tell which resting quote they hit (Delta only).
     fills_tx: Option<mpsc::Sender<FillEvent>>,
@@ -190,6 +193,7 @@ pub async fn run_delta(args: RunArgs, dry_run: bool) -> Result<()> {
                 markout: markout_rt,
                 snipe: Arc::new(Mutex::new(SnipeTracker::default())),
                 last_jump: Arc::new(Mutex::new(None)),
+                last_fill_at: Arc::new(Mutex::new(None)),
                 economics_path: path,
                 fills_tx: Some(fills_tx),
             },
@@ -212,6 +216,11 @@ pub async fn run_delta(args: RunArgs, dry_run: bool) -> Result<()> {
                 let Ok(guard) = map.lock() else { return };
                 let Some(ctx) = guard.get(&mm_sym) else { return };
                 let fill = handle_delta_fill_row(row, &prod, &mm_sym, &ctx.economics, &ctx.markout, &ctx.economics_path, &ctx.snipe, &ctx.last_jump);
+                if fill.is_some() {
+                    if let Ok(mut t) = ctx.last_fill_at.lock() {
+                        *t = Some(Instant::now());
+                    }
+                }
                 if let (Some(order_id), Some(contracts), Some(tx)) =
                     (fill.as_ref().and_then(|f| f.order_id), fill.as_ref().map(|f| f.contracts), &ctx.fills_tx)
                 {
@@ -537,40 +546,41 @@ fn secs_knob(value: f64, default: f64, lo: f64, hi: f64) -> Duration {
     Duration::from_secs_f64(v.clamp(lo, hi))
 }
 
-/// Exchange is source of truth for open size; keeps economics + quoting in sync when WS fills lag.
+/// The venue is the source of truth for the open size, but its REST position trails the fills feed, so a
+/// read taken right after one of our fills is not adopted at once (`VenueReconcile`). Returns the inventory to
+/// quote with and the venue's reading (None when it could not be read).
 async fn sync_inventory_from_venue(
     rest: &QuotingRest,
     symbol: &str,
     economics_arc: &Arc<Mutex<FillEconomics>>,
     econ_path: &PathBuf,
     tolerance: f64,
-) -> f64 {
+    reconcile: &mut VenueReconcile,
+    last_fill: Option<Instant>,
+) -> (f64, Option<f64>) {
     let venue_pos = match rest.get_position(symbol).await {
         Ok(p) => p,
         Err(e) => {
             tracing::warn!(%symbol, ?e, "venue position fetch failed");
-            return economics_arc
-                .lock()
-                .map(|e| e.position)
-                .unwrap_or(0.0);
+            return (economics_arc.lock().map(|e| e.position).unwrap_or(0.0), None);
         }
     };
-    if let Ok(mut eco) = economics_arc.lock() {
-        let bot_pos = eco.position;
-        if eco.reconcile_position(venue_pos, tolerance) {
+    let Ok(mut eco) = economics_arc.lock() else { return (venue_pos, Some(venue_pos)) };
+    let bot_pos = eco.position;
+    match reconcile.check(bot_pos, venue_pos, tolerance, last_fill, Instant::now()) {
+        VenueReading::Agrees => (bot_pos, Some(venue_pos)),
+        VenueReading::Deferred => {
+            tracing::debug!(%symbol, bot_pos, venue_pos, "venue position trails a fresh fill; kept the bot's count");
+            (bot_pos, Some(venue_pos))
+        }
+        VenueReading::Adopt => {
+            eco.reconcile_position(venue_pos, tolerance);
             if let Err(e) = persist_economics(econ_path, &eco) {
                 tracing::warn!(%symbol, ?e, "persist economics after reconcile");
             }
-            tracing::info!(
-                %symbol,
-                bot_pos,
-                venue_pos,
-                "inventory reconciled from venue"
-            );
+            tracing::info!(%symbol, bot_pos, venue_pos, "inventory reconciled from venue");
+            (venue_pos, Some(venue_pos))
         }
-        venue_pos
-    } else {
-        venue_pos
     }
 }
 
@@ -640,6 +650,7 @@ pub async fn run(args: RunArgs, dry_run: bool) -> Result<()> {
                 markout: markout_rt,
                 snipe: Arc::new(Mutex::new(SnipeTracker::default())),
                 last_jump: Arc::new(Mutex::new(None)),
+                last_fill_at: Arc::new(Mutex::new(None)),
                 economics_path: path,
                 fills_tx: None,
             },
@@ -664,6 +675,9 @@ pub async fn run(args: RunArgs, dry_run: bool) -> Result<()> {
                                 .unwrap_or_default();
                             let Ok(guard) = map.lock() else { continue };
                             let Some(ctx) = guard.get(&sym) else { continue };
+                            if let Ok(mut t) = ctx.last_fill_at.lock() {
+                                *t = Some(Instant::now());
+                            }
                             handle_execution_row(
                                 row,
                                 &ctx.economics,
@@ -873,6 +887,12 @@ async fn run_symbol_loop(
         .get(&symbol)
         .map(|c| c.last_jump.clone())
         .context("exec ctx missing")?;
+    let last_fill_at = exec_map
+        .lock()
+        .unwrap()
+        .get(&symbol)
+        .map(|c| c.last_fill_at.clone())
+        .context("exec ctx missing")?;
     let snipe = exec_map
         .lock()
         .unwrap()
@@ -894,6 +914,10 @@ async fn run_symbol_loop(
         env_f64_for_symbol(&symbol, "MM_VENUE_RECONCILE_SEC", 5.0).max(0.5),
     );
     let mut last_reconcile = Instant::now() - reconcile_every;
+    let mut venue_reconcile = VenueReconcile::new(
+        Duration::from_millis(env_f64_for_symbol(&symbol, "MM_RECONCILE_FILL_GRACE_MS", 3000.0).clamp(0.0, 60_000.0) as u64),
+        secs_knob(env_f64_for_symbol(&symbol, "MM_RECONCILE_MAX_WAIT_SEC", 15.0), 15.0, 1.0, 600.0),
+    );
     // The venue's last reported position. The private fills feed and the reconcile both move the bot's
     // inventory, and either can lag the other, so the adding side is sized against both readings.
     let mut last_venue_pos: Option<f64> = None;
@@ -908,15 +932,17 @@ async fn run_symbol_loop(
     if !dry_run {
         if let Some(r) = &rest {
             if use_venue_inventory {
-                let inv = sync_inventory_from_venue(
+                let (inv, venue) = sync_inventory_from_venue(
                     r,
                     &symbol,
                     &economics_arc,
                     &economics_path,
                     reconcile_tol,
+                    &mut venue_reconcile,
+                    None,
                 )
                 .await;
-                last_venue_pos = Some(inv);
+                last_venue_pos = Some(venue.unwrap_or(inv));
                 tracing::info!(%symbol, inventory = inv, "startup venue inventory");
             }
         }
@@ -1166,16 +1192,19 @@ async fn run_symbol_loop(
             if let Some(r) = &rest {
                 if last_reconcile.elapsed() >= reconcile_every {
                     last_reconcile = Instant::now();
-                    let v = sync_inventory_from_venue(
+                    let last_fill = last_fill_at.lock().ok().and_then(|t| *t);
+                    let (inv, venue) = sync_inventory_from_venue(
                         r,
                         &symbol,
                         &economics_arc,
                         &economics_path,
                         reconcile_tol,
+                        &mut venue_reconcile,
+                        last_fill,
                     )
                     .await;
-                    last_venue_pos = Some(v);
-                    v
+                    last_venue_pos = Some(venue.unwrap_or(inv));
+                    inv
                 } else {
                     economics_arc
                         .lock()
