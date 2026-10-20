@@ -218,6 +218,50 @@ impl FeedWatch {
     }
 }
 
+/// What to do with a venue position read that differs from the bot's own count.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum VenueReading {
+    /// Within tolerance of the bot's count.
+    Agrees,
+    /// Take the venue's figure.
+    Adopt,
+    /// Read within the grace period of our last fill: the bot keeps its count, and the difference is adopted
+    /// later if it lasts.
+    Deferred,
+}
+
+/// When a venue position replaces the bot's own count. Delta's REST position trails its fills feed: on
+/// 20 Oct 2026 a read 5 ms after a 27-contract fill still showed the old size, the bot adopted it and lost the
+/// fill, sized a full quote into room it did not have, and the 300-contract cap reached -360. A read taken
+/// within `grace` of the last fill is not adopted, unless the difference has already lasted `max_wait` (a fill
+/// the feed never delivered still gets corrected).
+#[derive(Debug, Clone)]
+pub struct VenueReconcile {
+    grace: Duration,
+    max_wait: Duration,
+    differs_since: Option<Instant>,
+}
+
+impl VenueReconcile {
+    pub fn new(grace: Duration, max_wait: Duration) -> Self {
+        Self { grace, max_wait, differs_since: None }
+    }
+
+    pub fn check(&mut self, bot: f64, venue: f64, tolerance: f64, last_fill: Option<Instant>, now: Instant) -> VenueReading {
+        if (bot - venue).abs() <= tolerance {
+            self.differs_since = None;
+            return VenueReading::Agrees;
+        }
+        let since = *self.differs_since.get_or_insert(now);
+        let fresh_fill = last_fill.is_some_and(|t| now.saturating_duration_since(t) < self.grace);
+        if fresh_fill && now.saturating_duration_since(since) < self.max_wait {
+            return VenueReading::Deferred;
+        }
+        self.differs_since = None;
+        VenueReading::Adopt
+    }
+}
+
 impl Default for RiskState {
     fn default() -> Self {
         Self {
@@ -322,6 +366,51 @@ mod tests {
 
     fn ms(n: u64) -> Duration {
         Duration::from_millis(n)
+    }
+
+    #[test]
+    fn a_venue_read_right_after_a_fill_does_not_overwrite_the_bot() {
+        // 20 Oct 2026, 14:07:28: a 27-contract sell took the bot to -187; the venue read 5 ms later said -160.
+        let t0 = Instant::now();
+        let mut r = VenueReconcile::new(ms(3000), ms(15_000));
+        assert_eq!(r.check(-187.0, -160.0, 1e-6, Some(t0), t0 + ms(5)), VenueReading::Deferred);
+        // The next read, 5 s on, has caught up.
+        assert_eq!(r.check(-187.0, -187.0, 1e-6, Some(t0), t0 + ms(5005)), VenueReading::Agrees);
+    }
+
+    #[test]
+    fn a_fill_the_feed_never_sent_is_still_corrected() {
+        let t0 = Instant::now();
+        let mut r = VenueReconcile::new(ms(3000), ms(15_000));
+        // No fill for a minute: the venue's figure is taken at once.
+        assert_eq!(r.check(-160.0, -187.0, 1e-6, Some(t0), t0 + ms(60_000)), VenueReading::Adopt);
+        // Never any fill: the same.
+        let mut r = VenueReconcile::new(ms(3000), ms(15_000));
+        assert_eq!(r.check(0.0, 100.0, 1e-6, None, t0), VenueReading::Adopt);
+        // Fills keep landing right before every read: the difference is adopted once it has lasted 15 s.
+        let mut r = VenueReconcile::new(ms(3000), ms(15_000));
+        for s in [0u64, 5, 10] {
+            let now = t0 + ms(s * 1000);
+            assert_eq!(r.check(-160.0, -187.0, 1e-6, Some(now - ms(100)), now), VenueReading::Deferred, "{s} s");
+        }
+        let now = t0 + ms(15_000);
+        assert_eq!(r.check(-160.0, -187.0, 1e-6, Some(now - ms(100)), now), VenueReading::Adopt);
+        // Adopting starts the clock again for the next difference.
+        let now = t0 + ms(20_000);
+        assert_eq!(r.check(-187.0, -200.0, 1e-6, Some(now - ms(100)), now), VenueReading::Deferred);
+    }
+
+    #[test]
+    fn agreement_resets_the_wait() {
+        let t0 = Instant::now();
+        let mut r = VenueReconcile::new(ms(3000), ms(15_000));
+        assert_eq!(r.check(-100.0, -90.0, 1e-6, Some(t0), t0), VenueReading::Deferred);
+        assert_eq!(r.check(-100.0, -100.0, 1e-6, Some(t0), t0 + ms(5000)), VenueReading::Agrees);
+        // A new difference 12 s later waits its own 15 s, not the remainder of the old one.
+        let now = t0 + ms(17_000);
+        assert_eq!(r.check(-120.0, -100.0, 1e-6, Some(now - ms(50)), now), VenueReading::Deferred);
+        // Within tolerance counts as agreement.
+        assert_eq!(r.check(-100.0, -100.0000001, 1e-6, Some(now), now + ms(10)), VenueReading::Agrees);
     }
 
     #[test]
