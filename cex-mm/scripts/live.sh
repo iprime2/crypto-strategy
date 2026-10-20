@@ -63,18 +63,24 @@ check_profile() {
   local bad
   bad="$( { grep -E '^[A-Z0-9_]+=' "$PROFILE" || true; } | { grep -vE '^[A-Z0-9_]+=[^[:space:]"'"'"'#]*$' || true; } | cut -d= -f1 | tr '\n' ' ')"
   [[ -z "${bad// /}" ]] || die "$PROFILE: quotes, spaces or an inline comment in ${bad% }; the bot would ignore them"
-  # The Binance-anchored fair is for the shadow test until its depth basis source passes the gate in
-  # plans/live-basis.plan.md: every anchor weight key (global or per symbol) must be 0 and no live flag may be
-  # set. Lifting this is a deliberate edit here, after the gate, not a profile change.
-  local line k w
-  while IFS= read -r line; do
-    k="${line%%=*}"; w="${line#*=}"
-    [[ "$w" =~ ^0+(\.0*)?$ ]] \
-      || die "$PROFILE: $k=$w is for the shadow test only (set it to 0 for a live run); see plans/live-basis.plan.md"
-  done < <(grep -E '^MM_FAIR_ANCHOR_WEIGHT(_[A-Z0-9]+)?=' "$PROFILE" || true)
-  line="$(grep -E '^MM_FAIR_ANCHOR_LIVE(_[A-Z0-9]+)?=' "$PROFILE" | head -n 1 || true)"
-  [[ -z "$line" ]] || die "$PROFILE: $line is not allowed until the live basis gate passes (plans/live-basis.plan.md); remove it"
+  # The Binance-anchored fair runs live only from the depth basis, which passed the gate in
+  # plans/live-basis.plan.md for ADA (G1-G4 on 18 Oct 2026, G6 on 19 Oct; the owner approved the lift on 20 Oct).
+  # A quoted symbol with an anchor weight above 0 needs MM_FAIR_ANCHOR_LIVE=depth and MM_BASIS_SOURCE=depth (per
+  # symbol, else global): the rule the bot applies at start (mm_core::fair::live_anchor_check), checked here
+  # too so a refused profile never launches.
+  local sym w flag src
+  for sym in ${SYMBOLS//,/ }; do
+    w="$(profile_value "MM_FAIR_ANCHOR_WEIGHT_$sym")"; [[ -n "$w" ]] || w="$(profile_value MM_FAIR_ANCHOR_WEIGHT)"
+    [[ -z "$w" || "$w" =~ ^0+(\.0*)?$ ]] && continue
+    flag="$(profile_value "MM_FAIR_ANCHOR_LIVE_$sym")"; [[ -n "$flag" ]] || flag="$(profile_value MM_FAIR_ANCHOR_LIVE)"
+    src="$(profile_value "MM_BASIS_SOURCE_$sym")"; [[ -n "$src" ]] || src="$(profile_value MM_BASIS_SOURCE)"
+    [[ "$flag" == depth && "$src" == depth ]] \
+      || die "$PROFILE: $sym is anchored (weight $w) but MM_FAIR_ANCHOR_LIVE='$flag' and MM_BASIS_SOURCE='$src'; a live anchor needs both set to depth (plans/live-basis.plan.md), or weight 0"
+  done
 }
+
+# Last value of KEY in the profile, or empty.
+profile_value() { { grep -E "^$1=" "$PROFILE" || true; } | tail -n 1 | cut -d= -f2-; }
 
 # Alive and not a zombie (an orphan's zombie can linger until its new parent reaps it).
 alive() { [[ "$1" =~ ^[0-9]+$ ]] && [[ -r "/proc/$1/stat" ]] && [[ "$(cut -d' ' -f3 "/proc/$1/stat" 2>/dev/null)" != Z ]]; }

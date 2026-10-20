@@ -77,9 +77,7 @@ class LiveSh(unittest.TestCase):
         (self.root / "quote-bot").mkdir()
         (self.root / "target" / "release").mkdir(parents=True)
         shutil.copy(HERE / "live.sh", self.root / "scripts" / "live.sh")
-        shutil.copy(HERE.parent / "config" / "dism.env", self.root / "config" / "dism.env")
-        prof = self.root / "config" / "dism.env"  # live runs need the anchor off (see the anchor test)
-        prof.write_text(re.sub(r"(?m)^MM_FAIR_ANCHOR_WEIGHT=.*$", "MM_FAIR_ANCHOR_WEIGHT=0", prof.read_text()))
+        shutil.copy(HERE.parent / "config" / "dism.env", self.root / "config" / "dism.env")  # the repo's, as is
         (self.root / "scripts" / "delta_key_check.py").write_text(STUB_KEYCHECK)
         (self.root / "scripts" / "live_vs_shadow.py").write_text(STUB_VENUE)
         bot = self.root / "target" / "release" / "mm-bot"
@@ -240,24 +238,40 @@ class LiveSh(unittest.TestCase):
         self.assertNotIn(SECRET, r.stdout + r.stderr)
         self.assertNotIn(KEY, r.stdout + r.stderr)
 
-    def test_start_refuses_the_shadow_only_binance_anchor(self):
-        shutil.copy(HERE.parent / "config" / "dism.env", self.root / "config" / "dism.env")  # the repo's: anchor on
+    def test_start_allows_the_binance_anchor_live_only_from_the_depth_source(self):
+        # The repo's profile anchors ADA with MM_FAIR_ANCHOR_LIVE_ADAUSDT=depth on MM_BASIS_SOURCE=depth (the gate
+        # in plans/live-basis.plan.md passed, 18-19 Oct 2026). Any anchored symbol without both is refused, like the
+        # bot's own live_anchor_check, before anything launches.
         self.start_shadow()
-        r = self.live("start", "--confirm", "START REAL")
-        self.assertNotEqual(r.returncode, 0)
-        self.assertIn("MM_FAIR_ANCHOR_WEIGHT=1 is for the shadow test only", r.stderr)
-        self.assertEqual(self.stub_calls("run"), [])
-        # A per-symbol weight and the live flag are refused too; zero weights pass.
         prof = self.root / "config" / "dism.env"
-        base = re.sub(r"(?m)^MM_FAIR_ANCHOR_WEIGHT=.*$", "MM_FAIR_ANCHOR_WEIGHT=0", prof.read_text())
-        for extra, msg in (("MM_FAIR_ANCHOR_WEIGHT_ADAUSDT=0.5\n", "MM_FAIR_ANCHOR_WEIGHT_ADAUSDT=0.5 is for the shadow test only"),
-                           ("MM_FAIR_ANCHOR_LIVE=depth\n", "MM_FAIR_ANCHOR_LIVE=depth is not allowed"),
-                           ("MM_FAIR_ANCHOR_LIVE_ADAUSDT=depth\n", "MM_FAIR_ANCHOR_LIVE_ADAUSDT=depth is not allowed")):
-            prof.write_text(base + extra)
+        repo = prof.read_text()
+        self.assertIn("MM_FAIR_ANCHOR_WEIGHT=1\n", repo)
+        self.assertIn("MM_FAIR_ANCHOR_LIVE_ADAUSDT=depth\n", repo)
+        no_flag = repo.replace("MM_FAIR_ANCHOR_LIVE_ADAUSDT=depth\n", "")
+        for text, msg in (
+            (no_flag, "ADAUSDT is anchored (weight 1) but MM_FAIR_ANCHOR_LIVE='' and MM_BASIS_SOURCE='depth'"),
+            (no_flag + "MM_FAIR_ANCHOR_LIVE=1\n", "MM_FAIR_ANCHOR_LIVE='1'"),
+            (repo.replace("MM_BASIS_SOURCE=depth\n", "MM_BASIS_SOURCE=book\n"), "MM_BASIS_SOURCE='book'"),
+            (repo + "MM_BASIS_SOURCE_ADAUSDT=book\n", "MM_BASIS_SOURCE='book'"),
+            (no_flag.replace("MM_FAIR_ANCHOR_WEIGHT=1\n", "MM_FAIR_ANCHOR_WEIGHT=0\nMM_FAIR_ANCHOR_WEIGHT_ADAUSDT=0.5\n"),
+             "ADAUSDT is anchored (weight 0.5)"),
+        ):
+            prof.write_text(text)
             r = self.live("start", "--confirm", "START REAL")
-            self.assertNotEqual(r.returncode, 0, extra)
+            self.assertNotEqual(r.returncode, 0, text)
             self.assertIn(msg, r.stderr)
+            self.assertIn("a live anchor needs both set to depth", r.stderr)
         self.assertEqual(self.stub_calls("run"), [])
+        # Weight 0 needs no flag; the global flag counts too; and the repo's profile starts.
+        for text in (no_flag.replace("MM_FAIR_ANCHOR_WEIGHT=1\n", "MM_FAIR_ANCHOR_WEIGHT=0\n"),
+                     no_flag + "MM_FAIR_ANCHOR_LIVE=depth\n", repo):
+            prof.write_text(text)
+            time.sleep(1.1)  # run directories are named to the second; a start in the same second would share one
+            r = self.live("start", "--confirm", "START REAL")
+            self.assertEqual(r.returncode, 0, r.stderr[-1500:])
+            self.assertEqual(len(self.stub_calls("run")), 1)
+            self.live("stop")
+            (self.root / "stub.log").unlink()
 
     def test_start_refuses_a_profile_value_the_bot_would_misread(self):
         self.start_shadow()
