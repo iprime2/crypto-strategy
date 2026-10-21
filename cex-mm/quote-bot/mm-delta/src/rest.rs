@@ -3,6 +3,7 @@ use reqwest::Client;
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 use crate::auth::DeltaCredentials;
 use crate::products::ProductCatalog;
@@ -162,14 +163,44 @@ struct TickerRow {
     funding_rate: Option<String>,
 }
 
+/// Longest wait for any one Delta answer. Without a bound, a response that never came held the quote loop,
+/// and the stale-book cancel behind it, for as long as the connection stayed open. Mainnet order writes take
+/// about 0.55 s (p99 about 0.7 s for edits, 1.7 s for places, 20 Oct 2026 live run).
+pub const DEFAULT_REQUEST_TIMEOUT: Duration = Duration::from_secs(3);
+const CONNECT_TIMEOUT: Duration = Duration::from_secs(1);
+
+fn http_client(timeout: Duration) -> Client {
+    Client::builder()
+        .timeout(timeout)
+        .connect_timeout(CONNECT_TIMEOUT.min(timeout))
+        .build()
+        .expect("HTTP client")
+}
+
+/// Whether a failed call may still have reached the venue: the request went out but no usable answer came back
+/// (a timeout or a broken connection after the connect, or an answer that is not Delta's JSON). A failed
+/// connect never sent anything, and a JSON error answer is the venue's refusal: both outcomes are known.
+pub fn outcome_unknown(err: &anyhow::Error) -> bool {
+    err.chain().any(|cause| match cause.downcast_ref::<reqwest::Error>() {
+        Some(e) => !e.is_connect(),
+        None => cause.is::<serde_json::Error>(),
+    })
+}
+
 impl DeltaRest {
     pub fn new(env: DeltaEnvironment, creds: DeltaCredentials, products: Arc<ProductCatalog>) -> Self {
         Self {
-            client: Client::new(),
+            client: http_client(DEFAULT_REQUEST_TIMEOUT),
             env,
             creds,
             products,
         }
+    }
+
+    /// The same client with another bound on each answer (`DEFAULT_REQUEST_TIMEOUT` otherwise).
+    pub fn with_request_timeout(mut self, timeout: Duration) -> Self {
+        self.client = http_client(timeout);
+        self
     }
 
     fn ts() -> String {
@@ -197,6 +228,7 @@ impl DeltaRest {
             body,
         );
         let url = format!("{}{path}{query_string}", self.env.rest_base());
+        let method_name = method.clone();
         let mut req = self
             .client
             .request(method, url)
@@ -210,7 +242,14 @@ impl DeltaRest {
                 .header("Content-Type", "application/json")
                 .body(body.to_string());
         }
-        req.send().await.context("delta signed request")
+        let started = Instant::now();
+        let resp = req.send().await;
+        let ms = started.elapsed().as_secs_f64() * 1000.0;
+        match &resp {
+            Ok(r) => tracing::debug!(target: "MM_REST", %method_name, path, status = r.status().as_u16(), ms, "delta rest"),
+            Err(e) => tracing::debug!(target: "MM_REST", %method_name, path, ms, error = %e, "delta rest failed"),
+        }
+        resp.context("delta signed request")
     }
 
     pub async fn get_instrument(&self, mm_symbol: &str) -> Result<(f64, f64, f64)> {
@@ -520,6 +559,50 @@ impl DeltaRest {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn a_request_with_no_answer_times_out_and_its_outcome_is_unknown() {
+        // A server that accepts the connection and never answers: the order may have reached the venue.
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        tokio::spawn(async move {
+            let (socket, _) = listener.accept().await.unwrap();
+            tokio::time::sleep(Duration::from_secs(10)).await;
+            drop(socket);
+        });
+        let started = std::time::Instant::now();
+        let err = http_client(Duration::from_millis(200))
+            .post(format!("http://{addr}/v2/orders"))
+            .body("{}")
+            .send()
+            .await
+            .context("delta signed request")
+            .unwrap_err();
+        assert!(started.elapsed() < Duration::from_secs(2), "bounded by the client timeout");
+        assert!(outcome_unknown(&err));
+    }
+
+    #[tokio::test]
+    async fn a_refused_connection_never_sent_the_order() {
+        let addr = std::net::TcpListener::bind("127.0.0.1:0").unwrap().local_addr().unwrap();
+        // The listener is dropped, so the port refuses.
+        let err = http_client(Duration::from_millis(500))
+            .post(format!("http://{addr}/v2/orders"))
+            .send()
+            .await
+            .context("delta signed request")
+            .unwrap_err();
+        assert!(!outcome_unknown(&err));
+    }
+
+    #[test]
+    fn a_venue_refusal_is_known_and_an_unreadable_answer_is_not() {
+        assert!(!outcome_unknown(&anyhow::anyhow!("place: immediate_execution_post_only")));
+        let html = serde_json::from_str::<serde_json::Value>("<html>502</html>")
+            .context("place order json")
+            .unwrap_err();
+        assert!(outcome_unknown(&html));
+    }
 
     #[test]
     fn net_equity_comes_from_meta_and_is_never_guessed() {

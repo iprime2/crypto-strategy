@@ -1,4 +1,5 @@
 use std::time::{Duration, Instant};
+use mm_core::queue::should_place_limit;
 
 /// Rate budget for Bybit order ops (~70% of 10/s).
 pub struct OrderRateBudget {
@@ -123,7 +124,88 @@ pub fn gone_after_cancel(cancel_ok: bool, venue_state: Option<&str>) -> bool {
     cancel_ok || venue_state.is_some_and(venue_says_gone)
 }
 
+/// The first venue call one side makes in a loop. The two sides' first calls go out together: Delta mainnet
+/// takes about 0.55 s to answer an order write (21 Oct 2026), so one after the other a two-sided requote held
+/// the loop over a second. The fallbacks of a failed call (order state, cancel-all) run only once both have
+/// answered, so a cancel-all never crosses an order call on the other side.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum FirstCall {
+    Nothing,
+    /// Cancel the resting order: the plan switched the side off, or the new price would cross the book (the new
+    /// quote is placed once the old one is gone).
+    Pull(u64),
+    Edit(u64),
+    Place(f64),
+}
+
+/// One side's first call. `resting_id` is the side's tracked order; `edits_by_id` is false on a venue that
+/// replaces quotes by placing (Bybit); `place_price` is `place_price`'s answer for an empty side.
+pub fn first_call(
+    need: bool,
+    resting_id: Option<u64>,
+    quote_side: bool,
+    crosses: bool,
+    edits_by_id: bool,
+    place_price: Option<f64>,
+) -> FirstCall {
+    if !need {
+        return FirstCall::Nothing;
+    }
+    match resting_id {
+        Some(id) if edits_by_id => {
+            if quote_side && !crosses {
+                FirstCall::Edit(id)
+            } else {
+                FirstCall::Pull(id)
+            }
+        }
+        _ if quote_side => place_price.map_or(FirstCall::Nothing, FirstCall::Place),
+        _ => FirstCall::Nothing,
+    }
+}
+
+/// Price of a new post-only quote, or None to leave the side empty this loop. A quote that reduces the
+/// position and would cross the book goes one tick inside the opposite touch; any other quote goes in at its
+/// own price unless it would join the back of a deep queue at the touch (`should_place_limit`).
+#[allow(clippy::too_many_arguments)]
+pub fn place_price(
+    side: QuoteSide,
+    target: f64,
+    reduces: bool,
+    best_bid: f64,
+    best_ask: f64,
+    touch_qty: f64,
+    qty: f64,
+    tick: f64,
+    queue_front_frac: f64,
+) -> Option<f64> {
+    let is_bid = side == QuoteSide::Bid;
+    if is_bid && reduces && target >= best_ask && best_ask > 0.0 && qty > 0.0 {
+        return Some((best_ask - tick).max(best_bid));
+    }
+    if !is_bid && reduces && target <= best_bid && best_bid > 0.0 && qty > 0.0 {
+        return Some((best_bid + tick).min(best_ask));
+    }
+    let touch = if is_bid { best_bid } else { best_ask };
+    should_place_limit(target, touch, touch_qty, qty, tick, is_bid, queue_front_frac).then_some(target)
+}
+
 impl LiveQuotes {
+    /// A place that got no answer (`mm_delta::outcome_unknown`): the order may rest, under an id we do not know.
+    /// The side is tracked without one, so the next loop cancels all before it quotes again (`has_untracked`).
+    pub fn track_without_id(&mut self, side: QuoteSide, price: f64) {
+        match side {
+            QuoteSide::Bid => {
+                self.clear_bid();
+                self.bid = Some(price);
+            }
+            QuoteSide::Ask => {
+                self.clear_ask();
+                self.ask = Some(price);
+            }
+        }
+    }
+
     pub fn clear(&mut self) {
         *self = Self::default();
     }
@@ -292,6 +374,48 @@ impl OmsState {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn each_side_edits_pulls_or_places_first() {
+        use FirstCall::*;
+        // A resting quote moves by edit, or is pulled when the plan switches the side off or the new price
+        // would cross the book (the place comes after the pull, once it is gone).
+        assert_eq!(first_call(true, Some(7), true, false, true, Some(0.2)), Edit(7));
+        assert_eq!(first_call(true, Some(7), false, false, true, Some(0.2)), Pull(7));
+        assert_eq!(first_call(true, Some(7), true, true, true, Some(0.2)), Pull(7));
+        // An empty side places, if the queue rule lets it; a side switched off stays empty.
+        assert_eq!(first_call(true, None, true, false, true, Some(0.2)), Place(0.2));
+        assert_eq!(first_call(true, None, true, false, true, None), Nothing);
+        assert_eq!(first_call(true, None, false, false, true, Some(0.2)), Nothing);
+        // Nothing to do when the side needs no update.
+        assert_eq!(first_call(false, Some(7), false, true, true, Some(0.2)), Nothing);
+        // A venue without edit by id (Bybit) only places, as before.
+        assert_eq!(first_call(true, Some(7), true, false, false, Some(0.2)), Place(0.2));
+    }
+
+    #[test]
+    fn a_reducing_quote_that_would_cross_goes_one_tick_inside_the_touch() {
+        let tick = 0.00001;
+        // Short, so the bid reduces: a bid at or above the best ask is placed one tick under it.
+        let px = place_price(QuoteSide::Bid, 0.22100, true, 0.22080, 0.22090, 500.0, 200.0, tick, 0.9).unwrap();
+        assert!((px - 0.22089).abs() < 1e-12);
+        // Long, so the ask reduces: an ask at or below the best bid is placed one tick over it.
+        let px = place_price(QuoteSide::Ask, 0.22070, true, 0.22080, 0.22090, 500.0, 200.0, tick, 0.9).unwrap();
+        assert!((px - 0.22081).abs() < 1e-12);
+        // Away from the touch a quote always goes in at its own price.
+        assert_eq!(place_price(QuoteSide::Bid, 0.22050, false, 0.22080, 0.22090, 500.0, 200.0, tick, 0.9), Some(0.22050));
+        assert_eq!(place_price(QuoteSide::Ask, 0.22120, false, 0.22080, 0.22090, 500.0, 200.0, tick, 0.9), Some(0.22120));
+    }
+
+    #[test]
+    fn a_place_with_no_answer_is_tracked_without_an_id() {
+        let mut live = LiveQuotes { ask: Some(0.221), ask_id: Some(3), ..Default::default() };
+        live.track_without_id(QuoteSide::Bid, 0.2205);
+        // The next loop sees an order it cannot address by id and cancels all before quoting again.
+        assert!(live.has_untracked());
+        assert_eq!((live.bid, live.bid_id), (Some(0.2205), None));
+        assert_eq!(live.ask_id, Some(3), "the other side is untouched");
+    }
 
     #[test]
     fn a_side_switched_off_is_pulled_however_close_its_price() {

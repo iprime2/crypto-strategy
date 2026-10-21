@@ -10,15 +10,14 @@ use mm_core::{
     compute_quote_cex, economics::FillEconomics, hard_cap_reduce,
     should_taker_flatten, horizon_vol_bps, side_order_qty, adds_to_position,
     ofi::{AlphaMuEstimator, OfiTracker, SnipeTracker},
-    queue::should_place_limit,
     regime::{RegimeEngine, RegimeLevel, RegimeThresholds},
     KappaEstimator, MarkoutGuard, QuoteExtensions, StrategyConfig, VolTracker, MmMetrics,
 };
 use crate::exchange::QuotingRest;
 use crate::markout::MarkoutRuntime;
 use crate::oms::{
-    contracts_of, gone_after_cancel, left_after_edit, FillApplied, FillEvent, LiveQuotes, OmsState, QuoteSide, Settled,
-    SETTLE_PATIENCE,
+    contracts_of, first_call, gone_after_cancel, left_after_edit, place_price, FillApplied, FillEvent, FirstCall, LiveQuotes,
+    OmsState, QuoteSide, Settled, SETTLE_PATIENCE,
 };
 use crate::account::{AccountConfig, AccountFlags};
 use crate::risk::{
@@ -147,9 +146,12 @@ pub async fn run_delta(args: RunArgs, dry_run: bool) -> Result<()> {
     } else {
         Some(delta_credentials(delta_env)?)
     };
+    let rest_timeout = Duration::from_millis(
+        env_f64_global("MM_REST_TIMEOUT_MS", mm_delta::DEFAULT_REQUEST_TIMEOUT.as_millis() as f64).max(500.0) as u64,
+    );
     let delta_rest = creds
         .as_ref()
-        .map(|c| mm_delta::DeltaRest::new(delta_env, c.clone(), products.clone()));
+        .map(|c| mm_delta::DeltaRest::new(delta_env, c.clone(), products.clone()).with_request_timeout(rest_timeout));
     let rest = delta_rest.clone().map(QuotingRest::Delta);
     let (account, heartbeat) = match &delta_rest {
         Some(r) => {
@@ -948,8 +950,17 @@ async fn run_symbol_loop(
         }
     }
 
+    // An iteration that overran its tick (order calls) is followed by one tick at once, then the loop's rhythm
+    // again; tokio's default fired every missed tick back to back.
+    interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+    let mut iteration_started: Option<Instant> = None;
+    let mut loop_work_ms: Option<u64> = None;
     loop {
+        if let Some(t) = iteration_started {
+            loop_work_ms = Some(t.elapsed().as_millis() as u64);
+        }
         interval.tick().await;
+        iteration_started = Some(Instant::now());
         if let Some(a) = &account {
             risk.daily_pnl_usd = a.daily_pnl_usd();
             if a.halted() {
@@ -1495,6 +1506,7 @@ async fn run_symbol_loop(
             anchor_off_reason,
             basis_t: Some(lead_now),
             basis_n: Some(basis.samples()),
+            loop_work_ms,
         };
         tracing::info!(target: "MM_METRICS", "{}", serde_json::to_string(&metrics)?);
 
@@ -1590,244 +1602,203 @@ async fn run_symbol_loop(
 
         let mut need_bid = need_bid;
         let mut need_ask = need_ask;
-        if r.cancel_before_requote() {
-            if oms.live.has_untracked() {
-                // Forget nothing the venue may still hold: retry next loop if the cancel-all fails.
-                if let Err(e) = r.cancel_all(&symbol).await {
-                    tracing::warn!(%symbol, error = %e, "cancel-all for an order without an id failed; retrying next loop");
-                    continue;
-                }
-                oms.live.clear();
-                need_bid = true;
-                need_ask = true;
-            } else {
-                if need_bid {
-                    if let Some(id) = oms.live.bid_id {
-                        let crosses = top.best_ask > 0.0 && plan.bid >= top.best_ask;
-                        if !plan.place_bid {
-                            pull_quote(r, &symbol, &mut oms.live, QuoteSide::Bid, id).await;
-                            need_bid = false;
-                        } else if !crosses
-                            && r.edit_post_only(&symbol, id, bid_qty, plan.bid).await.is_ok()
-                        {
-                            oms.live.bid = Some(plan.bid);
-                            oms.live.set_left(QuoteSide::Bid, left_after_edit(oms.live.bid_left, contracts_of(bid_qty, contract_value)));
-                            need_bid = false;
-                            tracing::info!(target: "MM_ORDER", %symbol, side = "buy", price = plan.bid, qty = bid_qty, "edited post-only");
-                        } else if !pull_quote(r, &symbol, &mut oms.live, QuoteSide::Bid, id).await {
-                            need_bid = false;
-                        }
-                    }
-                }
-                if need_ask {
-                    if let Some(id) = oms.live.ask_id {
-                        let crosses = top.best_bid > 0.0 && plan.ask <= top.best_bid;
-                        if !plan.place_ask {
-                            pull_quote(r, &symbol, &mut oms.live, QuoteSide::Ask, id).await;
-                            need_ask = false;
-                        } else if !crosses
-                            && r.edit_post_only(&symbol, id, ask_qty, plan.ask).await.is_ok()
-                        {
-                            oms.live.ask = Some(plan.ask);
-                            oms.live.set_left(QuoteSide::Ask, left_after_edit(oms.live.ask_left, contracts_of(ask_qty, contract_value)));
-                            need_ask = false;
-                            tracing::info!(target: "MM_ORDER", %symbol, side = "sell", price = plan.ask, qty = ask_qty, "edited post-only");
-                        } else if !pull_quote(r, &symbol, &mut oms.live, QuoteSide::Ask, id).await {
-                            need_ask = false;
-                        }
-                    }
-                }
+        let edits_by_id = r.cancel_before_requote();
+        if edits_by_id && oms.live.has_untracked() {
+            // Forget nothing the venue may still hold: retry next loop if the cancel-all fails.
+            if let Err(e) = r.cancel_all(&symbol).await {
+                tracing::warn!(%symbol, error = %e, "cancel-all for an order without an id failed; retrying next loop");
+                continue;
             }
+            oms.live.clear();
+            need_bid = true;
+            need_ask = true;
         }
 
         let ts = Utc::now().timestamp_millis();
         let queue_front_frac = env_f64_for_symbol(&symbol, "MM_QUEUE_MAX_FRONT_FRAC", 0.9);
+        let bid_px = place_price(QuoteSide::Bid, plan.bid, inventory < 0.0, top.best_bid, top.best_ask, top.bid_qty, bid_qty, tick, queue_front_frac);
+        let ask_px = place_price(QuoteSide::Ask, plan.ask, inventory > 0.0, top.best_bid, top.best_ask, top.ask_qty, ask_qty, tick, queue_front_frac);
+        let bid = SideOrder { side: QuoteSide::Bid, quoted: plan.place_bid, target: plan.bid, qty: bid_qty, link: format!("mm-{symbol}-bid-{ts}") };
+        let ask = SideOrder { side: QuoteSide::Ask, quoted: plan.place_ask, target: plan.ask, qty: ask_qty, link: format!("mm-{symbol}-ask-{ts}") };
 
-        if need_bid && plan.place_bid {
-            let bid_reduces = inventory < 0.0;
-            if bid_reduces && plan.bid >= top.best_ask && top.best_ask > 0.0 && bid_qty > 0.0 {
-                let price = (top.best_ask - tick).max(top.best_bid);
-                let link = format!("mm-{symbol}-bid-{ts}");
-                let placed = r
-                    .place_limit_post_only(&symbol, "Buy", bid_qty, price, &link)
-                    .await;
-                if let Err(e) = &placed {
-                    let msg = format!("{e:#}");
-                    crate::oems::post_order(&link, &symbol, "buy", price, bid_qty, false, Some(&msg));
-                    tracing::warn!(
-                        target: "MM_REJECT",
-                        symbol = %symbol,
-                        side = "buy",
-                        price,
-                        qty = bid_qty,
-                        err = %msg,
-                        "post-only reject"
-                    );
-                    if counts_toward_reject_kill(&msg) {
-                        risk.reject_count += 1;
-                    }
-                } else {
-                    risk.reject_count = risk.reject_count.saturating_sub(2);
-                    oms.live.bid = Some(price);
-                    oms.live.bid_id = placed.ok().flatten();
-                    oms.live.set_left(QuoteSide::Bid, contracts_of(bid_qty, contract_value));
-                    crate::oems::post_order(&link, &symbol, "buy", price, bid_qty, false, None);
-                    tracing::info!(
-                        target: "MM_ORDER",
-                        symbol = %symbol,
-                        side = "buy",
-                        price,
-                        qty = bid_qty,
-                        "placed post-only"
-                    );
-                }
-            } else if should_place_limit(
-                plan.bid,
-                top.best_bid,
-                top.bid_qty,
-                bid_qty,
-                tick,
-                true,
-                queue_front_frac,
-            ) {
-                let link = format!("mm-{symbol}-bid-{ts}");
-                let placed = r
-                    .place_limit_post_only(&symbol, "Buy", bid_qty, plan.bid, &link)
-                    .await;
-                if let Err(e) = &placed {
-                    let msg = format!("{e:#}");
-                    crate::oems::post_order(
-                        &link,
-                        &symbol,
-                        "buy",
-                        plan.bid,
-                        bid_qty,
-                        false,
-                        Some(&msg),
-                    );
-                    tracing::warn!(
-                        target: "MM_REJECT",
-                        symbol = %symbol,
-                        side = "buy",
-                        price = plan.bid,
-                        qty = bid_qty,
-                        err = %msg,
-                        "post-only reject"
-                    );
-                    if counts_toward_reject_kill(&msg) {
-                        risk.reject_count += 1;
-                    }
-                } else {
-                    risk.reject_count = risk.reject_count.saturating_sub(2);
-                    oms.live.bid = Some(plan.bid);
-                    oms.live.bid_id = placed.ok().flatten();
-                    oms.live.set_left(QuoteSide::Bid, contracts_of(bid_qty, contract_value));
-                    crate::oems::post_order(&link, &symbol, "buy", plan.bid, bid_qty, false, None);
-                    tracing::info!(
-                        target: "MM_ORDER",
-                        symbol = %symbol,
-                        side = "buy",
-                        price = plan.bid,
-                        qty = bid_qty,
-                        "placed post-only"
-                    );
-                }
-            }
+        // Both sides' first calls at once; then the fallbacks of failed ones, one after the other (`FirstCall`).
+        let bid_call = first_call(need_bid, oms.live.bid_id, plan.place_bid, top.best_ask > 0.0 && plan.bid >= top.best_ask, edits_by_id, bid_px);
+        let ask_call = first_call(need_ask, oms.live.ask_id, plan.place_ask, top.best_bid > 0.0 && plan.ask <= top.best_bid, edits_by_id, ask_px);
+        let (bid_answer, ask_answer) =
+            tokio::join!(first_venue_call(r, &symbol, bid_call, &bid), first_venue_call(r, &symbol, ask_call, &ask));
+        let bid_fallback = book_answer(r, &symbol, &mut oms.live, &mut risk, &bid, bid_call, bid_answer, contract_value, &mut need_bid);
+        let ask_fallback = book_answer(r, &symbol, &mut oms.live, &mut risk, &ask, ask_call, ask_answer, contract_value, &mut need_ask);
+        let (bid_held, ask_held) = (oms.live.bid_id, oms.live.ask_id);
+        if let Some(f) = bid_fallback {
+            run_fallback(r, &symbol, &mut oms.live, &bid, f, &mut need_bid).await;
+        } else if bid_held.is_some() && oms.live.bid_id.is_none() {
+            // The ask's fallback cancelled all, the bid too: quote it again below.
+            need_bid = plan.place_bid;
+        }
+        if let Some(f) = ask_fallback {
+            run_fallback(r, &symbol, &mut oms.live, &ask, f, &mut need_ask).await;
+        } else if ask_held.is_some() && oms.live.ask_id.is_none() {
+            need_ask = plan.place_ask;
         }
 
-        if need_ask && plan.place_ask {
-            let ask_reduces = inventory > 0.0;
-            if ask_reduces && plan.ask <= top.best_bid && top.best_bid > 0.0 && ask_qty > 0.0 {
-                let price = (top.best_bid + tick).min(top.best_ask);
-                let link = format!("mm-{symbol}-ask-{ts}");
-                let placed = r
-                    .place_limit_post_only(&symbol, "Sell", ask_qty, price, &link)
-                    .await;
-                if let Err(e) = &placed {
-                    let msg = format!("{e:#}");
-                    crate::oems::post_order(&link, &symbol, "sell", price, ask_qty, false, Some(&msg));
-                    tracing::warn!(
-                        target: "MM_REJECT",
-                        symbol = %symbol,
-                        side = "sell",
-                        price,
-                        qty = ask_qty,
-                        err = %msg,
-                        "post-only reject"
-                    );
-                    if counts_toward_reject_kill(&msg) {
-                        risk.reject_count += 1;
-                    }
-                } else {
-                    risk.reject_count = risk.reject_count.saturating_sub(2);
-                    oms.live.ask = Some(price);
-                    oms.live.ask_id = placed.ok().flatten();
-                    oms.live.set_left(QuoteSide::Ask, contracts_of(ask_qty, contract_value));
-                    crate::oems::post_order(&link, &symbol, "sell", price, ask_qty, false, None);
-                    tracing::info!(
-                        target: "MM_ORDER",
-                        symbol = %symbol,
-                        side = "sell",
-                        price,
-                        qty = ask_qty,
-                        "placed post-only"
-                    );
-                }
-            } else if should_place_limit(
-                plan.ask,
-                top.best_ask,
-                top.ask_qty,
-                ask_qty,
-                tick,
-                false,
-                queue_front_frac,
-            ) {
-                let link = format!("mm-{symbol}-ask-{ts}");
-                let placed = r
-                    .place_limit_post_only(&symbol, "Sell", ask_qty, plan.ask, &link)
-                    .await;
-                if let Err(e) = &placed {
-                    let msg = format!("{e:#}");
-                    crate::oems::post_order(
-                        &link,
-                        &symbol,
-                        "sell",
-                        plan.ask,
-                        ask_qty,
-                        false,
-                        Some(&msg),
-                    );
-                    tracing::warn!(
-                        target: "MM_REJECT",
-                        symbol = %symbol,
-                        side = "sell",
-                        price = plan.ask,
-                        qty = ask_qty,
-                        err = %msg,
-                        "post-only reject"
-                    );
-                    if counts_toward_reject_kill(&msg) {
-                        risk.reject_count += 1;
-                    }
-                } else {
-                    risk.reject_count = risk.reject_count.saturating_sub(2);
-                    oms.live.ask = Some(plan.ask);
-                    oms.live.ask_id = placed.ok().flatten();
-                    oms.live.set_left(QuoteSide::Ask, contracts_of(ask_qty, contract_value));
-                    crate::oems::post_order(&link, &symbol, "sell", plan.ask, ask_qty, false, None);
-                    tracing::info!(
-                        target: "MM_ORDER",
-                        symbol = %symbol,
-                        side = "sell",
-                        price = plan.ask,
-                        qty = ask_qty,
-                        "placed post-only"
-                    );
-                }
-            }
-        }
+        // Sides still to place: pulled because the old price crossed the book, a failed edit, or a cancel-all.
+        let bid_call = if need_bid && plan.place_bid && oms.live.bid.is_none() {
+            bid_px.map_or(FirstCall::Nothing, FirstCall::Place)
+        } else {
+            FirstCall::Nothing
+        };
+        let ask_call = if need_ask && plan.place_ask && oms.live.ask.is_none() {
+            ask_px.map_or(FirstCall::Nothing, FirstCall::Place)
+        } else {
+            FirstCall::Nothing
+        };
+        let (bid_answer, ask_answer) =
+            tokio::join!(first_venue_call(r, &symbol, bid_call, &bid), first_venue_call(r, &symbol, ask_call, &ask));
+        book_answer(r, &symbol, &mut oms.live, &mut risk, &bid, bid_call, bid_answer, contract_value, &mut need_bid);
+        book_answer(r, &symbol, &mut oms.live, &mut risk, &ask, ask_call, ask_answer, contract_value, &mut need_ask);
     }
     Ok(())
+}
+
+/// One side of a requote: whether the plan quotes it, at what price and size, and the client id of a new order.
+struct SideOrder {
+    side: QuoteSide,
+    quoted: bool,
+    target: f64,
+    qty: f64,
+    link: String,
+}
+
+impl SideOrder {
+    fn venue_side(&self) -> &'static str {
+        match self.side {
+            QuoteSide::Bid => "Buy",
+            QuoteSide::Ask => "Sell",
+        }
+    }
+
+    fn log_side(&self) -> &'static str {
+        match self.side {
+            QuoteSide::Bid => "buy",
+            QuoteSide::Ask => "sell",
+        }
+    }
+}
+
+/// A venue call's answer and how long it took (ms).
+struct Answered {
+    result: Result<Option<u64>>,
+    ms: u64,
+}
+
+/// What a side still has to do after its first call, once both sides have answered.
+enum Fallback {
+    /// The edit failed (the order filled or is gone, or the venue refused): pull the quote.
+    PullAfterEdit(u64),
+    /// The cancel's answer: a failed cancel asks the venue before the quote is forgotten.
+    AfterCancel(u64, Result<()>),
+}
+
+async fn first_venue_call(r: &QuotingRest, symbol: &str, call: FirstCall, order: &SideOrder) -> Option<Answered> {
+    let started = Instant::now();
+    let result = match call {
+        FirstCall::Nothing => return None,
+        FirstCall::Pull(id) => r.cancel_order(symbol, id).await.map(|()| None),
+        FirstCall::Edit(id) => r.edit_post_only(symbol, id, order.qty, order.target).await.map(|()| None),
+        FirstCall::Place(price) => r.place_limit_post_only(symbol, order.venue_side(), order.qty, price, &order.link).await,
+    };
+    Some(Answered { result, ms: started.elapsed().as_millis() as u64 })
+}
+
+/// Books one side's answer in `live` and returns what the side still has to do. A place's answer is final: an
+/// accepted order is tracked, a refusal counts toward the reject kill, and a place with no answer is tracked
+/// without an id so the next loop cancels all (`LiveQuotes::track_without_id`).
+#[allow(clippy::too_many_arguments)]
+fn book_answer(
+    r: &QuotingRest,
+    symbol: &str,
+    live: &mut LiveQuotes,
+    risk: &mut crate::risk::RiskState,
+    order: &SideOrder,
+    call: FirstCall,
+    answer: Option<Answered>,
+    contract_value: f64,
+    need: &mut bool,
+) -> Option<Fallback> {
+    let answer = answer?;
+    let side = order.log_side();
+    let ms = answer.ms;
+    match call {
+        FirstCall::Nothing => None,
+        FirstCall::Pull(id) => Some(Fallback::AfterCancel(id, answer.result.map(|_| ()))),
+        FirstCall::Edit(id) => {
+            if answer.result.is_err() {
+                return Some(Fallback::PullAfterEdit(id));
+            }
+            let left = match order.side {
+                QuoteSide::Bid => {
+                    live.bid = Some(order.target);
+                    live.bid_left
+                }
+                QuoteSide::Ask => {
+                    live.ask = Some(order.target);
+                    live.ask_left
+                }
+            };
+            live.set_left(order.side, left_after_edit(left, contracts_of(order.qty, contract_value)));
+            *need = false;
+            tracing::info!(target: "MM_ORDER", %symbol, side, price = order.target, qty = order.qty, ms, "edited post-only");
+            None
+        }
+        FirstCall::Place(price) => {
+            *need = false;
+            match answer.result {
+                Ok(id) => {
+                    risk.reject_count = risk.reject_count.saturating_sub(2);
+                    match order.side {
+                        QuoteSide::Bid => {
+                            live.bid = Some(price);
+                            live.bid_id = id;
+                        }
+                        QuoteSide::Ask => {
+                            live.ask = Some(price);
+                            live.ask_id = id;
+                        }
+                    }
+                    live.set_left(order.side, contracts_of(order.qty, contract_value));
+                    crate::oems::post_order(&order.link, symbol, side, price, order.qty, false, None);
+                    tracing::info!(target: "MM_ORDER", %symbol, side, price, qty = order.qty, ms, "placed post-only");
+                }
+                Err(e) if r.outcome_unknown(&e) => {
+                    let msg = format!("{e:#}");
+                    live.track_without_id(order.side, price);
+                    crate::oems::post_order(&order.link, symbol, side, price, order.qty, false, Some(&format!("no answer: {msg}")));
+                    tracing::warn!(%symbol, side, price, qty = order.qty, ms, error = %msg, "no answer to the place: the order may rest, so the next loop cancels all before quoting again");
+                }
+                Err(e) => {
+                    let msg = format!("{e:#}");
+                    crate::oems::post_order(&order.link, symbol, side, price, order.qty, false, Some(&msg));
+                    tracing::warn!(target: "MM_REJECT", symbol = %symbol, side, price, qty = order.qty, err = %msg, ms, "post-only reject");
+                    if counts_toward_reject_kill(&msg) {
+                        risk.reject_count += 1;
+                    }
+                }
+            }
+            None
+        }
+    }
+}
+
+/// A side switched off is done once its pull has run, whatever came of it; a side the plan quotes is placed
+/// again only once its old order is gone.
+async fn run_fallback(r: &QuotingRest, symbol: &str, live: &mut LiveQuotes, order: &SideOrder, fallback: Fallback, need: &mut bool) {
+    let cleared = match fallback {
+        Fallback::PullAfterEdit(id) => pull_quote(r, symbol, live, order.side, id).await,
+        Fallback::AfterCancel(id, cancel) => after_cancel(r, symbol, live, order.side, id, cancel).await,
+    };
+    if !order.quoted || !cleared {
+        *need = false;
+    }
 }
 
 fn handle_delta_fill_row(
@@ -1923,7 +1894,13 @@ async fn settle_with_venue(rest: Option<&QuotingRest>, symbol: &str, live: &mut 
 /// forgotten. If that fails too, the quote stays tracked and the next loop tries again: forgetting an order
 /// that may still rest would put a second quote beside it. Returns whether `side` is now clear.
 async fn pull_quote(r: &QuotingRest, symbol: &str, live: &mut LiveQuotes, side: QuoteSide, id: u64) -> bool {
-    let Err(cancel_err) = r.cancel_order(symbol, id).await else {
+    let cancel = r.cancel_order(symbol, id).await;
+    after_cancel(r, symbol, live, side, id, cancel).await
+}
+
+/// `pull_quote` from the cancel's answer on: a cancel the requote sent beside the other side's call.
+async fn after_cancel(r: &QuotingRest, symbol: &str, live: &mut LiveQuotes, side: QuoteSide, id: u64, cancel: Result<()>) -> bool {
+    let Err(cancel_err) = cancel else {
         live.clear_side(side);
         return true;
     };

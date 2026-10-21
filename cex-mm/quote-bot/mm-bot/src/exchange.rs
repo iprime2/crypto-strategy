@@ -71,6 +71,15 @@ impl QuotingRest {
         }
     }
 
+    /// Whether a failed order call may still have reached the venue (`mm_delta::outcome_unknown`). Bybit keeps
+    /// treating every failed place as not placed, as before.
+    pub fn outcome_unknown(&self, err: &anyhow::Error) -> bool {
+        match self {
+            Self::Bybit(_) => false,
+            Self::Delta(_) => mm_delta::outcome_unknown(err),
+        }
+    }
+
     pub async fn cancel_order(&self, symbol: &str, order_id: u64) -> Result<()> {
         match self {
             Self::Bybit(_) => anyhow::bail!("cancel by order id is Delta-only"),
