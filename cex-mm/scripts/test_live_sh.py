@@ -351,6 +351,7 @@ class LiveSh(unittest.TestCase):
         self.assertEqual(env["MM_DMS_TTL_MS"], "15000")
         self.assertIn("MM_ORDER=info", env["RUST_LOG"])
         self.assertIn("MM_METRICS=info", env["RUST_LOG"])
+        self.assertIn("MM_REST=debug", env["RUST_LOG"])  # every Delta call's time: mainnet cancel latency
         self.assertEqual(Path(call["cwd"]).resolve(), (self.root / "artifacts" / "live").resolve())
         # The secret is in no argv, no config, no output.
         cmdline = Path(f"/proc/{pid}/cmdline").read_bytes().decode()
