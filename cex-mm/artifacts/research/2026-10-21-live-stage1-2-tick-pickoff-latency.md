@@ -1,24 +1,24 @@
 # Live ADA, stages 1 and 2: the first anchored run pays, pick-offs come from the Binance tick, and the order path is the latency
 
-**Date:** 2026-10-21 · **Venue:** Delta India mainnet, real orders · **Symbol:** ADAUSD · **Runs:** `20261020T110544Z` (stage 1, 100 contracts a quote, cap 300, 11:05–15:57Z) and `20261020T155754Z` (stage 2, 200 / 600, from 15:58Z, still running at 02:38Z) · **Build:** d9d4aa7 then 44664e8 (#52 reconcile fix, #53 size stage 2) · **Account:** $292.16 at the 20 Oct start.
+**Date:** 2026-10-21 · **Venue:** Delta India mainnet, real orders · **Symbol:** ADAUSD · **Runs:** `20261020T110544Z` (stage 1, 100 contracts a quote, cap 300, 11:05–15:57Z) and `20261020T155754Z` (stage 2, 200 / 600, from 15:58Z, still running at 13:19Z on 21 Oct) · **Build:** d9d4aa7 then 44664e8 (#52 reconcile fix, #53 size stage 2) · **Account:** $292.16 at the 20 Oct start.
 
 Scripts used (read-only, on the VM, copies in the session scratchpad): `scripts/live.sh report`, `scripts/shadow_fill_sim.py`, and ad-hoc `verdict.py`, `stale.py`, `guard.py`, `steps.py`, `tickrate.py`, `editwin.py`, `capstats.py`. Markouts are against the Binance mid; "net60" = capture at the fill + 60 s markout − fee, notional-weighted, in bps per $ traded unless stated.
 
 ## Headline
 
-| | Stage 1 (4.87 h) | Stage 2 (10.67 h, to 02:38Z) |
+| | Stage 1 (4.87 h) | Stage 2 (16.68 h, to 08:38Z) |
 |---|---|---|
-| Fills | 332 (1,672 / day) | 262 (589 / day) |
-| $ traded / day | 20,243 | 11,903 |
-| PnL (spread / inventory / fees) | **+$0.50** (+1.43 / −0.45 / −0.48) | **+$3.08** (+2.33 / +1.43 / −0.68) |
-| PnL per $ traded | +1.25 bps | +5.81 bps |
-| net60 weighted / unweighted ± 95% | +0.74 / +1.21 ± 2.36 | +1.98 / +2.87 ± 1.09 |
-| Fee paid (Scalper Offer joined 11:30Z) | 1.20 bps | 1.28 bps |
-| Stop rule | OK at 300 | CONTINUE (262 / 300) |
+| Fills | 332 (1,672 / day) | 490 (705 / day) |
+| $ traded / day | 20,243 | 12,466 |
+| PnL (spread / inventory / fees) | **+$0.50** (+1.43 / −0.45 / −0.48) | **+$5.06** (+3.90 / +2.30 / −1.14) |
+| PnL per $ traded | +1.25 bps | +5.86 bps |
+| net60 weighted / unweighted ± 95% | +0.74 / +1.21 ± 2.36 | +2.84 / +2.87 ± 1.09 (first 262 fills) |
+| Fee paid (Scalper Offer joined 11:30Z) | 1.20 bps | 1.30 bps |
+| Stop rule | OK at 300 | OK at 448 (+5.81) and 490 (+5.86) |
 | Aborts (anchor on, basis vs shadow, OFI, pegged) | none | none |
 | Inventory range vs cap | −379 / +300 vs 300 (old build) | −600 / +600 vs 600, never beyond |
 
-Equity: $292.16 → $292.49 at the stage 1 stop → $294.61 at 02:37Z (position −395 at the time). The size ladder's stage 2 gate (≥ +1 bp per $ after 300 fills, no abort) was met by stage 1 at 15:52Z and #53 was merged on it.
+Equity: $292.16 → $292.49 at the stage 1 stop → $294.61 at 02:37Z → $298.39 at 13:19Z on 21 Oct (+$6.23; position −363 at the time). The size ladder's stage 2 gate (≥ +1 bp per $ after 300 fills, no abort) was met by stage 1 at 15:52Z and #53 was merged on it.
 
 The 13 Oct pick-off (whole-order fills with a −2.77 bps 60 s markout) is gone under the anchored fair: whole-quote fills had +0.22 (stage 1) and −1.90 (stage 2) 60 s markouts and net60 +2.24 / +1.19.
 
@@ -49,7 +49,9 @@ The 13 Oct pick-off (whole-order fills with a −2.77 bps 60 s markout) is gone 
    - The old quote stays hittable while the edit is in flight: of 235 stage 1 fills that landed in a tick which edited or placed the hit side, 209 hit the old price before the edit returned, most within 60 ms of the row. The taker reaches the quote at about the moment the bot first sees the tick.
    - The loop is timer-driven only (400 ms; nothing wakes it on a Binance or Delta update, fills wait for the next tick), the REST client has no timeout, and the venue reconcile GET runs inside the tick every 5 s (fast, 30 ms, not the stall).
    - A 200 ms dry-run next to the shadow (no REST calls) had loop gaps of a flat 200 / 200 / 201 ms over 10 h: the stalls are REST waits, not compute.
-   - What the Delta edit latency is made of is not measurable from here; the REST host resolves to a CloudFront distribution and the GETs are fast, so it is the order path itself. [UNVERIFIED: whether a cancel is as fast as a GET; the cancel-all ticks could not be timed from the log.]
+   - It is Delta India **mainnet's** write path, not our client or the network. A demo-only probe on 21 Oct (`order_probe.py`: post-only buys 3% below the BTCUSD best bid, 8 rounds, one warm keep-alive connection from the VM, like the bot's pool) measured, p50 / max: place 36 / 67 ms, edit 74 / 87, order state 22 / 30, cancel 66 / 74, batch place ×2 31 / 33, batch edit ×2 70 / 73, batch cancel ×2 66 / 69, cancel-all 16 / 20. The same bot binary's demo QA run on 19 Oct logged edits at p50 79 ms by the method above, and the live bot's mainnet order-state GETs return in about 20 ms. So mainnet takes about 0.5 s more than demo for a write, and nothing on our side explains it.
+   - A batch call costs one call's time (batch edit of both sides ≈ one edit), so sending both sides together halves the freeze either way; two single calls in parallel weigh 2 × 5 against Delta's rate limit, a batch 25.
+   - Mainnet cancel latency is still unmeasured [UNVERIFIED]; the latency PR logs every call's time, so the first live hour on it will show it.
 
 5. **Widening the half-spread is a weaker case than it looked before the overnight data.** Simulator on the clean days ($45 quotes, cap 3, Scalper Offer, whole-day dollars):
 
@@ -77,8 +79,8 @@ The bot is one Rust process; the shadow test is the same binary in dry-run plus 
 
 ## Recommended next steps (in order)
 
-1. **Keep stage 2 running** under the stop rule and the $15 daily stop; the 300-fill mark is imminent.
-2. **Quote-path latency PR** (Rust, no strategy change): log elapsed ms per REST call and `tick_ms` / `rest_calls` in `MM_METRICS`; a 1.5 s request timeout on the Delta client; `MissedTickBehavior::Skip`; run the bid and ask order chains concurrently (or Delta's batch edit); move the fill-settle and reconcile GETs off the loop. Expected: a two-sided requote freezes the loop ~0.6 s instead of 1.2 s and the 1.0–1.5 s stalls disappear. Verify on a demo QA run, then restart live.
-3. **Demo probe of cancel vs edit vs place latency** (one far-from-market post-only order on the demo account). If a cancel is ~50 ms, add "cancel the exposed side first, re-place after" on a Binance tick against it, and an event-driven wake on the Binance tick, since only then can the bot beat the taker.
-4. **Log the Binance bid/ask sizes** in `MM_METRICS` (they are in the bookTicker already) so a microprice anchor, which anticipates the 4.5 bps tick, can be evaluated on recorded data before any quoting change.
+1. **Keep stage 2 running** under the stop rule and the $15 daily stop. Done: the stop rule passed at 448 and 490 fills.
+2. **Quote-path latency PR** (Rust, no strategy change; `perf/concurrent-quote-calls`): both sides' first order calls sent together, fallbacks after both answer; every Delta REST call bounded (`MM_REST_TIMEOUT_MS`, 3 s) and timed (`MM_REST` debug, `ms` on `MM_ORDER`, `loop_work_ms` in `MM_METRICS`); a place with no answer tracked without an id so the next loop cancels all; one immediate tick after an overrun instead of a burst. Expected: a two-sided requote holds the loop ~0.6 s instead of ~1.2 s. Verify on a demo QA run, then restart live.
+3. **Event-driven wake on the Binance tick**, after the PR's live timings show mainnet cancel latency. If a cancel is much faster than an edit, "cancel the exposed side first, re-place after" on a Binance tick against a quote is the real pick-off fix; if not, the bot cannot beat a taker who reacts in under 100 ms, and the remaining lever is the quote rule.
+4. **Microprice anchor study.** The Binance bid, ask and their sizes are already logged in `MM_METRICS` (`binance_bid`, `binance_ask`, `binance_bid_qty`, `binance_ask_qty`), so a microprice anchor, which anticipates the 4.5 bps tick, can be replayed on recorded shadow data before any quoting change. (An earlier draft of this memo listed adding that logging as a step; it is not needed.)
 5. Hold the half-spread at 5 bps and the lean for later, as above.
