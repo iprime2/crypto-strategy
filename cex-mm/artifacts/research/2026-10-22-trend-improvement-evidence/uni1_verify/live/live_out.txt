@@ -1,0 +1,167 @@
+pool 696 symbols, rows 2020-01-01..2026-09-30
+
+== UNI-1 daily resets
+  2020-04-30: BTC(1,$2202M) ETH(2,$364M) LINK(3,$117M) BCH(4,$89M) XTZ(5,$49M) LTC(6,$30M) BNB(7,$27M) EOS(8,$24M) XRP(9,$21M) | +['BCH', 'BNB', 'BTC', 'EOS', 'ETH', 'LINK', 'LTC', 'XRP', 'XTZ'] -[]
+  2021-01-01: BTC(1,$6650M) ETH(2,$1854M) XRP(3,$942M) LTC(4,$450M) LINK(5,$236M) BCH(6,$206M) EOS(7,$86M) BNB(8,$70M) XTZ(9,$21M) | +[] -[]
+  2022-01-01: BTC(1,$12580M) ETH(2,$6309M) MATIC(3,$1041M) SOL(4,$942M) XRP(6,$635M) BNB(10,$526M) LINK(13,$353M) LTC(14,$314M) EOS(18,$269M) | +['MATIC', 'SOL'] -['BCH', 'XTZ']
+  2023-01-01: BTC(1,$4927M) ETH(2,$4816M) DOGE(3,$662M) XRP(4,$374M) BNB(5,$358M) LTC(6,$328M) MATIC(7,$234M) LINK(8,$198M) SOL(10,$187M) | +['DOGE'] -['EOS']
+  2024-01-01: BTC(1,$11590M) ETH(2,$6401M) SOL(3,$2696M) AVAX(4,$983M) XRP(5,$595M) DOGE(7,$504M) MATIC(9,$466M) LINK(10,$433M) BNB(11,$423M) | +['AVAX'] -['LTC']
+  2025-01-01: BTC(1,$20078M) ETH(2,$10589M) XRP(3,$3722M) SOL(4,$3142M) DOGE(5,$2840M) 1000PEPE(6,$1613M) BNB(8,$808M) LINK(9,$774M) AVAX(12,$496M) | +['1000PEPE'] -['MATIC']
+  2026-01-01: BTC(1,$12781M) ETH(2,$12644M) SOL(3,$2859M) XRP(5,$836M) DOGE(6,$556M) BNB(7,$437M) 1000PEPE(9,$262M) AVAX(11,$218M) LINK(13,$189M) | +[] -[]
+
+== UNI-1 weekly resets
+  2020-04-30: BTC(1,$2202M) ETH(2,$364M) LINK(3,$117M) BCH(4,$89M) XTZ(5,$49M) LTC(6,$30M) BNB(7,$27M) EOS(8,$24M) XRP(9,$21M) | +['BCH', 'BNB', 'BTC', 'EOS', 'ETH', 'LINK', 'LTC', 'XRP', 'XTZ'] -[]
+  2021-01-03: BTC(1,$6979M) ETH(2,$1891M) XRP(3,$942M) LTC(4,$522M) LINK(5,$244M) BCH(6,$215M) BNB(7,$90M) EOS(8,$87M) XTZ(9,$21M) | +[] -[]
+  2022-01-02: BTC(1,$12248M) ETH(2,$6159M) MATIC(3,$1029M) SOL(4,$897M) XRP(7,$595M) BNB(10,$507M) LINK(13,$353M) LTC(14,$312M) EOS(18,$264M) | +['MATIC', 'SOL'] -['BCH', 'XTZ']
+  2023-01-01: BTC(1,$4927M) ETH(2,$4816M) DOGE(3,$662M) XRP(4,$374M) BNB(5,$358M) LTC(6,$328M) MATIC(7,$234M) LINK(8,$198M) SOL(10,$187M) | +['DOGE'] -['EOS']
+  2024-01-07: BTC(1,$10978M) ETH(2,$5993M) SOL(3,$2829M) AVAX(4,$914M) XRP(5,$563M) BNB(9,$449M) DOGE(10,$448M) MATIC(11,$440M) LINK(12,$395M) | +['AVAX'] -['LTC']
+  2025-01-05: BTC(1,$17180M) ETH(2,$9281M) XRP(3,$3113M) SOL(4,$2511M) DOGE(5,$2360M) 1000PEPE(6,$1490M) BNB(8,$684M) LINK(10,$615M) AVAX(12,$445M) | +['1000PEPE'] -['MATIC']
+  2026-01-04: BTC(1,$11665M) ETH(2,$11117M) SOL(3,$2498M) XRP(5,$790M) DOGE(6,$556M) BNB(7,$413M) 1000PEPE(9,$262M) AVAX(11,$210M) LINK(13,$166M) | +[] -[]
+daily: 2026 members still in U on 2026-09-30: 9/9 []
+weekly: 2026 members still in U on 2026-09-30: 9/9 []
+
+== 2027 proxy (daily incumbents) at 2026-09-30: BTC ETH ZEC SOL XRP DOGE BNB 1000PEPE LINK
+
+== 2027 proxy (weekly incumbents) at 2026-09-30: BTC ETH ZEC SOL XRP DOGE BNB 1000PEPE LINK
+  eligible ranking at 2026-09-30 (rank symbol median30 $M age incumbent):
+    1 BTC          11526.6 age  2465 INC
+    2 ETH           8839.7 age  2465 INC
+    3 ZEC           2283.0 age  2425 
+    4 SOL           1973.2 age  2203 INC
+    5 XRP           1153.0 age  2455 INC
+    6 HYPE           744.3 age   489 
+    7 DOGE           533.6 age  2274 INC
+    8 NEAR           473.5 age  2172 
+    9 UNI            391.0 age  2204 
+   10 BNB            377.8 age  2425 INC
+   11 SUI            361.1 age  1247 
+   12 ENA            294.0 age   912 
+   13 1000PEPE       242.3 age  1245 INC
+   14 ADA            214.4 age  2435 
+   15 ARB            213.3 age  1288 
+   16 TAO            191.8 age   903 
+   17 WLD            183.0 age  1165 
+   18 LINK           176.6 age  2449 INC
+   19 PUMP           170.8 age   448 
+   20 FIL            136.7 age  2171 
+   21 AKE            136.0 age   370 
+   22 TRUMP          121.2 age   621 
+   23 AAVE           119.3 age  2176 
+   24 USELESS        117.9 age   412 
+   25 AVAX           115.1 age  2199 INC
+  no-age-floor ranking (top 20; age < 365 marked YOUNG):
+   BTC          11526.6 age  2465 
+   ETH           8839.7 age  2465 
+   ZEC           2283.0 age  2425 
+   SOL           1973.2 age  2203 
+   XRP           1153.0 age  2455 
+   HYPE           744.3 age   489 
+   DOGE           533.6 age  2274 
+   NEAR           473.5 age  2172 
+   UNI            391.0 age  2204 
+   BNB            377.8 age  2425 
+   SUI            361.1 age  1247 
+   ENA            294.0 age   912 
+   1000PEPE       242.3 age  1245 
+   ADA            214.4 age  2435 
+   ARB            213.3 age  1288 
+   TAO            191.8 age   903 
+   WLD            183.0 age  1165 
+   LINK           176.6 age  2449 
+   PUMP           170.8 age   448 
+   FIL            136.7 age  2171 
+
+== Delta India listing for 2026 members, 2027 proxy and the live nine (tickers snapshot 2026-10-20T02:24:35.158026705Z)
+  coin     delta            cv       mark    1ct $ turn24h $M   OI $M sprd bp    bid$    ask$ launch state taker maker
+  1000PEPE 1000PEPEUSD     1000   0.004484     4.48       0.44    0.08   10.70    1247     139 2025-12-29 live/operational 0.0005 0.0002  vol60 1.10 binance px 0.004277
+  ADA      ADAUSD            1     0.2237     0.22       0.78    0.69    8.50   12396      34 2024-04-18 live/operational 0.0005 0.0002  vol60 0.78 binance px 0.2466
+  AVAX     AVAXUSD           1      9.695     9.69       2.33    0.97    6.19    8415    5681 2024-04-08 live/operational 0.0005 0.0002  vol60 0.86 binance px 10.93
+  BCH      BCHUSD         0.01      285.5     2.85       1.40    0.37    4.20    5173    7726 2024-04-10 live/operational 0.0005 0.0002  vol60 1.08 binance px 306.1
+  BNB      BNBUSD          0.1        740    74.00       2.26    0.43    0.27   18130    1924 2024-04-10 live/operational 0.0005 0.0002  vol60 0.39 binance px 769.7
+  BTC      BTCUSD        0.001  8.276e+04    82.76    1073.07   61.62    0.06  400122   53956 2023-12-18 live/operational 0.0005 0.0002  vol60 0.42 binance px 8.358e+04
+  DOGE     DOGEUSD         100    0.08173     8.17       3.67    1.05    3.67   15006   13707 2024-04-08 live/operational 0.0005 0.0002  vol60 0.73 binance px 0.0945
+  ETH      ETHUSD         0.01       2448    24.48     717.06   52.30    0.20  120054   28055 2024-02-05 live/operational 0.0005 0.0002  vol60 0.58 binance px 2685
+  LINK     LINKUSD           1      12.34    12.34       1.58    1.26    1.62   61944   20636 2024-04-10 live/operational 0.0005 0.0002  vol60 0.77 binance px 14.36
+  LTC      LTCUSD          0.1      61.44     6.14       1.66    0.96    3.26   11225    6789 2024-04-10 live/operational 0.0005 0.0002  vol60 0.63 binance px 67.19
+  SOL      SOLUSD            1      106.2   106.20     150.85   29.81    0.66   20071    2124 2024-04-08 live/operational 0.0005 0.0002  vol60 0.63 binance px 118
+  XRP      XRPUSD            1      1.334     1.33      12.08    4.87    1.50   20649    4276 2024-04-10 live/operational 0.0005 0.0002  vol60 0.78 binance px 1.489
+  ZEC      ZECUSD          0.1       1266   126.56      16.06    2.54    0.39    4556   26577 2025-10-06 live/operational 0.0005 0.0002  vol60 1.37 binance px 1438
+
+== Full-signal position (USD) and contracts = pos / (cv x mark), N 9; vol60 at 2026-09-30 (floor 0.05)
+  -- 2026 daily: BTC ETH SOL XRP DOGE BNB 1000PEPE AVAX LINK
+   TV 0.25 E $1,000: contracts BTC:0.8 ETH:2.0 SOL:0.4 XRP:26.6 DOGE:4.6 BNB:1.0 1000PEPE:5.6 AVAX:3.3 LINK:2.9 | <2 ct: ['BTC(0.79)', 'ETH(1.97)', 'SOL(0.42)', 'BNB(0.97)']
+   TV 0.25 E $2,500: contracts BTC:2.0 ETH:4.9 SOL:1.0 XRP:66.6 DOGE:11.6 BNB:2.4 1000PEPE:14.1 AVAX:8.3 LINK:7.3 | <2 ct: ['BTC(1.99)', 'SOL(1.04)']
+   TV 0.25 E $5,000: contracts BTC:4.0 ETH:9.8 SOL:2.1 XRP:133.1 DOGE:23.2 BNB:4.9 1000PEPE:28.2 AVAX:16.7 LINK:14.6 | <2 ct: none
+   TV 0.40 E $1,000: contracts BTC:1.3 ETH:3.1 SOL:0.7 XRP:42.6 DOGE:7.4 BNB:1.6 1000PEPE:9.0 AVAX:5.3 LINK:4.7 | <2 ct: ['BTC(1.27)', 'SOL(0.66)', 'BNB(1.56)']
+   TV 0.40 E $2,500: contracts BTC:3.2 ETH:7.9 SOL:1.7 XRP:106.5 DOGE:18.6 BNB:3.9 1000PEPE:22.5 AVAX:13.3 LINK:11.7 | <2 ct: ['SOL(1.66)']
+   TV 0.40 E $5,000: contracts BTC:6.4 ETH:15.7 SOL:3.3 XRP:213.0 DOGE:37.2 BNB:7.8 1000PEPE:45.1 AVAX:26.7 LINK:23.4 | <2 ct: none
+   position $ at TV 0.40 E $5,000 vs Delta 24h turnover:
+     BTC      pos $    526  turnover $ 1073.07M  pos/turnover 4.90e-07  
+     ETH      pos $    385  turnover $  717.06M  pos/turnover 5.37e-07  
+     SOL      pos $    353  turnover $  150.85M  pos/turnover 2.34e-06  
+     XRP      pos $    284  turnover $   12.08M  pos/turnover 2.35e-05  
+     DOGE     pos $    304  turnover $    3.67M  pos/turnover 8.28e-05  
+     BNB      pos $    575  turnover $    2.26M  pos/turnover 2.55e-04  
+     1000PEPE pos $    202  turnover $    0.44M  pos/turnover 4.61e-04  < $0.5M/day
+     AVAX     pos $    258  turnover $    2.33M  pos/turnover 1.11e-04  
+     LINK     pos $    288  turnover $    1.58M  pos/turnover 1.83e-04  
+  -- 2026 weekly: BTC ETH SOL XRP DOGE BNB 1000PEPE AVAX LINK
+   TV 0.25 E $1,000: contracts BTC:0.8 ETH:2.0 SOL:0.4 XRP:26.6 DOGE:4.6 BNB:1.0 1000PEPE:5.6 AVAX:3.3 LINK:2.9 | <2 ct: ['BTC(0.79)', 'ETH(1.97)', 'SOL(0.42)', 'BNB(0.97)']
+   TV 0.25 E $2,500: contracts BTC:2.0 ETH:4.9 SOL:1.0 XRP:66.6 DOGE:11.6 BNB:2.4 1000PEPE:14.1 AVAX:8.3 LINK:7.3 | <2 ct: ['BTC(1.99)', 'SOL(1.04)']
+   TV 0.25 E $5,000: contracts BTC:4.0 ETH:9.8 SOL:2.1 XRP:133.1 DOGE:23.2 BNB:4.9 1000PEPE:28.2 AVAX:16.7 LINK:14.6 | <2 ct: none
+   TV 0.40 E $1,000: contracts BTC:1.3 ETH:3.1 SOL:0.7 XRP:42.6 DOGE:7.4 BNB:1.6 1000PEPE:9.0 AVAX:5.3 LINK:4.7 | <2 ct: ['BTC(1.27)', 'SOL(0.66)', 'BNB(1.56)']
+   TV 0.40 E $2,500: contracts BTC:3.2 ETH:7.9 SOL:1.7 XRP:106.5 DOGE:18.6 BNB:3.9 1000PEPE:22.5 AVAX:13.3 LINK:11.7 | <2 ct: ['SOL(1.66)']
+   TV 0.40 E $5,000: contracts BTC:6.4 ETH:15.7 SOL:3.3 XRP:213.0 DOGE:37.2 BNB:7.8 1000PEPE:45.1 AVAX:26.7 LINK:23.4 | <2 ct: none
+   position $ at TV 0.40 E $5,000 vs Delta 24h turnover:
+     BTC      pos $    526  turnover $ 1073.07M  pos/turnover 4.90e-07  
+     ETH      pos $    385  turnover $  717.06M  pos/turnover 5.37e-07  
+     SOL      pos $    353  turnover $  150.85M  pos/turnover 2.34e-06  
+     XRP      pos $    284  turnover $   12.08M  pos/turnover 2.35e-05  
+     DOGE     pos $    304  turnover $    3.67M  pos/turnover 8.28e-05  
+     BNB      pos $    575  turnover $    2.26M  pos/turnover 2.55e-04  
+     1000PEPE pos $    202  turnover $    0.44M  pos/turnover 4.61e-04  < $0.5M/day
+     AVAX     pos $    258  turnover $    2.33M  pos/turnover 1.11e-04  
+     LINK     pos $    288  turnover $    1.58M  pos/turnover 1.83e-04  
+  -- 2027 proxy: BTC ETH ZEC SOL XRP DOGE BNB 1000PEPE LINK
+   TV 0.25 E $1,000: contracts BTC:0.8 ETH:2.0 ZEC:0.2 SOL:0.4 XRP:26.6 DOGE:4.6 BNB:1.0 1000PEPE:5.6 LINK:2.9 | <2 ct: ['BTC(0.79)', 'ETH(1.97)', 'ZEC(0.16)', 'SOL(0.42)', 'BNB(0.97)']
+   TV 0.25 E $2,500: contracts BTC:2.0 ETH:4.9 ZEC:0.4 SOL:1.0 XRP:66.6 DOGE:11.6 BNB:2.4 1000PEPE:14.1 LINK:7.3 | <2 ct: ['BTC(1.99)', 'ZEC(0.40)', 'SOL(1.04)']
+   TV 0.25 E $5,000: contracts BTC:4.0 ETH:9.8 ZEC:0.8 SOL:2.1 XRP:133.1 DOGE:23.2 BNB:4.9 1000PEPE:28.2 LINK:14.6 | <2 ct: ['ZEC(0.80)']
+   TV 0.40 E $1,000: contracts BTC:1.3 ETH:3.1 ZEC:0.3 SOL:0.7 XRP:42.6 DOGE:7.4 BNB:1.6 1000PEPE:9.0 LINK:4.7 | <2 ct: ['BTC(1.27)', 'ZEC(0.26)', 'SOL(0.66)', 'BNB(1.56)']
+   TV 0.40 E $2,500: contracts BTC:3.2 ETH:7.9 ZEC:0.6 SOL:1.7 XRP:106.5 DOGE:18.6 BNB:3.9 1000PEPE:22.5 LINK:11.7 | <2 ct: ['ZEC(0.64)', 'SOL(1.66)']
+   TV 0.40 E $5,000: contracts BTC:6.4 ETH:15.7 ZEC:1.3 SOL:3.3 XRP:213.0 DOGE:37.2 BNB:7.8 1000PEPE:45.1 LINK:23.4 | <2 ct: ['ZEC(1.28)']
+   position $ at TV 0.40 E $5,000 vs Delta 24h turnover:
+     BTC      pos $    526  turnover $ 1073.07M  pos/turnover 4.90e-07  
+     ETH      pos $    385  turnover $  717.06M  pos/turnover 5.37e-07  
+     ZEC      pos $    162  turnover $   16.06M  pos/turnover 1.01e-05  
+     SOL      pos $    353  turnover $  150.85M  pos/turnover 2.34e-06  
+     XRP      pos $    284  turnover $   12.08M  pos/turnover 2.35e-05  
+     DOGE     pos $    304  turnover $    3.67M  pos/turnover 8.28e-05  
+     BNB      pos $    575  turnover $    2.26M  pos/turnover 2.55e-04  
+     1000PEPE pos $    202  turnover $    0.44M  pos/turnover 4.61e-04  < $0.5M/day
+     LINK     pos $    288  turnover $    1.58M  pos/turnover 1.83e-04  
+
+== backtest whole-contract cv (data.CVALS else $25 / first Binance close) vs Delta's real cv, at today's mark
+   1000PEPE backtest cv       6718 coin ($   30.13/ct today)  Delta cv 1000 ($4.48/ct)  ratio 6.72
+   ADA      backtest cv          1 coin ($    0.22/ct today)  Delta cv 1 ($0.22/ct)  ratio 1.00
+   AVAX     backtest cv      7.115 coin ($   68.98/ct today)  Delta cv 1 ($9.69/ct)  ratio 7.12
+   BCH      backtest cv       0.01 coin ($    2.85/ct today)  Delta cv 0.01 ($2.85/ct)  ratio 1.00
+   BNB      backtest cv        0.1 coin ($   74.00/ct today)  Delta cv 0.1 ($74.00/ct)  ratio 1.00
+   BTC      backtest cv      0.001 coin ($   82.76/ct today)  Delta cv 0.001 ($82.76/ct)  ratio 1.00
+   DOGE     backtest cv        100 coin ($    8.17/ct today)  Delta cv 100 ($8.17/ct)  ratio 1.00
+   ETH      backtest cv       0.01 coin ($   24.48/ct today)  Delta cv 0.01 ($24.48/ct)  ratio 1.00
+   LINK     backtest cv          1 coin ($   12.34/ct today)  Delta cv 1 ($12.34/ct)  ratio 1.00
+   LTC      backtest cv        0.1 coin ($    6.14/ct today)  Delta cv 0.1 ($6.14/ct)  ratio 1.00
+   SOL      backtest cv      7.654 coin ($  812.88/ct today)  Delta cv 1 ($106.20/ct)  ratio 7.65
+   XRP      backtest cv          1 coin ($    1.33/ct today)  Delta cv 1 ($1.33/ct)  ratio 1.00
+   ZEC      backtest cv      0.351 coin ($  444.25/ct today)  Delta cv 0.1 ($126.56/ct)  ratio 3.51
+
+== Delta listing at each historical reset date (launch <= reset date?)
+   2020-04-30: BTC:later 2023-12-18 ETH:later 2024-02-05 LINK:later 2024-04-10 BCH:later 2024-04-10 XTZ:never LTC:later 2024-04-10 BNB:later 2024-04-10 EOS:never XRP:later 2024-04-10
+   2021-01-01: BTC:later 2023-12-18 ETH:later 2024-02-05 XRP:later 2024-04-10 LTC:later 2024-04-10 LINK:later 2024-04-10 BCH:later 2024-04-10 EOS:never BNB:later 2024-04-10 XTZ:never
+   2022-01-01: BTC:later 2023-12-18 ETH:later 2024-02-05 MATIC:never SOL:later 2024-04-08 XRP:later 2024-04-10 BNB:later 2024-04-10 LINK:later 2024-04-10 LTC:later 2024-04-10 EOS:never
+   2023-01-01: BTC:later 2023-12-18 ETH:later 2024-02-05 DOGE:later 2024-04-08 XRP:later 2024-04-10 BNB:later 2024-04-10 LTC:later 2024-04-10 MATIC:never LINK:later 2024-04-10 SOL:later 2024-04-08
+   2024-01-01: BTC:Y ETH:later 2024-02-05 SOL:later 2024-04-08 AVAX:later 2024-04-08 XRP:later 2024-04-10 DOGE:later 2024-04-08 MATIC:never LINK:later 2024-04-10 BNB:later 2024-04-10
+   2025-01-01: BTC:Y ETH:Y XRP:Y SOL:Y DOGE:Y 1000PEPE:later 2025-12-29 BNB:Y LINK:Y AVAX:Y
+   2026-01-01: BTC:Y ETH:Y SOL:Y XRP:Y DOGE:Y BNB:Y 1000PEPE:Y AVAX:Y LINK:Y
+
+wrote /tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/uni1_verify/live/live_out.json

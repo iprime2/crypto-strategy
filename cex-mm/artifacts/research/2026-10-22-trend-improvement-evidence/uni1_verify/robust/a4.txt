@@ -1,0 +1,24 @@
+daily P1 n=200 (51s)
+   FULL    mean 0.673 sd 0.160 p5/25/50/75/95 0.403 0.569 0.681 0.785 0.907 | UNI-1 1.050 at pct 100.0 | static-24 0.851 at pct 87.0 | share > static-24 0.13
+   POST    mean 0.317 sd 0.210 p5/25/50/75/95 -0.040 0.167 0.311 0.464 0.661 | UNI-1 0.862 at pct 99.5 | static-24 0.586 at pct 89.0 | share > static-24 0.11
+   2020-21 mean 1.323 sd 0.253 p5/25/50/75/95 0.909 1.157 1.321 1.500 1.782 | UNI-1 1.459 at pct 69.0 | static-24 1.406 at pct 63.5 | share > static-24 0.36
+daily P2 n=200 (102s)
+   FULL    mean 0.872 sd 0.128 p5/25/50/75/95 0.652 0.800 0.879 0.962 1.071 | UNI-1 1.050 at pct 93.0 | static-24 0.851 at pct 40.5 | share > static-24 0.59
+   POST    mean 0.605 sd 0.159 p5/25/50/75/95 0.338 0.505 0.615 0.726 0.828 | UNI-1 0.862 at pct 96.5 | static-24 0.586 at pct 42.5 | share > static-24 0.57
+   2020-21 mean 1.401 sd 0.241 p5/25/50/75/95 1.011 1.234 1.396 1.559 1.844 | UNI-1 1.459 at pct 61.0 | static-24 1.406 at pct 53.0 | share > static-24 0.47
+daily P3 n=200 (150s)
+   FULL    mean 0.797 sd 0.116 p5/25/50/75/95 0.615 0.712 0.798 0.883 0.971 | UNI-1 1.050 at pct 98.5 | static-24 0.851 at pct 66.0 | share > static-24 0.34
+   POST    mean 0.547 sd 0.143 p5/25/50/75/95 0.278 0.461 0.572 0.640 0.759 | UNI-1 0.862 at pct 99.5 | static-24 0.586 at pct 54.5 | share > static-24 0.46
+   2020-21 mean 1.323 sd 0.253 p5/25/50/75/95 0.909 1.157 1.321 1.500 1.782 | UNI-1 1.459 at pct 69.0 | static-24 1.406 at pct 63.5 | share > static-24 0.36
+weekly P1 n=200 (200s)
+   FULL    mean 0.607 sd 0.151 p5/25/50/75/95 0.357 0.503 0.611 0.705 0.842 | UNI-1 0.984 at pct 100.0 | static-24 0.810 at pct 90.5 | share > static-24 0.10
+   POST    mean 0.205 sd 0.210 p5/25/50/75/95 -0.137 0.043 0.205 0.347 0.540 | UNI-1 0.777 at pct 100.0 | static-24 0.492 at pct 90.5 | share > static-24 0.10
+   2020-21 mean 1.323 sd 0.242 p5/25/50/75/95 0.924 1.169 1.322 1.498 1.683 | UNI-1 1.422 at pct 66.0 | static-24 1.474 at pct 72.0 | share > static-24 0.28
+weekly P2 n=200 (248s)
+   FULL    mean 0.698 sd 0.117 p5/25/50/75/95 0.512 0.615 0.701 0.773 0.876 | UNI-1 0.984 at pct 99.5 | static-24 0.810 at pct 82.5 | share > static-24 0.17
+   POST    mean 0.348 sd 0.144 p5/25/50/75/95 0.136 0.237 0.339 0.449 0.588 | UNI-1 0.777 at pct 100.0 | static-24 0.492 at pct 81.5 | share > static-24 0.18
+   2020-21 mean 1.343 sd 0.219 p5/25/50/75/95 1.016 1.176 1.341 1.490 1.699 | UNI-1 1.422 at pct 66.0 | static-24 1.474 at pct 71.5 | share > static-24 0.28
+weekly P3 n=200 (296s)
+   FULL    mean 0.734 sd 0.129 p5/25/50/75/95 0.510 0.640 0.737 0.827 0.941 | UNI-1 0.984 at pct 98.5 | static-24 0.810 at pct 69.5 | share > static-24 0.30
+   POST    mean 0.455 sd 0.160 p5/25/50/75/95 0.182 0.354 0.459 0.556 0.728 | UNI-1 0.777 at pct 99.5 | static-24 0.492 at pct 58.5 | share > static-24 0.41
+   2020-21 mean 1.323 sd 0.242 p5/25/50/75/95 0.924 1.169 1.322 1.498 1.683 | UNI-1 1.422 at pct 66.0 | static-24 1.474 at pct 72.0 | share > static-24 0.28

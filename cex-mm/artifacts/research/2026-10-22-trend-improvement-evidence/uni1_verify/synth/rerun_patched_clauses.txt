@@ -1,0 +1,4 @@
+original    daily  R1 FULL 1.050 vs 0.851 | R2 POST d +0.276 [-0.22,+0.74] P 0.12 | R3 mv maxDD -24.19% (tv 0.363) vs static -24.74%, raw -26.49% -> ok | R4 H1 +0.182 H2 +0.231 | vol 0.184 vs 0.166
+original    weekly R1 FULL 0.984 vs 0.810 | R2 POST d +0.286 [-0.23,+0.79] P 0.12 | R3 mv maxDD -16.62% (tv 0.227) vs static -16.97%, raw -18.23% -> ok | R4 H1 +0.097 H2 +0.296 | vol 0.122 vs 0.110
+gap-patched daily  R1 FULL 1.046 vs 0.860 | R2 POST d +0.256 [-0.24,+0.73] P 0.13 | R3 mv maxDD -24.51% (tv 0.363) vs static -24.01%, raw -26.82% -> FAIL | R4 H1 +0.161 H2 +0.231 | vol 0.184 vs 0.167
+gap-patched weekly R1 FULL 0.984 vs 0.819 | R2 POST d +0.273 [-0.24,+0.77] P 0.13 | R3 mv maxDD -16.59% (tv 0.226) vs static -16.75%, raw -18.20% -> ok | R4 H1 +0.083 H2 +0.296 | vol 0.121 vs 0.110

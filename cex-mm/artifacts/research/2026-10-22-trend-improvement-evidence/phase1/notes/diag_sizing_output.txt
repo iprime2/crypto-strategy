@@ -1,0 +1,50 @@
+/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/research2/diag_sizing.py:13: DeprecationWarning: datetime.datetime.utcfromtimestamp() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.fromtimestamp(timestamp, datetime.UTC).
+  d = dt.datetime.utcfromtimestamp(t/1000).date()
+common days 2020-07-10 2026-09-30 2269
+
+== per-coin 60d CC vol (ann.) percentiles and share of days below 0.30/0.40/0.50 ==
+BTC   p5=0.32 p25=0.40 p50=0.54 p75=0.65 p95=0.90  <0.30:4% <0.40:25% <0.50:45%
+ETH   p5=0.40 p25=0.56 p50=0.71 p75=0.86 p95=1.24  <0.30:0% <0.40:5% <0.50:13%
+XRP   p5=0.44 p25=0.55 p50=0.78 p75=1.05 p95=1.94  <0.30:0% <0.40:4% <0.50:17%
+BNB   p5=0.30 p25=0.45 p50=0.56 p75=0.79 p95=1.82  <0.30:5% <0.40:17% <0.50:37%
+ADA   p5=0.49 p25=0.69 p50=0.81 p75=1.00 p95=1.71  <0.30:0% <0.40:3% <0.50:5%
+LTC   p5=0.42 p25=0.58 p50=0.77 p75=0.99 p95=1.31  <0.30:0% <0.40:3% <0.50:15%
+LINK  p5=0.53 p25=0.72 p50=0.87 p75=1.09 p95=1.49  <0.30:0% <0.40:0% <0.50:1%
+DOGE  p5=0.47 p25=0.70 p50=0.89 p75=1.11 p95=2.75  <0.30:0% <0.40:2% <0.50:7%
+BCH   p5=0.49 p25=0.66 p50=0.79 p75=0.94 p95=1.54  <0.30:0% <0.40:1% <0.50:6%
+
+== average pairwise 60d correlation of daily log returns across the 9 coins, and CF=sqrt(9/(1+8rho)) ==
+rho_bar p5=0.48 p25=0.63 p50=0.72 p75=0.77 p95=0.85  CF: p5=1.07 p25=1.12 p50=1.15 p75=1.22 p95=1.37
+
+== estimator noise: sd of weekly log change of the vol estimate (turnover proxy for a weekly book), median over coins; and level ratio vs CC60 ==
+CC60            weekly-log-change sd (median coin) 0.113   level/CC60 median 1.000
+CC30            weekly-log-change sd (median coin) 0.192   level/CC60 median 0.972
+CC20            weekly-log-change sd (median coin) 0.267   level/CC60 median 0.950
+PARK30          weekly-log-change sd (median coin) 0.175   level/CC60 median 1.081
+PARK20          weekly-log-change sd (median coin) 0.236   level/CC60 median 1.038
+GK30            weekly-log-change sd (median coin) 0.178   level/CC60 median 1.096
+EWMA35          weekly-log-change sd (median coin) 0.177   level/CC60 median 0.973
+EWMA60          weekly-log-change sd (median coin) 0.119   level/CC60 median 1.015
+EWMA121(com60)  weekly-log-change sd (median coin) 0.067   level/CC60 median 1.041
+
+== forecast accuracy: RMSE of log(estimate / next-7-day realized CC vol), median coin ==
+CC60            RMSE 0.563
+CC30            RMSE 0.539
+CC20            RMSE 0.558
+PARK30          RMSE 0.578
+PARK20          RMSE 0.588
+GK30            RMSE 0.597
+EWMA35          RMSE 0.531
+EWMA60          RMSE 0.539
+EWMA121(com60)  RMSE 0.553
+
+== same, next-1-day realized (abs return) proxy: RMSE of log(est / sqrt(365)*|r_{t+1}|) is too noisy; use next-30-day realized instead ==
+CC60            RMSE30 0.425
+CC30            RMSE30 0.424
+CC20            RMSE30 0.449
+PARK30          RMSE30 0.440
+PARK20          RMSE30 0.442
+GK30            RMSE30 0.456
+EWMA35          RMSE30 0.407
+EWMA60          RMSE30 0.393
+EWMA121(com60)  RMSE30 0.384

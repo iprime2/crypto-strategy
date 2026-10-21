@@ -1,0 +1,154 @@
+(a) pool symbols with month holes in cached 1d files: 2
+   DASH: ['2022-10']
+   NMR: ['2024-10']
+
+(c) coins ranked <= 18 by turnover (no age floor) but with age < 365 at a reset: 91 coins
+    ('2020-04-30', 'yearly', False, np.str_('BTC'), 1, 121)
+    ('2020-04-30', 'yearly', False, np.str_('ETH'), 2, 121)
+    ('2020-04-30', 'yearly', False, np.str_('LINK'), 3, 105)
+    ('2020-04-30', 'yearly', False, np.str_('BCH'), 4, 121)
+    ('2020-04-30', 'yearly', False, np.str_('XTZ'), 5, 85)
+    ('2020-04-30', 'yearly', False, np.str_('LTC'), 6, 113)
+    ('2020-04-30', 'yearly', False, np.str_('BNB'), 7, 81)
+    ('2020-04-30', 'yearly', False, np.str_('EOS'), 8, 114)
+    ('2020-04-30', 'yearly', False, np.str_('XRP'), 9, 116)
+    ('2020-04-30', 'yearly', False, np.str_('ETC'), 10, 106)
+    ('2020-04-30', 'yearly', False, np.str_('DASH'), 11, 87)
+    ('2020-04-30', 'yearly', False, np.str_('XLM'), 12, 102)
+    ('2020-04-30', 'yearly', False, np.str_('ZEC'), 13, 86)
+    ('2020-04-30', 'yearly', False, np.str_('TRX'), 14, 107)
+    ('2020-04-30', 'yearly', False, np.str_('XMR'), 15, 88)
+    ('2020-04-30', 'yearly', False, np.str_('ATOM'), 16, 84)
+    ('2020-04-30', 'yearly', False, np.str_('ADA'), 17, 91)
+    ('2020-04-30', 'yearly', False, np.str_('NEO'), 18, 74)
+    ('2021-01-01', 'yearly', False, np.str_('XRP'), 3, 362)
+    ('2021-01-01', 'yearly', False, np.str_('LTC'), 4, 359)
+    ('2021-01-01', 'yearly', False, np.str_('LINK'), 5, 351)
+    ('2021-01-01', 'yearly', False, np.str_('YFI'), 7, 124)
+    ('2021-01-01', 'yearly', False, np.str_('SUSHI'), 8, 120)
+    ('2021-01-01', 'yearly', False, np.str_('ADA'), 9, 337)
+    ('2021-01-01', 'yearly', False, np.str_('EOS'), 10, 360)
+    ('2021-01-01', 'yearly', False, np.str_('XLM'), 11, 348)
+    ('2021-01-01', 'yearly', False, np.str_('BNB'), 12, 327)
+    ('2021-01-01', 'yearly', False, np.str_('UNI'), 13, 106)
+    ('2021-01-01', 'yearly', False, np.str_('DOT'), 14, 133)
+    ('2021-01-01', 'yearly', False, np.str_('ZIL'), 15, 198)
+    ('2021-01-01', 'yearly', False, np.str_('AAVE'), 16, 78)
+    ('2021-01-01', 'yearly', False, np.str_('EGLD'), 17, 110)
+    ('2021-01-01', 'yearly', False, np.str_('THETA'), 18, 220)
+    ('2022-01-01', 'yearly', False, np.str_('LUNA'), 3, 339)
+    ('2022-01-01', 'yearly', False, np.str_('SAND'), 4, 342)
+    ('2022-01-01', 'yearly', False, np.str_('GALA'), 7, 106)
+    ('2022-01-01', 'yearly', False, np.str_('1000SHIB'), 9, 237)
+    ('2022-01-01', 'yearly', False, np.str_('MANA'), 10, 293)
+    ('2023-01-01', 'yearly', False, np.str_('APE'), 11, 291)
+    ('2024-01-01', 'yearly', False, np.str_('ORDI'), 4, 56)
+    ('2024-01-01', 'yearly', False, np.str_('1000BONK'), 7, 41)
+    ('2024-01-01', 'yearly', False, np.str_('TIA'), 10, 63)
+    ('2024-01-01', 'yearly', False, np.str_('ARB'), 16, 285)
+    ('2025-01-01', 'yearly', False, np.str_('PNUT'), 9, 52)
+    ('2025-01-01', 'yearly', False, np.str_('WIF'), 12, 350)
+    ('2025-01-01', 'yearly', False, np.str_('ENA'), 14, 275)
+    ('2025-01-01', 'yearly', False, np.str_('NEIRO'), 16, 108)
+    ('2026-01-01', 'yearly', False, np.str_('BEAT'), 7, 51)
+    ('2026-01-01', 'yearly', False, np.str_('PIPPIN'), 9, 343)
+    ('2026-01-01', 'yearly', False, np.str_('HYPE'), 12, 217)
+    ('2026-01-01', 'yearly', False, np.str_('ASTER'), 16, 105)
+
+(b) S3 listing vs cache for 179 symbols (top-30 shadow at any reset, static 24, symbols with holes, age-blocked)
+   1000BONK: S3 months 35 cached 35 missing-from-cache [] extra [] | first S3 kline month 2023-11, first funding month 2023-11
+   1000FLOKI: S3 months 41 cached 41 missing-from-cache [] extra [] | first S3 kline month 2023-05, first funding month 2023-05
+   1000PEPE: S3 months 41 cached 41 missing-from-cache [] extra [] | first S3 kline month 2023-05, first funding month 2023-05
+   1000SATS: S3 months 34 cached 34 missing-from-cache [] extra [] | first S3 kline month 2023-12, first funding month 2023-12
+   1000SHIB: S3 months 65 cached 65 missing-from-cache [] extra [] | first S3 kline month 2021-05, first funding month 2021-05
+   AAVE: S3 months 72 cached 72 missing-from-cache [] extra [] | first S3 kline month 2020-10, first funding month 2020-10
+   ADA: S3 months 81 cached 81 missing-from-cache [] extra [] | first S3 kline month 2020-01, first funding month 2020-01
+   APE: S3 months 55 cached 55 missing-from-cache [] extra [] | first S3 kline month 2022-03, first funding month 2022-03
+   APT: S3 months 48 cached 48 missing-from-cache [] extra [] | first S3 kline month 2022-10, first funding month 2022-10
+   ARB: S3 months 43 cached 43 missing-from-cache [] extra [] | first S3 kline month 2023-03, first funding month 2023-03
+   ASTER: S3 months 13 cached 13 missing-from-cache [] extra [] | first S3 kline month 2025-09, first funding month 2025-09
+   ATOM: S3 months 80 cached 80 missing-from-cache [] extra [] | first S3 kline month 2020-02, first funding month 2020-02
+   AVAX: S3 months 73 cached 73 missing-from-cache [] extra [] | first S3 kline month 2020-09, first funding month 2020-09
+   AXS: S3 months 71 cached 71 missing-from-cache [] extra [] | first S3 kline month 2020-11, first funding month 2020-11
+   BAND: S3 months 75 cached 75 missing-from-cache [] extra [] | first S3 kline month 2020-07, first funding month 2020-07
+   BAT: S3 months 80 cached 80 missing-from-cache [] extra [] | first S3 kline month 2020-02, first funding month 2020-02
+   BB: S3 months 29 cached 29 missing-from-cache [] extra [] | first S3 kline month 2024-05, first funding month 2024-05
+   BCH: S3 months 81 cached 81 missing-from-cache [] extra [] | first S3 kline month 2020-01, first funding month 2020-01
+   BEAT: S3 months 11 cached 11 missing-from-cache [] extra [] | first S3 kline month 2025-11, first funding month 2025-11
+   BNB: S3 months 80 cached 80 missing-from-cache [] extra [] | first S3 kline month 2020-02, first funding month 2020-02
+   BOME: S3 months 31 cached 31 missing-from-cache [] extra [] | first S3 kline month 2024-03, first funding month 2024-03
+   BTC: S3 months 81 cached 81 missing-from-cache [] extra [] | first S3 kline month 2020-01, first funding month 2020-01
+   CFX: S3 months 44 cached 44 missing-from-cache [] extra [] | first S3 kline month 2023-02, first funding month 2023-02
+   CHZ: S3 months 69 cached 69 missing-from-cache [] extra [] | first S3 kline month 2021-01, first funding month 2021-01
+   CRV: S3 months 73 cached 73 missing-from-cache [] extra [] | first S3 kline month 2020-09, first funding month 2020-09
+   DASH: S3 months 80 cached 79 missing-from-cache ['2022-10'] extra [] | first S3 kline month 2020-02, first funding month 2020-02
+   DOGE: S3 months 75 cached 75 missing-from-cache [] extra [] | first S3 kline month 2020-07, first funding month 2020-07
+   DOGS: S3 months 26 cached 26 missing-from-cache [] extra [] | first S3 kline month 2024-08, first funding month 2024-08
+   DOT: S3 months 74 cached 74 missing-from-cache [] extra [] | first S3 kline month 2020-08, first funding month 2020-08
+   EGLD: S3 months 73 cached 73 missing-from-cache [] extra [] | first S3 kline month 2020-09, first funding month 2020-09
+   ENA: S3 months 30 cached 30 missing-from-cache [] extra [] | first S3 kline month 2024-04, first funding month 2024-04
+   ENJ: S3 months 73 cached 73 missing-from-cache [] extra [] | first S3 kline month 2020-09, first funding month 2020-09
+   EOS: S3 months 65 cached 65 missing-from-cache [] extra [] | first S3 kline month 2020-01, first funding month 2020-01
+   ETC: S3 months 81 cached 81 missing-from-cache [] extra [] | first S3 kline month 2020-01, first funding month 2020-01
+   ETH: S3 months 81 cached 81 missing-from-cache [] extra [] | first S3 kline month 2020-01, first funding month 2020-01
+   FARTCOIN: S3 months 22 cached 22 missing-from-cache [] extra [] | first S3 kline month 2024-12, first funding month 2024-12
+   FIL: S3 months 72 cached 72 missing-from-cache [] extra [] | first S3 kline month 2020-10, first funding month 2020-10
+   FTT: S3 months 54 cached 54 missing-from-cache [] extra [] | first S3 kline month 2022-04, first funding month 2022-04
+   GALA: S3 months 61 cached 61 missing-from-cache [] extra [] | first S3 kline month 2021-09, first funding month 2021-09
+   GMT: S3 months 55 cached 55 missing-from-cache [] extra [] | first S3 kline month 2022-03, first funding month 2022-03
+   H: S3 months 16 cached 15 missing-from-cache ['2025-06'] extra []
+   HYPE: S3 months 17 cached 17 missing-from-cache [] extra [] | first S3 kline month 2025-05, first funding month 2025-05
+   ICP: S3 months 65 cached 65 missing-from-cache [] extra [] | first S3 kline month 2021-05, first funding month 2022-09
+   INJ: S3 months 50 cached 50 missing-from-cache [] extra [] | first S3 kline month 2022-08, first funding month 2022-08
+   IOST: S3 months 80 cached 80 missing-from-cache [] extra [] | first S3 kline month 2020-02, first funding month 2020-02
+   LAB: S3 months 12 cached 12 missing-from-cache [] extra [] | first S3 kline month 2025-10, first funding month 2025-10
+   LAYER: S3 months 20 cached 20 missing-from-cache [] extra [] | first S3 kline month 2025-02, first funding month 2025-02
+   LDO: S3 months 49 cached 49 missing-from-cache [] extra [] | first S3 kline month 2022-09, first funding month 2022-09
+   LINK: S3 months 81 cached 81 missing-from-cache [] extra [] | first S3 kline month 2020-01, first funding month 2020-01
+   LTC: S3 months 81 cached 81 missing-from-cache [] extra [] | first S3 kline month 2020-01, first funding month 2020-01
+   LUNA: S3 months 17 cached 17 missing-from-cache [] extra [] | first S3 kline month 2021-01, first funding month 2021-01
+   MANA: S3 months 67 cached 67 missing-from-cache [] extra [] | first S3 kline month 2021-03, first funding month 2021-03
+   MATIC: S3 months 48 cached 48 missing-from-cache [] extra [] | first S3 kline month 2020-10, first funding month 2020-10
+   MYX: S3 months 16 cached 16 missing-from-cache [] extra [] | first S3 kline month 2025-06, first funding month 2025-06
+   NEIRO: S3 months 25 cached 25 missing-from-cache [] extra [] | first S3 kline month 2024-09, first funding month 2024-09
+   NEIROETH: S3 months 25 cached 25 missing-from-cache [] extra [] | first S3 kline month 2024-09, first funding month 2024-09
+   NEO: S3 months 80 cached 80 missing-from-cache [] extra [] | first S3 kline month 2020-02, first funding month 2020-02
+   NMR: S3 months 40 cached 39 missing-from-cache ['2024-10'] extra []
+   NOT: S3 months 29 cached 29 missing-from-cache [] extra [] | first S3 kline month 2024-05, first funding month 2024-05
+   OMG: S3 months 75 cached 75 missing-from-cache [] extra [] | first S3 kline month 2020-07, first funding month 2020-07
+   ONT: S3 months 80 cached 80 missing-from-cache [] extra [] | first S3 kline month 2020-02, first funding month 2020-02
+   OP: S3 months 52 cached 52 missing-from-cache [] extra [] | first S3 kline month 2022-06, first funding month 2022-06
+   ORDI: S3 months 35 cached 35 missing-from-cache [] extra [] | first S3 kline month 2023-11, first funding month 2023-11
+   PIPPIN: S3 months 21 cached 21 missing-from-cache [] extra [] | first S3 kline month 2025-01, first funding month 2025-01
+   PNUT: S3 months 23 cached 23 missing-from-cache [] extra [] | first S3 kline month 2024-11, first funding month 2024-11
+   PUMP: S3 months 18 cached 18 missing-from-cache [] extra [] | first S3 kline month 2025-04, first funding month 2025-04
+   RIVER: S3 months 12 cached 12 missing-from-cache [] extra [] | first S3 kline month 2025-10, first funding month 2025-10
+   SAND: S3 months 69 cached 69 missing-from-cache [] extra [] | first S3 kline month 2021-01, first funding month 2021-01
+   SEI: S3 months 38 cached 38 missing-from-cache [] extra [] | first S3 kline month 2023-08, first funding month 2023-08
+   SOL: S3 months 73 cached 73 missing-from-cache [] extra [] | first S3 kline month 2020-09, first funding month 2020-09
+   SOMI: S3 months 14 cached 14 missing-from-cache [] extra [] | first S3 kline month 2025-08, first funding month 2025-08
+   SRM: S3 months 45 cached 45 missing-from-cache [] extra [] | first S3 kline month 2020-09, first funding month 2020-09
+   STX: S3 months 44 cached 44 missing-from-cache [] extra [] | first S3 kline month 2023-02, first funding month 2023-02
+   SUI: S3 months 41 cached 41 missing-from-cache [] extra [] | first S3 kline month 2023-05, first funding month 2023-05
+   SUSHI: S3 months 73 cached 73 missing-from-cache [] extra [] | first S3 kline month 2020-09, first funding month 2020-09
+   SXP: S3 months 71 cached 71 missing-from-cache [] extra [] | first S3 kline month 2020-07, first funding month 2020-07
+   THETA: S3 months 77 cached 77 missing-from-cache [] extra [] | first S3 kline month 2020-05, first funding month 2020-05
+   TIA: S3 months 36 cached 36 missing-from-cache [] extra [] | first S3 kline month 2023-10, first funding month 2023-10
+   TRUMP: S3 months 21 cached 21 missing-from-cache [] extra [] | first S3 kline month 2025-01, first funding month 2025-01
+   TRX: S3 months 81 cached 81 missing-from-cache [] extra [] | first S3 kline month 2020-01, first funding month 2020-01
+   UNI: S3 months 73 cached 73 missing-from-cache [] extra [] | first S3 kline month 2020-09, first funding month 2020-09
+   UXLINK: S3 months 25 cached 25 missing-from-cache [] extra [] | first S3 kline month 2024-09, first funding month 2024-09
+   VELVET: S3 months 15 cached 15 missing-from-cache [] extra [] | first S3 kline month 2025-07, first funding month 2025-07
+   VET: S3 months 80 cached 80 missing-from-cache [] extra [] | first S3 kline month 2020-02, first funding month 2020-02
+   WIF: S3 months 33 cached 33 missing-from-cache [] extra [] | first S3 kline month 2024-01, first funding month 2024-01
+   WLD: S3 months 39 cached 39 missing-from-cache [] extra [] | first S3 kline month 2023-07, first funding month 2023-07
+   WLFI: S3 months 14 cached 14 missing-from-cache [] extra [] | first S3 kline month 2025-08, first funding month 2025-08
+   XLM: S3 months 81 cached 81 missing-from-cache [] extra [] | first S3 kline month 2020-01, first funding month 2020-01
+   XMR: S3 months 80 cached 80 missing-from-cache [] extra [] | first S3 kline month 2020-02, first funding month 2020-02
+   XRP: S3 months 81 cached 81 missing-from-cache [] extra [] | first S3 kline month 2020-01, first funding month 2020-01
+   XTZ: S3 months 80 cached 80 missing-from-cache [] extra [] | first S3 kline month 2020-02, first funding month 2020-02
+   YFI: S3 months 74 cached 74 missing-from-cache [] extra [] | first S3 kline month 2020-08, first funding month 2020-08
+   YFII: S3 months 20 cached 20 missing-from-cache [] extra [] | first S3 kline month 2020-09, first funding month 2020-09
+   ZEC: S3 months 80 cached 80 missing-from-cache [] extra [] | first S3 kline month 2020-02, first funding month 2020-02
+   ZIL: S3 months 76 cached 76 missing-from-cache [] extra [] | first S3 kline month 2020-06, first funding month 2020-06
+   symbols with a cache/S3 mismatch: 3

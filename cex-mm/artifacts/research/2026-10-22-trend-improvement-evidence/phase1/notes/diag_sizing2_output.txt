@@ -1,0 +1,16 @@
+variant                        wk-noise  RMSE7  RMSE30  bias30  binds   (medians over 9 coins; bias = mean log(est/realized30))
+CC60                              0.107  0.557   0.410  +0.059     0%
+EWMA35                            0.169  0.527   0.402  +0.036     0%
+EWMA60                            0.113  0.536   0.390  +0.067    66%
+blend .7*EWMA35+.3*LR365          0.114  0.524   0.373  +0.081    68%
+blend .7*EWMA35+.3*LR730            nan    nan     nan    +nan    57%
+max(EWMA35, .8*LR365)             0.132  0.544   0.381  +0.103    41%
+max(CC60, 0.40)                   0.101  0.554   0.404  +0.062     3%
+max(CC60, .7*LR365)               0.089  0.556   0.401  +0.074    16%
+
+per-coin binding share of max(CC60,0.40): {'BTC': '29%', 'ETH': '6%', 'XRP': '4%', 'BNB': '20%', 'ADA': '3%', 'LTC': '3%', 'LINK': '0%', 'DOGE': '2%', 'BCH': '1%'}
+per-coin binding share of max(CC60,.7*LR365): {'BTC': '9%', 'ETH': '16%', 'XRP': '31%', 'BNB': '27%', 'ADA': '12%', 'LTC': '16%', 'LINK': '14%', 'DOGE': '30%', 'BCH': '20%'}
+
+CC60 / 1y-average-vol ratio percentiles (all coins pooled): p5=0.58 p25=0.73 p50=0.88 p75=1.07 p95=1.51
+
+funding drag per 1.0x of long gross implied by evidence D+: 2.11%/0.12 = 17.6% of notional per year while long

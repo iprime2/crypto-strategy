@@ -1,0 +1,52 @@
+
+=== daily: base UNI-1 FULL 1.050 POST 0.862 | static24 FULL 0.851 POST 0.586 | d FULL +0.198 POST +0.276
+ (a) zero weight in UNI-1 only (N_t unchanged)         | (b) coin removed from the world (UNI-1 re-selects; static24 drops it)
+  -BNB    (a) FULL 0.934 (d +0.083) POST 0.784 (d +0.198) | (b) UNI 0.918/0.724 vs s24 0.792/0.538: d FULL +0.126 POST +0.187 new names ['ADA', 'ETC']
+  -BTC    (a) FULL 0.962 (d +0.111) POST 0.808 (d +0.222) | (b) UNI 0.944/0.747 vs s24 0.802/0.550: d FULL +0.142 POST +0.197 new names ['ADA', 'ETC']
+  -ETH    (a) FULL 1.023 (d +0.172) POST 0.895 (d +0.309) | (b) UNI 1.001/0.826 vs s24 0.824/0.582: d FULL +0.177 POST +0.245 new names ['ADA', 'ETC']
+  -XRP    (a) FULL 1.021 (d +0.170) POST 0.864 (d +0.278) | (b) UNI 1.003/0.804 vs s24 0.841/0.585: d FULL +0.162 POST +0.219 new names ['ADA', 'ETC']
+  -LINK   (a) FULL 1.035 (d +0.183) POST 0.863 (d +0.277) | (b) UNI 1.012/0.799 vs s24 0.835/0.574: d FULL +0.177 POST +0.225 new names ['ADA', 'ETC']
+  -SOL    (a) FULL 0.997 (d +0.145) POST 0.772 (d +0.186) | (b) UNI 0.959/0.717 vs s24 0.851/0.586: d FULL +0.108 POST +0.131 new names ['ADA']
+  -DOGE   (a) FULL 1.010 (d +0.159) POST 0.795 (d +0.209) | (b) UNI 0.990/0.766 vs s24 0.851/0.586: d FULL +0.139 POST +0.180 new names ['ADA']
+  -AVAX   (a) FULL 1.057 (d +0.206) POST 0.873 (d +0.286) | (b) UNI 1.041/0.848 vs s24 0.851/0.586: d FULL +0.190 POST +0.262 new names ['ADA']
+ cumulative removal from the world (top-k UNI-1 contributors):
+  -BNB                          UNI 0.918/0.724 s24 0.792/0.538 d FULL +0.126 POST +0.187 [-0.33,+0.68] P<=0 0.20
+  -BNB+BTC                      UNI 0.770/0.626 s24 0.738/0.497 d FULL +0.033 POST +0.129 [-0.35,+0.60] P<=0 0.28
+  -BNB+BTC+ETH                  UNI 0.681/0.612 s24 0.698/0.486 d FULL -0.017 POST +0.126 [-0.41,+0.63] P<=0 0.32
+  -BNB+BTC+ETH+XRP              UNI 0.705/0.733 s24 0.679/0.481 d FULL +0.026 POST +0.252 [-0.37,+0.78] P<=0 0.19
+  -BNB+BTC+ETH+XRP+LINK         UNI 0.660/0.690 s24 0.649/0.461 d FULL +0.011 POST +0.229 [-0.43,+0.82] P<=0 0.23
+ coin-year trimming (zero the coin's weight for that calendar year):
+  top- 1: UNI-1 only trimmed: 0.987/0.862 vs s24 0.851/0.586 -> d +0.136/+0.276 | both trimmed: s24 0.818/0.529 -> d +0.169/+0.333  [BNB2021]
+  top- 3: UNI-1 only trimmed: 0.861/0.760 vs s24 0.851/0.586 -> d +0.010/+0.174 | both trimmed: s24 0.760/0.529 -> d +0.101/+0.231  [BNB2021, DOGE2024, BTC2020]
+  top- 5: UNI-1 only trimmed: 0.742/0.651 vs s24 0.851/0.586 -> d -0.109/+0.065 | both trimmed: s24 0.711/0.529 -> d +0.031/+0.122  [BNB2021, DOGE2024, BTC2020, SOL2023, XRP2020]
+  top-10: UNI-1 only trimmed: 0.471/0.425 vs s24 0.851/0.586 -> d -0.380/-0.161 | both trimmed: s24 0.592/0.451 -> d -0.121/-0.026  [BNB2021, DOGE2024, BTC2020, SOL2023, XRP2020, ETH2020, LINK2020, BTC2023, BNB2024, XRP2024]
+  POST top-1: UNI-1 only trimmed d POST +0.174 | both trimmed d POST +0.231  [DOGE2024] vs s24 [TRX2024]
+  POST top-2: UNI-1 only trimmed d POST +0.065 | both trimmed d POST +0.167  [DOGE2024, SOL2023] vs s24 [TRX2024, ZEC2025]
+  POST top-3: UNI-1 only trimmed d POST -0.014 | both trimmed d POST +0.121  [DOGE2024, SOL2023, BTC2023] vs s24 [TRX2024, ZEC2025, XLM2024]
+  POST top-5: UNI-1 only trimmed d POST -0.161 | both trimmed d POST +0.038  [DOGE2024, SOL2023, BTC2023, BNB2024, XRP2024] vs s24 [TRX2024, ZEC2025, XLM2024, BTC2023, NEO2023]
+
+=== weekly: base UNI-1 FULL 0.984 POST 0.777 | static24 FULL 0.810 POST 0.492 | d FULL +0.174 POST +0.286
+ (a) zero weight in UNI-1 only (N_t unchanged)         | (b) coin removed from the world (UNI-1 re-selects; static24 drops it)
+  -BNB    (a) FULL 0.872 (d +0.062) POST 0.707 (d +0.216) | (b) UNI 0.800/0.493 vs s24 0.749/0.439: d FULL +0.051 POST +0.054 new names ['ETC', 'SUI', 'TRB']
+  -XRP    (a) FULL 0.879 (d +0.068) POST 0.684 (d +0.192) | (b) UNI 0.813/0.489 vs s24 0.770/0.457: d FULL +0.042 POST +0.031 new names ['ETC', 'SUI', 'TRB']
+  -ETH    (a) FULL 0.962 (d +0.151) POST 0.793 (d +0.301) | (b) UNI 0.887/0.584 vs s24 0.786/0.481: d FULL +0.100 POST +0.103 new names ['ETC', 'SUI', 'TRB']
+  -BTC    (a) FULL 0.956 (d +0.146) POST 0.786 (d +0.294) | (b) UNI 0.882/0.577 vs s24 0.787/0.477: d FULL +0.095 POST +0.100 new names ['ETC', 'SUI', 'TRB']
+  -SOL    (a) FULL 0.927 (d +0.117) POST 0.678 (d +0.186) | (b) UNI 0.805/0.484 vs s24 0.810/0.492: d FULL -0.005 POST -0.008 new names ['SUI', 'TRB']
+  -LINK   (a) FULL 0.987 (d +0.176) POST 0.811 (d +0.320) | (b) UNI 0.912/0.603 vs s24 0.801/0.491: d FULL +0.111 POST +0.112 new names ['ETC', 'SUI', 'TRB']
+  -DOGE   (a) FULL 0.958 (d +0.148) POST 0.731 (d +0.240) | (b) UNI 0.846/0.551 vs s24 0.810/0.492: d FULL +0.036 POST +0.060 new names ['SUI', 'TRB']
+  -LTC    (a) FULL 1.042 (d +0.231) POST 0.819 (d +0.327) | (b) UNI 1.049/0.747 vs s24 0.831/0.503: d FULL +0.218 POST +0.244 new names ['ETC']
+ cumulative removal from the world (top-k UNI-1 contributors):
+  -BNB                          UNI 0.800/0.493 s24 0.749/0.439 d FULL +0.051 POST +0.054 [-0.48,+0.57] P<=0 0.38
+  -BNB+XRP                      UNI 0.630/0.367 s24 0.706/0.402 d FULL -0.075 POST -0.035 [-0.60,+0.48] P<=0 0.53
+  -BNB+XRP+ETH                  UNI 0.520/0.263 s24 0.672/0.385 d FULL -0.153 POST -0.122 [-0.71,+0.41] P<=0 0.64
+  -BNB+XRP+ETH+BTC              UNI 0.515/0.351 s24 0.640/0.365 d FULL -0.125 POST -0.014 [-0.66,+0.58] P<=0 0.48
+  -BNB+XRP+ETH+BTC+SOL          UNI 0.456/0.253 s24 0.640/0.365 d FULL -0.183 POST -0.111 [-0.68,+0.46] P<=0 0.64
+ coin-year trimming (zero the coin's weight for that calendar year):
+  top- 1: UNI-1 only trimmed: 0.917/0.776 vs s24 0.810/0.492 -> d +0.107/+0.284 | both trimmed: s24 0.781/0.491 -> d +0.136/+0.285  [BNB2021]
+  top- 3: UNI-1 only trimmed: 0.787/0.663 vs s24 0.810/0.492 -> d -0.024/+0.171 | both trimmed: s24 0.711/0.374 -> d +0.076/+0.288  [BNB2021, XRP2024, XRP2020]
+  top- 5: UNI-1 only trimmed: 0.655/0.563 vs s24 0.810/0.492 -> d -0.155/+0.071 | both trimmed: s24 0.649/0.321 -> d +0.006/+0.242  [BNB2021, XRP2024, XRP2020, DOGE2024, BTC2020]
+  top-10: UNI-1 only trimmed: 0.418/0.428 vs s24 0.810/0.492 -> d -0.393/-0.064 | both trimmed: s24 0.512/0.274 -> d -0.095/+0.153  [BNB2021, XRP2024, XRP2020, DOGE2024, BTC2020, LINK2020, SOL2023, BNB2025, ETH2020, ETH2021]
+  POST top-1: UNI-1 only trimmed d POST +0.173 | both trimmed d POST +0.233  [XRP2024] vs s24 [ZEC2025]
+  POST top-2: UNI-1 only trimmed d POST +0.072 | both trimmed d POST +0.189  [XRP2024, DOGE2024] vs s24 [ZEC2025, XLM2024]
+  POST top-3: UNI-1 only trimmed d POST +0.009 | both trimmed d POST +0.179  [XRP2024, DOGE2024, SOL2023] vs s24 [ZEC2025, XLM2024, TRX2024]
+  POST top-5: UNI-1 only trimmed d POST -0.128 | both trimmed d POST +0.119  [XRP2024, DOGE2024, SOL2023, BNB2025, BNB2024] vs s24 [ZEC2025, XLM2024, TRX2024, XRP2024, TRX2023]
