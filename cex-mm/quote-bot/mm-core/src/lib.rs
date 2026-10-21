@@ -245,6 +245,10 @@ pub struct MmMetrics {
     pub basis_t: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub basis_n: Option<u64>,
+    /// Wall time of the previous loop iteration (ms), its venue calls included. A live requote round costs
+    /// about one Delta order write (about 0.55 s on mainnet, 21 Oct 2026).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub loop_work_ms: Option<u64>,
 }
 
 #[cfg(test)]
