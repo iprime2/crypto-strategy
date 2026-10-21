@@ -26,7 +26,7 @@ PROFILE="$ROOT/config/dism.env"
 ENV_FILE="${LIVE_ENV_FILE:-$ROOT/quote-bot/.env}"
 SHADOW_CURRENT="$ROOT/artifacts/shadow/current"
 CONFIRM="START REAL"
-LIVE_RUST_LOG="warn,mm_bot=info,MM_METRICS=info,MM_ORDER=info"
+LIVE_RUST_LOG="warn,mm_bot=info,MM_METRICS=info,MM_ORDER=info,MM_REST=debug"
 SYMBOLS="$( { grep -E '^MM_SYMBOLS=' "$PROFILE" 2>/dev/null || true; } | tail -1 | cut -d= -f2-)"
 
 die() { echo "live.sh: $*" >&2; exit 1; }
