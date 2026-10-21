@@ -23,6 +23,11 @@ use crate::risk::{taker_fill_unexpected, DailyLossGuard, DailyLossState};
 /// Taker fills within this long of our own reduce-only order are expected.
 const REDUCE_ONLY_GRACE_MS: i64 = 60_000;
 
+/// Bound on the monitor's equity and fills reads. They are off the quote path, so a slow answer only delays
+/// the next check; with the quote loop's 3 s bound a slow fills query skipped the taker guard 6 times in ten
+/// minutes on 21 Oct 2026 (the same query normally answers in about 45 ms).
+const MONITOR_REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
+
 /// `MM_MAX_LEVERAGE` default. Delta's own default order leverage is 100x.
 pub const DEFAULT_MAX_LEVERAGE: f64 = 5.0;
 
@@ -160,6 +165,7 @@ pub fn spawn_monitor(
     mut guard: DailyLossGuard,
     state_path: PathBuf,
 ) {
+    let rest = rest.with_request_timeout(MONITOR_REQUEST_TIMEOUT);
     tokio::spawn(async move {
         // Fills already on the account at start are history, not something this run did.
         let mut seen: HashMap<String, u64> = HashMap::new();
@@ -187,14 +193,14 @@ pub fn spawn_monitor(
                         flags.trip("daily loss limit");
                     }
                 }
-                Err(e) => tracing::warn!(error = %e, "equity read failed; daily loss stop not updated"),
+                Err(e) => tracing::warn!(error = %format!("{e:#}"), "equity read failed; daily loss stop not updated"),
             }
 
             for symbol in &symbols {
                 let fills = match rest.recent_fill_roles(symbol, 20).await {
                     Ok(f) => f,
                     Err(e) => {
-                        tracing::warn!(%symbol, error = %e, "fills read failed; taker guard not updated");
+                        tracing::warn!(%symbol, error = %format!("{e:#}"), "fills read failed; taker guard not updated");
                         continue;
                     }
                 };
