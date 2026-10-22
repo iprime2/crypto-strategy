@@ -1,0 +1,6030 @@
+{
+ "mode": "apply",
+ "days": [
+  {
+   "pair": "ADAUSDT",
+   "day": "2018-06-26",
+   "gaps": [
+    [
+     "2018-06-26 02:00:00",
+     "2018-06-26 12:00:00",
+     600.0
+    ]
+   ],
+   "monthly_rows_day": 168,
+   "zip": "data/spot/daily/klines/ADAUSDT/5m/ADAUSDT-5m-2018-06-26.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "01af62035dec317969238a65f1fe306d05a364e7c18ae7a35d6c99d25fd89200",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 168,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ADAUSDT",
+   "day": "2018-06-27",
+   "gaps": [
+    [
+     "2018-06-27 13:00:00",
+     "2018-06-27 14:45:00",
+     105.0
+    ]
+   ],
+   "monthly_rows_day": 267,
+   "zip": "data/spot/daily/klines/ADAUSDT/5m/ADAUSDT-5m-2018-06-27.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "48fd3b93242f6db3291fa2116ccd785b086621851241d7483e83e5a683405743",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 267,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ADAUSDT",
+   "day": "2018-07-04",
+   "gaps": [
+    [
+     "2018-07-04 00:25:00",
+     "2018-07-04 08:00:00",
+     455.0
+    ]
+   ],
+   "monthly_rows_day": 197,
+   "zip": "data/spot/daily/klines/ADAUSDT/5m/ADAUSDT-5m-2018-07-04.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "6ee9c3d32d0fcea018266968f4f264d50a30d2a50b1b629661907d0969d5de17",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 197,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ADAUSDT",
+   "day": "2018-10-19",
+   "gaps": [
+    [
+     "2018-10-19 06:00:00",
+     "2018-10-19 09:30:00",
+     210.0
+    ]
+   ],
+   "monthly_rows_day": 246,
+   "zip": "data/spot/daily/klines/ADAUSDT/5m/ADAUSDT-5m-2018-10-19.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "62309875d1fde4ee4f31f5d112b38cf2c490fa95bb70cd24351121fdb47832f3",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 246,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ADAUSDT",
+   "day": "2018-11-14",
+   "gaps": [
+    [
+     "2018-11-14 02:00:00",
+     "2018-11-14 09:00:00",
+     420.0
+    ]
+   ],
+   "monthly_rows_day": 204,
+   "zip": "data/spot/daily/klines/ADAUSDT/5m/ADAUSDT-5m-2018-11-14.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "eb2e3a7ddd8d164cfa1e10f8359a0867979965d2a05d19913e4688f4103c25a8",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 204,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ADAUSDT",
+   "day": "2019-03-12",
+   "gaps": [
+    [
+     "2019-03-12 02:00:00",
+     "2019-03-12 08:00:00",
+     360.0
+    ]
+   ],
+   "monthly_rows_day": 216,
+   "zip": "data/spot/daily/klines/ADAUSDT/5m/ADAUSDT-5m-2019-03-12.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "4efd947639a4ceede3f2b7fad744b2d10c47430772363009383cdf8c6ce5e625",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 216,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ADAUSDT",
+   "day": "2019-05-15",
+   "gaps": [
+    [
+     "2019-05-15 03:00:00",
+     "2019-05-15 13:00:00",
+     600.0
+    ]
+   ],
+   "monthly_rows_day": 168,
+   "zip": "data/spot/daily/klines/ADAUSDT/5m/ADAUSDT-5m-2019-05-15.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "a66c67ade207a820d424f42732d1ca1cf14cfe132afac9b8ce7d90739533003a",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 168,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ADAUSDT",
+   "day": "2019-06-07",
+   "gaps": [
+    [
+     "2019-06-07 21:15:00",
+     "2019-06-07 22:15:00",
+     60.0
+    ]
+   ],
+   "monthly_rows_day": 276,
+   "zip": "data/spot/daily/klines/ADAUSDT/5m/ADAUSDT-5m-2019-06-07.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "a0556b5e65d9df7238b6650cf07e4cde2ccb54569443b0e89771f9a8ec04c7c3",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 276,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ADAUSDT",
+   "day": "2019-08-15",
+   "gaps": [
+    [
+     "2019-08-15 02:00:00",
+     "2019-08-15 10:00:00",
+     480.0
+    ]
+   ],
+   "monthly_rows_day": 192,
+   "zip": "data/spot/daily/klines/ADAUSDT/5m/ADAUSDT-5m-2019-08-15.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "4f22efbb2add6d84978bf3a93c72751ef0901f59e727d1400cb2c670db1fb4dc",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 192,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ADAUSDT",
+   "day": "2019-11-13",
+   "gaps": [
+    [
+     "2019-11-13 02:00:00",
+     "2019-11-13 04:20:00",
+     140.0
+    ]
+   ],
+   "monthly_rows_day": 260,
+   "zip": "data/spot/daily/klines/ADAUSDT/5m/ADAUSDT-5m-2019-11-13.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "f41f3c52820e00e68418547bf593afffa19f2c40384730e56f76fe611b092222",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 260,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ADAUSDT",
+   "day": "2019-11-25",
+   "gaps": [
+    [
+     "2019-11-25 02:00:00",
+     "2019-11-25 04:00:00",
+     120.0
+    ]
+   ],
+   "monthly_rows_day": 264,
+   "zip": "data/spot/daily/klines/ADAUSDT/5m/ADAUSDT-5m-2019-11-25.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "f6e3a4474d847758494f82621a540ec710260ae22c72b6a33dbe579affcb748a",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 264,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ADAUSDT",
+   "day": "2020-02-09",
+   "gaps": [
+    [
+     "2020-02-09 02:00:00",
+     "2020-02-09 03:00:00",
+     60.0
+    ]
+   ],
+   "monthly_rows_day": 276,
+   "zip": "data/spot/daily/klines/ADAUSDT/5m/ADAUSDT-5m-2020-02-09.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "fbe8642babf32ea1ecc7a33d1fcbd9e440a522defcad49225abe5065cda4e706",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 276,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ADAUSDT",
+   "day": "2020-02-19",
+   "gaps": [
+    [
+     "2020-02-19 11:40:00",
+     "2020-02-19 17:30:00",
+     350.0
+    ]
+   ],
+   "monthly_rows_day": 218,
+   "zip": "data/spot/daily/klines/ADAUSDT/5m/ADAUSDT-5m-2020-02-19.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "db6acf4b2727fd185f712687b1fdf1d7b9d7692159e25d983aae8f5a8ab13455",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 218,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ADAUSDT",
+   "day": "2020-03-04",
+   "gaps": [
+    [
+     "2020-03-04 09:25:00",
+     "2020-03-04 11:30:00",
+     125.0
+    ]
+   ],
+   "monthly_rows_day": 263,
+   "zip": "data/spot/daily/klines/ADAUSDT/5m/ADAUSDT-5m-2020-03-04.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "b991575ea8ca0374812acd54ecdc10c3d6050b017fbe1617c0624e34fd7c0430",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 263,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ADAUSDT",
+   "day": "2020-04-25",
+   "gaps": [
+    [
+     "2020-04-25 02:00:00",
+     "2020-04-25 04:30:00",
+     150.0
+    ]
+   ],
+   "monthly_rows_day": 258,
+   "zip": "data/spot/daily/klines/ADAUSDT/5m/ADAUSDT-5m-2020-04-25.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "034c9d66b6acbd86b9f0b36f9bf46391b18893861839c259c678f321471d8d56",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 258,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BNBUSDT",
+   "day": "2017-12-18",
+   "gaps": [
+    [
+     "2017-12-18 10:05:00",
+     "2017-12-18 10:10:00",
+     5.0
+    ],
+    [
+     "2017-12-18 12:30:00",
+     "2017-12-18 13:30:00",
+     60.0
+    ]
+   ],
+   "monthly_rows_day": 275,
+   "zip": "data/spot/daily/klines/BNBUSDT/5m/BNBUSDT-5m-2017-12-18.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "fc582a97a716ae3a42a0e54ad931d18b930e27c109ad319b247c194e688a1abe",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 275,
+   "monthly_rows_not_byte_identical_in_daily": 153,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 153,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "field_differences": [
+    "ignore"
+   ],
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BNBUSDT",
+   "day": "2018-01-04",
+   "gaps": [
+    [
+     "2018-01-04 03:05:00",
+     "2018-01-04 05:05:00",
+     120.0
+    ]
+   ],
+   "monthly_rows_day": 264,
+   "zip": "data/spot/daily/klines/BNBUSDT/5m/BNBUSDT-5m-2018-01-04.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "25315cfdbe580e776adc9e85454bf4a5ed507dd22dd0b7feb9357daf61571215",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 264,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BNBUSDT",
+   "day": "2018-02-08",
+   "gaps": [
+    [
+     "2018-02-08 00:30:00",
+     "2018-02-09 09:58:15",
+     2008.26
+    ]
+   ],
+   "monthly_rows_day": 6,
+   "zip": "data/spot/daily/klines/BNBUSDT/5m/BNBUSDT-5m-2018-02-08.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "8c0e7158aff79babb9649e232981db8d1a841ad74214a6c618197a6ac61c3d09",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 6,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BNBUSDT",
+   "day": "2018-02-09",
+   "gaps": [
+    [
+     "2018-02-08 00:30:00",
+     "2018-02-09 09:58:15",
+     2008.26
+    ]
+   ],
+   "monthly_rows_day": 169,
+   "zip": "data/spot/daily/klines/BNBUSDT/5m/BNBUSDT-5m-2018-02-09.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "a6cfa3115eb01d87a16c6329b4c0b4ad453241a16e92a7934cc7245b08445c56",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 168,
+   "monthly_rows_not_byte_identical_in_daily": 169,
+   "monthly_rows_key_fields_not_in_daily": 169,
+   "daily_rows_not_byte_identical_in_monthly": 168,
+   "daily_open_times_not_in_monthly": 168,
+   "monthly_open_times_not_in_daily": 169,
+   "daily_rows_in_gap": 0,
+   "field_differences": [],
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BNBUSDT",
+   "day": "2018-02-10",
+   "gaps": [
+    [
+     "2018-02-10 06:03:15",
+     "2018-02-10 06:15:00",
+     11.74
+    ]
+   ],
+   "monthly_rows_day": 285,
+   "zip": "data/spot/daily/klines/BNBUSDT/5m/BNBUSDT-5m-2018-02-10.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "b356e5bf44f6d94d08ecfe3585441da3bcf97091c664dd69d55d8ff80bd784e5",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 285,
+   "monthly_rows_not_byte_identical_in_daily": 72,
+   "monthly_rows_key_fields_not_in_daily": 72,
+   "daily_rows_not_byte_identical_in_monthly": 72,
+   "daily_open_times_not_in_monthly": 72,
+   "monthly_open_times_not_in_daily": 72,
+   "daily_rows_in_gap": 0,
+   "field_differences": [],
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BNBUSDT",
+   "day": "2018-02-11",
+   "gaps": [
+    [
+     "2018-02-11 04:05:00",
+     "2018-02-11 04:35:00",
+     30.0
+    ]
+   ],
+   "monthly_rows_day": 282,
+   "zip": "data/spot/daily/klines/BNBUSDT/5m/BNBUSDT-5m-2018-02-11.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "69b589f99bea205b2d98ea696e9d2816189605232b0475c9575dc0454ed6f30a",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 282,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BNBUSDT",
+   "day": "2018-06-26",
+   "gaps": [
+    [
+     "2018-06-26 02:00:00",
+     "2018-06-26 12:00:00",
+     600.0
+    ]
+   ],
+   "monthly_rows_day": 168,
+   "zip": "data/spot/daily/klines/BNBUSDT/5m/BNBUSDT-5m-2018-06-26.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "1cf6c36d9158659c43ae06f585dad5c61eaa273ce519126d5758196624d63e07",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 168,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BNBUSDT",
+   "day": "2018-06-27",
+   "gaps": [
+    [
+     "2018-06-27 13:00:00",
+     "2018-06-27 14:45:00",
+     105.0
+    ]
+   ],
+   "monthly_rows_day": 267,
+   "zip": "data/spot/daily/klines/BNBUSDT/5m/BNBUSDT-5m-2018-06-27.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "986299c18c78347b39a709b3b84c83b2f9adfae853c84d3a1c88ce858106a9be",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 267,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BNBUSDT",
+   "day": "2018-07-04",
+   "gaps": [
+    [
+     "2018-07-04 00:25:00",
+     "2018-07-04 08:00:00",
+     455.0
+    ]
+   ],
+   "monthly_rows_day": 197,
+   "zip": "data/spot/daily/klines/BNBUSDT/5m/BNBUSDT-5m-2018-07-04.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "a0856704ceef5a38d5f1c153f0f73309a8c1065e6add4bf6f2357c4933105fe6",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 197,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BNBUSDT",
+   "day": "2018-10-19",
+   "gaps": [
+    [
+     "2018-10-19 06:00:00",
+     "2018-10-19 09:30:00",
+     210.0
+    ]
+   ],
+   "monthly_rows_day": 246,
+   "zip": "data/spot/daily/klines/BNBUSDT/5m/BNBUSDT-5m-2018-10-19.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "1ac44e558106a1456f2c80fb13fdf9c56057dd5290951de9762e57d8f8d6a742",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 246,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BNBUSDT",
+   "day": "2018-11-14",
+   "gaps": [
+    [
+     "2018-11-14 02:00:00",
+     "2018-11-14 09:00:00",
+     420.0
+    ]
+   ],
+   "monthly_rows_day": 204,
+   "zip": "data/spot/daily/klines/BNBUSDT/5m/BNBUSDT-5m-2018-11-14.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "dd6c377dd75440895048ee9dc7acd8a3d91c632c87d82b0ee15e3b4ba7c36e2e",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 204,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BNBUSDT",
+   "day": "2019-03-12",
+   "gaps": [
+    [
+     "2019-03-12 02:00:00",
+     "2019-03-12 08:00:00",
+     360.0
+    ]
+   ],
+   "monthly_rows_day": 216,
+   "zip": "data/spot/daily/klines/BNBUSDT/5m/BNBUSDT-5m-2019-03-12.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "d774b9c841f01aa38929bf1b90c5cda907fcb08b71d68f9b2b0643de9a5fd033",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 216,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BNBUSDT",
+   "day": "2019-05-15",
+   "gaps": [
+    [
+     "2019-05-15 03:00:00",
+     "2019-05-15 13:00:00",
+     600.0
+    ]
+   ],
+   "monthly_rows_day": 168,
+   "zip": "data/spot/daily/klines/BNBUSDT/5m/BNBUSDT-5m-2019-05-15.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "a7d4868d7fa184d90ba92a964459196e43891f148ad98480f71437cfdce36d97",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 168,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BNBUSDT",
+   "day": "2019-06-07",
+   "gaps": [
+    [
+     "2019-06-07 21:15:00",
+     "2019-06-07 22:15:00",
+     60.0
+    ]
+   ],
+   "monthly_rows_day": 276,
+   "zip": "data/spot/daily/klines/BNBUSDT/5m/BNBUSDT-5m-2019-06-07.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "28f7e4b48903851ba72f9e6f7e2d9914f55f825dbb59f06dcb322b78865b5d74",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 276,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BNBUSDT",
+   "day": "2019-08-15",
+   "gaps": [
+    [
+     "2019-08-15 02:00:00",
+     "2019-08-15 10:00:00",
+     480.0
+    ]
+   ],
+   "monthly_rows_day": 192,
+   "zip": "data/spot/daily/klines/BNBUSDT/5m/BNBUSDT-5m-2019-08-15.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "1e3d647141edc1809dcb68fe9ff5c48ea410d0c7efe0df6ad06291ae7aec0b8d",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 192,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BNBUSDT",
+   "day": "2019-11-13",
+   "gaps": [
+    [
+     "2019-11-13 02:00:00",
+     "2019-11-13 04:20:00",
+     140.0
+    ]
+   ],
+   "monthly_rows_day": 260,
+   "zip": "data/spot/daily/klines/BNBUSDT/5m/BNBUSDT-5m-2019-11-13.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "64227424ecf9b6b248f65f2529439701cbcab906467384d4dc7e4acb438f429a",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 260,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BNBUSDT",
+   "day": "2019-11-25",
+   "gaps": [
+    [
+     "2019-11-25 02:00:00",
+     "2019-11-25 04:00:00",
+     120.0
+    ]
+   ],
+   "monthly_rows_day": 264,
+   "zip": "data/spot/daily/klines/BNBUSDT/5m/BNBUSDT-5m-2019-11-25.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "e46aa34827144d0b7c279e7c9b0e7fdd99f4a3023c5dd24b94c58a3e18aa9f17",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 264,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BNBUSDT",
+   "day": "2020-02-09",
+   "gaps": [
+    [
+     "2020-02-09 02:00:00",
+     "2020-02-09 03:00:00",
+     60.0
+    ]
+   ],
+   "monthly_rows_day": 276,
+   "zip": "data/spot/daily/klines/BNBUSDT/5m/BNBUSDT-5m-2020-02-09.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "887b0623849aef0ef6b68a94ca899378009af2c66575ea8f049b7906f95a9d5a",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 276,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BNBUSDT",
+   "day": "2020-02-19",
+   "gaps": [
+    [
+     "2020-02-19 11:40:00",
+     "2020-02-19 17:30:00",
+     350.0
+    ]
+   ],
+   "monthly_rows_day": 218,
+   "zip": "data/spot/daily/klines/BNBUSDT/5m/BNBUSDT-5m-2020-02-19.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "e8f6ffebbcfc8d4396667b17c8943b2121744fc0874e604e834dacc1d56a412c",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 218,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BNBUSDT",
+   "day": "2020-03-04",
+   "gaps": [
+    [
+     "2020-03-04 09:25:00",
+     "2020-03-04 11:30:00",
+     125.0
+    ]
+   ],
+   "monthly_rows_day": 263,
+   "zip": "data/spot/daily/klines/BNBUSDT/5m/BNBUSDT-5m-2020-03-04.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "21ce14484b1ecdbe5a7c306cff7fda40af172c4f462a2cfe831feda065b746c9",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 263,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BNBUSDT",
+   "day": "2020-04-25",
+   "gaps": [
+    [
+     "2020-04-25 02:00:00",
+     "2020-04-25 04:30:00",
+     150.0
+    ]
+   ],
+   "monthly_rows_day": 258,
+   "zip": "data/spot/daily/klines/BNBUSDT/5m/BNBUSDT-5m-2020-04-25.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "7499d3392273b4a041fb5070f79c83edb43e53846377f4d37c6522e44600caa5",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 258,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BTCUSDT",
+   "day": "2017-09-06",
+   "gaps": [
+    [
+     "2017-09-06 16:00:00",
+     "2017-09-06 23:00:00",
+     420.0
+    ]
+   ],
+   "monthly_rows_day": 204,
+   "zip": "data/spot/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2017-09-06.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "7351e6c9a55e852149eb05d5411f99f66dc9d7924032ae9657e9719a14f69071",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 205,
+   "monthly_rows_not_byte_identical_in_daily": 204,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 205,
+   "daily_open_times_not_in_monthly": 1,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 1,
+   "field_differences": [
+    "close_time",
+    "ignore"
+   ],
+   "result": "patch: 1 bars from the daily file",
+   "added_open_times": [
+    "2017-09-06 16:00:00"
+   ]
+  },
+  {
+   "pair": "BTCUSDT",
+   "day": "2017-12-18",
+   "gaps": [
+    [
+     "2017-12-18 10:05:00",
+     "2017-12-18 10:10:00",
+     5.0
+    ],
+    [
+     "2017-12-18 12:30:00",
+     "2017-12-18 13:30:00",
+     60.0
+    ]
+   ],
+   "monthly_rows_day": 275,
+   "zip": "data/spot/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2017-12-18.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "6e042d95f01457d5a68776dfe1d5340bafcb37d76a7be6ec65f4847b49c8e99b",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 275,
+   "monthly_rows_not_byte_identical_in_daily": 153,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 153,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "field_differences": [
+    "ignore"
+   ],
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BTCUSDT",
+   "day": "2018-01-04",
+   "gaps": [
+    [
+     "2018-01-04 03:05:00",
+     "2018-01-04 05:05:00",
+     120.0
+    ]
+   ],
+   "monthly_rows_day": 264,
+   "zip": "data/spot/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2018-01-04.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "dfeb3053b2aa9aa50147fc4e27ceaa4be307ede78446835a5b3a6e38b6412ace",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 264,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BTCUSDT",
+   "day": "2018-02-08",
+   "gaps": [
+    [
+     "2018-02-08 00:30:00",
+     "2018-02-09 09:58:14",
+     2008.25
+    ]
+   ],
+   "monthly_rows_day": 6,
+   "zip": "data/spot/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2018-02-08.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "7253d9873c59bd180aeff86bc5466d31c9147b812d832ece943e442bfdc2ff00",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 6,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BTCUSDT",
+   "day": "2018-02-09",
+   "gaps": [
+    [
+     "2018-02-08 00:30:00",
+     "2018-02-09 09:58:14",
+     2008.25
+    ]
+   ],
+   "monthly_rows_day": 169,
+   "zip": "data/spot/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2018-02-09.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "d96c65c474e11697fa58f272558676b008b1f541ff08bf402a0e0cef7e5d1b27",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 168,
+   "monthly_rows_not_byte_identical_in_daily": 169,
+   "monthly_rows_key_fields_not_in_daily": 169,
+   "daily_rows_not_byte_identical_in_monthly": 168,
+   "daily_open_times_not_in_monthly": 168,
+   "monthly_open_times_not_in_daily": 169,
+   "daily_rows_in_gap": 0,
+   "field_differences": [],
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BTCUSDT",
+   "day": "2018-02-10",
+   "gaps": [
+    [
+     "2018-02-10 06:03:14",
+     "2018-02-10 06:15:00",
+     11.75
+    ]
+   ],
+   "monthly_rows_day": 285,
+   "zip": "data/spot/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2018-02-10.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "a33e4f40247f01ca48cfc87eb312cd23d8b7f969637c1b38fa1408fa248a97f5",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 285,
+   "monthly_rows_not_byte_identical_in_daily": 72,
+   "monthly_rows_key_fields_not_in_daily": 72,
+   "daily_rows_not_byte_identical_in_monthly": 72,
+   "daily_open_times_not_in_monthly": 72,
+   "monthly_open_times_not_in_daily": 72,
+   "daily_rows_in_gap": 0,
+   "field_differences": [],
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BTCUSDT",
+   "day": "2018-02-11",
+   "gaps": [
+    [
+     "2018-02-11 04:05:00",
+     "2018-02-11 04:35:00",
+     30.0
+    ]
+   ],
+   "monthly_rows_day": 282,
+   "zip": "data/spot/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2018-02-11.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "9fb1ba34a48244ad8090c9dd1a7b590ae2ff6e023a81784b5afcabfe3f5f74a4",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 282,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BTCUSDT",
+   "day": "2018-06-26",
+   "gaps": [
+    [
+     "2018-06-26 02:00:00",
+     "2018-06-26 12:00:00",
+     600.0
+    ]
+   ],
+   "monthly_rows_day": 168,
+   "zip": "data/spot/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2018-06-26.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "699dff7f7a3e1d224200200f9d7a19dcabec12fad3e8f6013fc15348626d3049",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 168,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BTCUSDT",
+   "day": "2018-06-27",
+   "gaps": [
+    [
+     "2018-06-27 13:00:00",
+     "2018-06-27 14:45:00",
+     105.0
+    ]
+   ],
+   "monthly_rows_day": 267,
+   "zip": "data/spot/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2018-06-27.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "9913d89a487324035390ccec16f52ce739d0d015246d6bf4f4266415bd12d029",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 267,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BTCUSDT",
+   "day": "2018-07-04",
+   "gaps": [
+    [
+     "2018-07-04 00:25:00",
+     "2018-07-04 08:00:00",
+     455.0
+    ]
+   ],
+   "monthly_rows_day": 197,
+   "zip": "data/spot/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2018-07-04.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "c9dbe52f52eea6a4fd51edd7beaf492e3e3327562e956fa53de0a43d4058c4c4",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 197,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BTCUSDT",
+   "day": "2018-10-19",
+   "gaps": [
+    [
+     "2018-10-19 06:00:00",
+     "2018-10-19 09:30:00",
+     210.0
+    ]
+   ],
+   "monthly_rows_day": 246,
+   "zip": "data/spot/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2018-10-19.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "1586e57a812fdd628b674097c487c17e1277ced96f18c74b573e37cc5fe45884",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 246,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BTCUSDT",
+   "day": "2018-11-14",
+   "gaps": [
+    [
+     "2018-11-14 02:00:00",
+     "2018-11-14 09:00:00",
+     420.0
+    ]
+   ],
+   "monthly_rows_day": 204,
+   "zip": "data/spot/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2018-11-14.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "872224629c39e6f306e82e89e4a8a1f41ef391538f0640139cf835c4fc1317fe",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 204,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BTCUSDT",
+   "day": "2019-03-12",
+   "gaps": [
+    [
+     "2019-03-12 02:00:00",
+     "2019-03-12 08:00:00",
+     360.0
+    ]
+   ],
+   "monthly_rows_day": 216,
+   "zip": "data/spot/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2019-03-12.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "f1a971e0ccf8f65a750f23368f70edf7ce9bb34dbf19604826aa56d9ea305e5a",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 216,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BTCUSDT",
+   "day": "2019-05-15",
+   "gaps": [
+    [
+     "2019-05-15 03:00:00",
+     "2019-05-15 13:00:00",
+     600.0
+    ]
+   ],
+   "monthly_rows_day": 168,
+   "zip": "data/spot/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2019-05-15.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "10a3a8bda13825f7cf43f3b7ef95b3e88ab907bcce8fe6ddab7027e59b78641b",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 168,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BTCUSDT",
+   "day": "2019-06-07",
+   "gaps": [
+    [
+     "2019-06-07 21:15:00",
+     "2019-06-07 22:15:00",
+     60.0
+    ]
+   ],
+   "monthly_rows_day": 276,
+   "zip": "data/spot/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2019-06-07.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "9de48d919cbd9e6265967c9905d8447a9e50e528f037c2d114988e74250086c3",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 276,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BTCUSDT",
+   "day": "2019-08-15",
+   "gaps": [
+    [
+     "2019-08-15 02:00:00",
+     "2019-08-15 10:00:00",
+     480.0
+    ]
+   ],
+   "monthly_rows_day": 192,
+   "zip": "data/spot/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2019-08-15.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "ed46cf5e001aa41ce7b8e6e7a5ed203c0d9a8698965e41b687d81dc4d188f5da",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 192,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BTCUSDT",
+   "day": "2019-11-13",
+   "gaps": [
+    [
+     "2019-11-13 02:00:00",
+     "2019-11-13 04:20:00",
+     140.0
+    ]
+   ],
+   "monthly_rows_day": 260,
+   "zip": "data/spot/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2019-11-13.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "c4ed9f5dec3c28ee545a68569aa876661284f43e3199524e852e2258c991df51",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 260,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BTCUSDT",
+   "day": "2019-11-25",
+   "gaps": [
+    [
+     "2019-11-25 02:00:00",
+     "2019-11-25 04:00:00",
+     120.0
+    ]
+   ],
+   "monthly_rows_day": 264,
+   "zip": "data/spot/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2019-11-25.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "4f8b3ec09d9a6e0077bdac3358624155b6ed25c9709b7aab25a8619637d2e84e",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 264,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BTCUSDT",
+   "day": "2020-02-09",
+   "gaps": [
+    [
+     "2020-02-09 02:00:00",
+     "2020-02-09 03:00:00",
+     60.0
+    ]
+   ],
+   "monthly_rows_day": 276,
+   "zip": "data/spot/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2020-02-09.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "d73c201323e72fdf94948735153a4b89b128d79de7a13bfdbd4766842b0b17b4",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 276,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BTCUSDT",
+   "day": "2020-02-19",
+   "gaps": [
+    [
+     "2020-02-19 11:40:00",
+     "2020-02-19 17:30:00",
+     350.0
+    ]
+   ],
+   "monthly_rows_day": 218,
+   "zip": "data/spot/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2020-02-19.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "fb19616d7b9f3c2ed561343951a5ffc165e857a6b1fadbb64a4e40a6d1290fc0",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 218,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BTCUSDT",
+   "day": "2020-03-04",
+   "gaps": [
+    [
+     "2020-03-04 09:25:00",
+     "2020-03-04 11:30:00",
+     125.0
+    ]
+   ],
+   "monthly_rows_day": 263,
+   "zip": "data/spot/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2020-03-04.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "e4025e5cdbafcb747ff109c314b346d21fdcabee75d118156f46b7063bea079a",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 263,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "BTCUSDT",
+   "day": "2020-04-25",
+   "gaps": [
+    [
+     "2020-04-25 02:00:00",
+     "2020-04-25 04:30:00",
+     150.0
+    ]
+   ],
+   "monthly_rows_day": 258,
+   "zip": "data/spot/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2020-04-25.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "bc0cb0003366ed00a34e20f333aa8ad71a1f37b0257ac271a19f24841f463003",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 258,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "DOGEUSDT",
+   "day": "2019-08-15",
+   "gaps": [
+    [
+     "2019-08-15 02:00:00",
+     "2019-08-15 10:00:00",
+     480.0
+    ]
+   ],
+   "monthly_rows_day": 192,
+   "zip": "data/spot/daily/klines/DOGEUSDT/5m/DOGEUSDT-5m-2019-08-15.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "9bc4606159f6b96b3a8457fda208d6cb8f15aba51b193c8e69d68ce7804782a7",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 192,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "DOGEUSDT",
+   "day": "2019-11-13",
+   "gaps": [
+    [
+     "2019-11-13 02:00:00",
+     "2019-11-13 04:20:00",
+     140.0
+    ]
+   ],
+   "monthly_rows_day": 260,
+   "zip": "data/spot/daily/klines/DOGEUSDT/5m/DOGEUSDT-5m-2019-11-13.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "7cfa87b2bf4aa8b3ca4327eb9c6f70fccf7db544aa3a5ac1a76e4a75ca44de53",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 260,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "DOGEUSDT",
+   "day": "2019-11-25",
+   "gaps": [
+    [
+     "2019-11-25 02:00:00",
+     "2019-11-25 04:00:00",
+     120.0
+    ]
+   ],
+   "monthly_rows_day": 264,
+   "zip": "data/spot/daily/klines/DOGEUSDT/5m/DOGEUSDT-5m-2019-11-25.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "b14a7227c3baec491e85728f52b3bc5fa8dc5526a006c2224498c50ee4a1270d",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 264,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "DOGEUSDT",
+   "day": "2020-02-09",
+   "gaps": [
+    [
+     "2020-02-09 02:00:00",
+     "2020-02-09 03:00:00",
+     60.0
+    ]
+   ],
+   "monthly_rows_day": 276,
+   "zip": "data/spot/daily/klines/DOGEUSDT/5m/DOGEUSDT-5m-2020-02-09.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "956fd8645b4080c19d7900f78d8d356bcb7b1aa3f4da8acef45e51723412ee47",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 276,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "DOGEUSDT",
+   "day": "2020-02-19",
+   "gaps": [
+    [
+     "2020-02-19 11:40:00",
+     "2020-02-19 17:30:00",
+     350.0
+    ]
+   ],
+   "monthly_rows_day": 218,
+   "zip": "data/spot/daily/klines/DOGEUSDT/5m/DOGEUSDT-5m-2020-02-19.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "7274376adab2f1bcb7778f00d318657328d38bb386f88cf87bb5a1dc3807c8e4",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 218,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "DOGEUSDT",
+   "day": "2020-03-04",
+   "gaps": [
+    [
+     "2020-03-04 09:25:00",
+     "2020-03-04 11:30:00",
+     125.0
+    ]
+   ],
+   "monthly_rows_day": 263,
+   "zip": "data/spot/daily/klines/DOGEUSDT/5m/DOGEUSDT-5m-2020-03-04.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "aa895d36461e4fa8c0e491e7f5c4d8a7b3fe6172cc76b44e7b04c12a03d498c8",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 263,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "DOGEUSDT",
+   "day": "2020-04-25",
+   "gaps": [
+    [
+     "2020-04-25 02:00:00",
+     "2020-04-25 04:30:00",
+     150.0
+    ]
+   ],
+   "monthly_rows_day": 258,
+   "zip": "data/spot/daily/klines/DOGEUSDT/5m/DOGEUSDT-5m-2020-04-25.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "d905a88b40a113fc94fbd55bf33e52e90ae85363529e52a973f36056000655ac",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 258,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "EOSUSDT",
+   "day": "2018-06-26",
+   "gaps": [
+    [
+     "2018-06-26 02:00:00",
+     "2018-06-26 12:00:00",
+     600.0
+    ]
+   ],
+   "monthly_rows_day": 168,
+   "zip": "data/spot/daily/klines/EOSUSDT/5m/EOSUSDT-5m-2018-06-26.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "215372c9f04fe51281c560ed69811604be35f0dbc2613a9c56ac68862be4598b",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 168,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "EOSUSDT",
+   "day": "2018-06-27",
+   "gaps": [
+    [
+     "2018-06-27 13:00:00",
+     "2018-06-27 14:45:00",
+     105.0
+    ]
+   ],
+   "monthly_rows_day": 267,
+   "zip": "data/spot/daily/klines/EOSUSDT/5m/EOSUSDT-5m-2018-06-27.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "1c8f31be65ed50ae307473cc567451ef9051b781198ea957e427897c7240a0c6",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 267,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "EOSUSDT",
+   "day": "2018-07-04",
+   "gaps": [
+    [
+     "2018-07-04 00:25:00",
+     "2018-07-04 08:00:00",
+     455.0
+    ]
+   ],
+   "monthly_rows_day": 197,
+   "zip": "data/spot/daily/klines/EOSUSDT/5m/EOSUSDT-5m-2018-07-04.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "b7167da7e7786994b93eab4e0da1f6c54f25881a9f4ec7beabf41681d5656eed",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 197,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "EOSUSDT",
+   "day": "2018-10-19",
+   "gaps": [
+    [
+     "2018-10-19 06:00:00",
+     "2018-10-19 09:30:00",
+     210.0
+    ]
+   ],
+   "monthly_rows_day": 246,
+   "zip": "data/spot/daily/klines/EOSUSDT/5m/EOSUSDT-5m-2018-10-19.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "93cd59f2744b4e848d3904cd82422e998ab20ba4ba1dfd8c829f638879d43922",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 246,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "EOSUSDT",
+   "day": "2018-11-14",
+   "gaps": [
+    [
+     "2018-11-14 02:00:00",
+     "2018-11-14 09:00:00",
+     420.0
+    ]
+   ],
+   "monthly_rows_day": 204,
+   "zip": "data/spot/daily/klines/EOSUSDT/5m/EOSUSDT-5m-2018-11-14.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "ec966d3c9040fe6e4ab0e518c12724f96a131aa81625a7fe01455e24a04d8369",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 204,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "EOSUSDT",
+   "day": "2019-03-12",
+   "gaps": [
+    [
+     "2019-03-12 02:00:00",
+     "2019-03-12 08:00:00",
+     360.0
+    ]
+   ],
+   "monthly_rows_day": 216,
+   "zip": "data/spot/daily/klines/EOSUSDT/5m/EOSUSDT-5m-2019-03-12.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "10e16c2a8c18ebc9dad98d2f0a3e52ae20dfb7f57118b2d48e3198ef4261859b",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 216,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "EOSUSDT",
+   "day": "2019-05-15",
+   "gaps": [
+    [
+     "2019-05-15 03:00:00",
+     "2019-05-15 13:00:00",
+     600.0
+    ]
+   ],
+   "monthly_rows_day": 168,
+   "zip": "data/spot/daily/klines/EOSUSDT/5m/EOSUSDT-5m-2019-05-15.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "1e5ac8c1061f9f89decd00eee29b6c9c5d157ef21d46640beecdf7b07ff99d1b",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 168,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "EOSUSDT",
+   "day": "2019-06-07",
+   "gaps": [
+    [
+     "2019-06-07 21:15:00",
+     "2019-06-07 22:15:00",
+     60.0
+    ]
+   ],
+   "monthly_rows_day": 276,
+   "zip": "data/spot/daily/klines/EOSUSDT/5m/EOSUSDT-5m-2019-06-07.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "27c8089f12a44f68a18933c71dea9dda80e0fe8b9c60abfd5615972a5da16354",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 276,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "EOSUSDT",
+   "day": "2019-08-15",
+   "gaps": [
+    [
+     "2019-08-15 02:00:00",
+     "2019-08-15 10:00:00",
+     480.0
+    ]
+   ],
+   "monthly_rows_day": 192,
+   "zip": "data/spot/daily/klines/EOSUSDT/5m/EOSUSDT-5m-2019-08-15.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "06d459307acae4517107a0a4fe42e310caef872e7090760cf089052063089708",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 192,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "EOSUSDT",
+   "day": "2019-11-13",
+   "gaps": [
+    [
+     "2019-11-13 02:00:00",
+     "2019-11-13 04:20:00",
+     140.0
+    ]
+   ],
+   "monthly_rows_day": 260,
+   "zip": "data/spot/daily/klines/EOSUSDT/5m/EOSUSDT-5m-2019-11-13.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "7142f4dfd5d2cf02d6af045c34d0a26cdc000263fcb44fc563818c860fc4d0c9",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 260,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "EOSUSDT",
+   "day": "2019-11-25",
+   "gaps": [
+    [
+     "2019-11-25 02:00:00",
+     "2019-11-25 04:00:00",
+     120.0
+    ]
+   ],
+   "monthly_rows_day": 264,
+   "zip": "data/spot/daily/klines/EOSUSDT/5m/EOSUSDT-5m-2019-11-25.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "7bb60ea2e6a2ff6c1bdcc83ff634a993f5fd42288d701d2fbd51bde7cc25516a",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 264,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "EOSUSDT",
+   "day": "2020-02-09",
+   "gaps": [
+    [
+     "2020-02-09 02:00:00",
+     "2020-02-09 03:00:00",
+     60.0
+    ]
+   ],
+   "monthly_rows_day": 276,
+   "zip": "data/spot/daily/klines/EOSUSDT/5m/EOSUSDT-5m-2020-02-09.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "f0ab8750bace790d7e01356307583de69d0b4ceedfa99840b56a9c96a44c01ee",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 276,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "EOSUSDT",
+   "day": "2020-02-19",
+   "gaps": [
+    [
+     "2020-02-19 11:40:00",
+     "2020-02-19 17:30:00",
+     350.0
+    ]
+   ],
+   "monthly_rows_day": 218,
+   "zip": "data/spot/daily/klines/EOSUSDT/5m/EOSUSDT-5m-2020-02-19.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "9e0c656fb7db987c36dd667fb881568306e8a1ff027436f1d69162ba12beaa56",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 218,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "EOSUSDT",
+   "day": "2020-03-04",
+   "gaps": [
+    [
+     "2020-03-04 09:25:00",
+     "2020-03-04 11:30:00",
+     125.0
+    ]
+   ],
+   "monthly_rows_day": 263,
+   "zip": "data/spot/daily/klines/EOSUSDT/5m/EOSUSDT-5m-2020-03-04.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "088217a0e72469b1d27dc223e8281c1f5889102e2d1094387d33d70215846cc2",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 263,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "EOSUSDT",
+   "day": "2020-04-25",
+   "gaps": [
+    [
+     "2020-04-25 02:00:00",
+     "2020-04-25 04:30:00",
+     150.0
+    ]
+   ],
+   "monthly_rows_day": 258,
+   "zip": "data/spot/daily/klines/EOSUSDT/5m/EOSUSDT-5m-2020-04-25.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "4af92c9260b9644cae8f3532074c431c934572d61cb82c884ee98861385bc442",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 258,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ETCUSDT",
+   "day": "2018-06-27",
+   "gaps": [
+    [
+     "2018-06-27 13:00:00",
+     "2018-06-27 14:45:00",
+     105.0
+    ]
+   ],
+   "monthly_rows_day": 267,
+   "zip": "data/spot/daily/klines/ETCUSDT/5m/ETCUSDT-5m-2018-06-27.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "d8e0c4d42bbdd1c7ae60b8902bda203897ca73ba9a77b69800ca97b0d22a865e",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 267,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ETCUSDT",
+   "day": "2018-07-04",
+   "gaps": [
+    [
+     "2018-07-04 00:25:00",
+     "2018-07-04 08:00:00",
+     455.0
+    ]
+   ],
+   "monthly_rows_day": 197,
+   "zip": "data/spot/daily/klines/ETCUSDT/5m/ETCUSDT-5m-2018-07-04.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "f7b8900e2a03508425a1ea3560922fd06c08cc35cf102d5829aa7b8933a3e5a1",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 197,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ETCUSDT",
+   "day": "2018-10-19",
+   "gaps": [
+    [
+     "2018-10-19 06:00:00",
+     "2018-10-19 09:30:00",
+     210.0
+    ]
+   ],
+   "monthly_rows_day": 246,
+   "zip": "data/spot/daily/klines/ETCUSDT/5m/ETCUSDT-5m-2018-10-19.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "2dfaa2e6de992576d7a87b8c65a73121bf643f987aa480e3c2a1d35357463a54",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 246,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ETCUSDT",
+   "day": "2018-11-14",
+   "gaps": [
+    [
+     "2018-11-14 02:00:00",
+     "2018-11-14 09:00:00",
+     420.0
+    ]
+   ],
+   "monthly_rows_day": 204,
+   "zip": "data/spot/daily/klines/ETCUSDT/5m/ETCUSDT-5m-2018-11-14.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "248e8c886d686bdb2475c671688d5cd19c6bb63a646e667ef4052d976b3000d9",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 204,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ETCUSDT",
+   "day": "2019-03-12",
+   "gaps": [
+    [
+     "2019-03-12 02:00:00",
+     "2019-03-12 08:00:00",
+     360.0
+    ]
+   ],
+   "monthly_rows_day": 216,
+   "zip": "data/spot/daily/klines/ETCUSDT/5m/ETCUSDT-5m-2019-03-12.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "39b59b63756c6422cec92f273db65594ae065eda9b4be8ff592d631478fa7ed1",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 216,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ETCUSDT",
+   "day": "2019-05-15",
+   "gaps": [
+    [
+     "2019-05-15 03:00:00",
+     "2019-05-15 13:00:00",
+     600.0
+    ]
+   ],
+   "monthly_rows_day": 168,
+   "zip": "data/spot/daily/klines/ETCUSDT/5m/ETCUSDT-5m-2019-05-15.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "ea0e1e3261814301a9e56ece4b631b72308337fee0981868d2fbeff9b67358bd",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 168,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ETCUSDT",
+   "day": "2019-06-07",
+   "gaps": [
+    [
+     "2019-06-07 21:15:00",
+     "2019-06-07 22:15:00",
+     60.0
+    ]
+   ],
+   "monthly_rows_day": 276,
+   "zip": "data/spot/daily/klines/ETCUSDT/5m/ETCUSDT-5m-2019-06-07.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "959169a6ccf4f9b557c71d394973e159a1f8058ac84a374b3841f2ce35f9c601",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 276,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ETCUSDT",
+   "day": "2019-08-15",
+   "gaps": [
+    [
+     "2019-08-15 02:00:00",
+     "2019-08-15 10:00:00",
+     480.0
+    ]
+   ],
+   "monthly_rows_day": 192,
+   "zip": "data/spot/daily/klines/ETCUSDT/5m/ETCUSDT-5m-2019-08-15.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "a957fa17a3fe4a207b99742ef44514e94a4f3cc62879eb0e004ae561d25d2b99",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 192,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ETCUSDT",
+   "day": "2019-11-13",
+   "gaps": [
+    [
+     "2019-11-13 02:00:00",
+     "2019-11-13 04:20:00",
+     140.0
+    ]
+   ],
+   "monthly_rows_day": 260,
+   "zip": "data/spot/daily/klines/ETCUSDT/5m/ETCUSDT-5m-2019-11-13.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "2d18ba74e3afb648ebc3c276945dec5639521e4d44bb1dde8cd402522f20555d",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 260,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ETCUSDT",
+   "day": "2019-11-25",
+   "gaps": [
+    [
+     "2019-11-25 02:00:00",
+     "2019-11-25 04:00:00",
+     120.0
+    ]
+   ],
+   "monthly_rows_day": 264,
+   "zip": "data/spot/daily/klines/ETCUSDT/5m/ETCUSDT-5m-2019-11-25.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "047b5ab1eca46e3d8d1de6a704002f208f477fd42a2fc64f586d45b96f052d25",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 264,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ETCUSDT",
+   "day": "2020-02-09",
+   "gaps": [
+    [
+     "2020-02-09 02:00:00",
+     "2020-02-09 03:00:00",
+     60.0
+    ]
+   ],
+   "monthly_rows_day": 276,
+   "zip": "data/spot/daily/klines/ETCUSDT/5m/ETCUSDT-5m-2020-02-09.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "a56ebe9548f3e232c377cfbeecf8c92617ca8b322191b935066098106fc6a4ae",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 276,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ETCUSDT",
+   "day": "2020-02-19",
+   "gaps": [
+    [
+     "2020-02-19 11:40:00",
+     "2020-02-19 17:30:00",
+     350.0
+    ]
+   ],
+   "monthly_rows_day": 218,
+   "zip": "data/spot/daily/klines/ETCUSDT/5m/ETCUSDT-5m-2020-02-19.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "407862163dace2a8707de997a390ded5c96832a43801e83e5db6c1ca4bdc1566",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 218,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ETCUSDT",
+   "day": "2020-03-04",
+   "gaps": [
+    [
+     "2020-03-04 09:25:00",
+     "2020-03-04 11:30:00",
+     125.0
+    ]
+   ],
+   "monthly_rows_day": 263,
+   "zip": "data/spot/daily/klines/ETCUSDT/5m/ETCUSDT-5m-2020-03-04.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "b1b99a542617d7cebefff233d0a221a20c493df5ab73c80602bfbd0493f2be9e",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 263,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ETCUSDT",
+   "day": "2020-04-25",
+   "gaps": [
+    [
+     "2020-04-25 02:00:00",
+     "2020-04-25 04:30:00",
+     150.0
+    ]
+   ],
+   "monthly_rows_day": 258,
+   "zip": "data/spot/daily/klines/ETCUSDT/5m/ETCUSDT-5m-2020-04-25.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "1590bfb28aec672cf5fd735a2d2df17856782bda40f06e34fbe757aef1507e6a",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 258,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ETHUSDT",
+   "day": "2017-09-06",
+   "gaps": [
+    [
+     "2017-09-06 16:00:00",
+     "2017-09-06 23:00:00",
+     420.0
+    ]
+   ],
+   "monthly_rows_day": 204,
+   "zip": "data/spot/daily/klines/ETHUSDT/5m/ETHUSDT-5m-2017-09-06.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "229bd72b5815f21d8f639a4f168aba1da7db084dac70adc0838615a8193eb192",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 205,
+   "monthly_rows_not_byte_identical_in_daily": 204,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 205,
+   "daily_open_times_not_in_monthly": 1,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 1,
+   "field_differences": [
+    "close_time",
+    "ignore"
+   ],
+   "result": "patch: 1 bars from the daily file",
+   "added_open_times": [
+    "2017-09-06 16:00:00"
+   ]
+  },
+  {
+   "pair": "ETHUSDT",
+   "day": "2017-12-18",
+   "gaps": [
+    [
+     "2017-12-18 10:05:00",
+     "2017-12-18 10:10:00",
+     5.0
+    ],
+    [
+     "2017-12-18 12:30:00",
+     "2017-12-18 13:30:00",
+     60.0
+    ]
+   ],
+   "monthly_rows_day": 275,
+   "zip": "data/spot/daily/klines/ETHUSDT/5m/ETHUSDT-5m-2017-12-18.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "15d1e4b7432ff966965a9e3824b41ad16c38d97d72467cf8f764ca7bc2dd217e",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 275,
+   "monthly_rows_not_byte_identical_in_daily": 153,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 153,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "field_differences": [
+    "ignore"
+   ],
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ETHUSDT",
+   "day": "2018-01-04",
+   "gaps": [
+    [
+     "2018-01-04 03:05:00",
+     "2018-01-04 05:05:00",
+     120.0
+    ]
+   ],
+   "monthly_rows_day": 264,
+   "zip": "data/spot/daily/klines/ETHUSDT/5m/ETHUSDT-5m-2018-01-04.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "583ef0a2349a4ac6cde4898e57716b259263fc3de728ab517e540094e194da63",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 264,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ETHUSDT",
+   "day": "2018-02-08",
+   "gaps": [
+    [
+     "2018-02-08 00:30:00",
+     "2018-02-09 09:58:14",
+     2008.25
+    ]
+   ],
+   "monthly_rows_day": 6,
+   "zip": "data/spot/daily/klines/ETHUSDT/5m/ETHUSDT-5m-2018-02-08.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "efe797e57c7dfb731f8151231e00e400083df43eb55b8a64de2e5a1a9bde9595",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 6,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ETHUSDT",
+   "day": "2018-02-09",
+   "gaps": [
+    [
+     "2018-02-08 00:30:00",
+     "2018-02-09 09:58:14",
+     2008.25
+    ]
+   ],
+   "monthly_rows_day": 169,
+   "zip": "data/spot/daily/klines/ETHUSDT/5m/ETHUSDT-5m-2018-02-09.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "da0e9923928a166af696c8c9a7c94d5a8cfd42f931f41ffe1ab0de8e842d0bd3",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 168,
+   "monthly_rows_not_byte_identical_in_daily": 169,
+   "monthly_rows_key_fields_not_in_daily": 169,
+   "daily_rows_not_byte_identical_in_monthly": 168,
+   "daily_open_times_not_in_monthly": 168,
+   "monthly_open_times_not_in_daily": 169,
+   "daily_rows_in_gap": 0,
+   "field_differences": [],
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ETHUSDT",
+   "day": "2018-02-10",
+   "gaps": [
+    [
+     "2018-02-10 06:03:14",
+     "2018-02-10 06:15:00",
+     11.75
+    ]
+   ],
+   "monthly_rows_day": 285,
+   "zip": "data/spot/daily/klines/ETHUSDT/5m/ETHUSDT-5m-2018-02-10.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "1807a26cf0f131942166124020433565adc1eb37d76572586f79c0bad55ec16d",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 285,
+   "monthly_rows_not_byte_identical_in_daily": 72,
+   "monthly_rows_key_fields_not_in_daily": 72,
+   "daily_rows_not_byte_identical_in_monthly": 72,
+   "daily_open_times_not_in_monthly": 72,
+   "monthly_open_times_not_in_daily": 72,
+   "daily_rows_in_gap": 0,
+   "field_differences": [],
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ETHUSDT",
+   "day": "2018-02-11",
+   "gaps": [
+    [
+     "2018-02-11 04:05:00",
+     "2018-02-11 04:35:00",
+     30.0
+    ]
+   ],
+   "monthly_rows_day": 282,
+   "zip": "data/spot/daily/klines/ETHUSDT/5m/ETHUSDT-5m-2018-02-11.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "58449cc4fd357c06df76d24670457982c62901b9b0c5c16dedb08b01897a0a37",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 282,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ETHUSDT",
+   "day": "2018-06-26",
+   "gaps": [
+    [
+     "2018-06-26 02:00:00",
+     "2018-06-26 12:00:00",
+     600.0
+    ]
+   ],
+   "monthly_rows_day": 168,
+   "zip": "data/spot/daily/klines/ETHUSDT/5m/ETHUSDT-5m-2018-06-26.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "8fbf67412114ba2cb8bc0b65d38dcf8c69f79768ba34322667f40ef1ae2f88d3",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 168,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ETHUSDT",
+   "day": "2018-06-27",
+   "gaps": [
+    [
+     "2018-06-27 13:00:00",
+     "2018-06-27 14:45:00",
+     105.0
+    ]
+   ],
+   "monthly_rows_day": 267,
+   "zip": "data/spot/daily/klines/ETHUSDT/5m/ETHUSDT-5m-2018-06-27.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "73050ca9ca6f4562b82818fb4c639fc2e37646c13c0908d139c8e36efee7775a",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 267,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ETHUSDT",
+   "day": "2018-07-04",
+   "gaps": [
+    [
+     "2018-07-04 00:25:00",
+     "2018-07-04 08:00:00",
+     455.0
+    ]
+   ],
+   "monthly_rows_day": 197,
+   "zip": "data/spot/daily/klines/ETHUSDT/5m/ETHUSDT-5m-2018-07-04.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "3ab7eab688294d9a48a4e05c9869e4cfc9280e1523f0855ffcdb92ae2dc823d1",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 197,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ETHUSDT",
+   "day": "2018-10-19",
+   "gaps": [
+    [
+     "2018-10-19 06:00:00",
+     "2018-10-19 09:30:00",
+     210.0
+    ]
+   ],
+   "monthly_rows_day": 246,
+   "zip": "data/spot/daily/klines/ETHUSDT/5m/ETHUSDT-5m-2018-10-19.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "597ac4349996b6203de29c24ee2bdafe26eca24e1300226446425bb160dfe385",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 246,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ETHUSDT",
+   "day": "2018-11-14",
+   "gaps": [
+    [
+     "2018-11-14 02:00:00",
+     "2018-11-14 09:00:00",
+     420.0
+    ]
+   ],
+   "monthly_rows_day": 204,
+   "zip": "data/spot/daily/klines/ETHUSDT/5m/ETHUSDT-5m-2018-11-14.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "33dca3e0dca0aad528401935cfc7932dc442bc34e448de542fca69093e9053cf",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 204,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ETHUSDT",
+   "day": "2019-03-12",
+   "gaps": [
+    [
+     "2019-03-12 02:00:00",
+     "2019-03-12 08:00:00",
+     360.0
+    ]
+   ],
+   "monthly_rows_day": 216,
+   "zip": "data/spot/daily/klines/ETHUSDT/5m/ETHUSDT-5m-2019-03-12.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "69c5c9c6fe63a4051e666e95c5f7f22a1020c54cf9951de338c78fc25c41ecff",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 216,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ETHUSDT",
+   "day": "2019-05-15",
+   "gaps": [
+    [
+     "2019-05-15 03:00:00",
+     "2019-05-15 13:00:00",
+     600.0
+    ]
+   ],
+   "monthly_rows_day": 168,
+   "zip": "data/spot/daily/klines/ETHUSDT/5m/ETHUSDT-5m-2019-05-15.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "69505b7de50cb4c908da9fa385ac5be83e094ee561797fd85a31084ad7cf34f7",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 168,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ETHUSDT",
+   "day": "2019-06-07",
+   "gaps": [
+    [
+     "2019-06-07 21:15:00",
+     "2019-06-07 22:15:00",
+     60.0
+    ]
+   ],
+   "monthly_rows_day": 276,
+   "zip": "data/spot/daily/klines/ETHUSDT/5m/ETHUSDT-5m-2019-06-07.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "a9b58278d729e8ba08aa306000ecb13dd246168484c5443ffaa3d58d50242dca",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 276,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ETHUSDT",
+   "day": "2019-08-15",
+   "gaps": [
+    [
+     "2019-08-15 02:00:00",
+     "2019-08-15 10:00:00",
+     480.0
+    ]
+   ],
+   "monthly_rows_day": 192,
+   "zip": "data/spot/daily/klines/ETHUSDT/5m/ETHUSDT-5m-2019-08-15.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "f238634b2233a7b7d8040261405120540720a2790f86310b2a4d0349c3e651cb",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 192,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ETHUSDT",
+   "day": "2019-11-13",
+   "gaps": [
+    [
+     "2019-11-13 02:00:00",
+     "2019-11-13 04:20:00",
+     140.0
+    ]
+   ],
+   "monthly_rows_day": 260,
+   "zip": "data/spot/daily/klines/ETHUSDT/5m/ETHUSDT-5m-2019-11-13.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "00c262a00cc888d96ff6446f70391516cdf2bf561897d9d9d2bbc85fad405fce",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 260,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ETHUSDT",
+   "day": "2019-11-25",
+   "gaps": [
+    [
+     "2019-11-25 02:00:00",
+     "2019-11-25 04:00:00",
+     120.0
+    ]
+   ],
+   "monthly_rows_day": 264,
+   "zip": "data/spot/daily/klines/ETHUSDT/5m/ETHUSDT-5m-2019-11-25.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "329a21651230a2f06b5563d346e8175e8ae2a52b00ee1d8bfbf540f451bc4964",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 264,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ETHUSDT",
+   "day": "2020-02-09",
+   "gaps": [
+    [
+     "2020-02-09 02:00:00",
+     "2020-02-09 03:00:00",
+     60.0
+    ]
+   ],
+   "monthly_rows_day": 276,
+   "zip": "data/spot/daily/klines/ETHUSDT/5m/ETHUSDT-5m-2020-02-09.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "06d15458f1dca31309ef9c93867b10910f1682701263cbf312da3d5bf136f568",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 276,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ETHUSDT",
+   "day": "2020-02-19",
+   "gaps": [
+    [
+     "2020-02-19 11:40:00",
+     "2020-02-19 17:30:00",
+     350.0
+    ]
+   ],
+   "monthly_rows_day": 218,
+   "zip": "data/spot/daily/klines/ETHUSDT/5m/ETHUSDT-5m-2020-02-19.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "1581a77124b121b72f1d403996e5622a7d159189e75990d6361425d384bf2bee",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 218,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ETHUSDT",
+   "day": "2020-03-04",
+   "gaps": [
+    [
+     "2020-03-04 09:25:00",
+     "2020-03-04 11:30:00",
+     125.0
+    ]
+   ],
+   "monthly_rows_day": 263,
+   "zip": "data/spot/daily/klines/ETHUSDT/5m/ETHUSDT-5m-2020-03-04.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "3517080f1319995543614c377cf2d7c476d8771752c9446b5a65f4f9421d3b33",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 263,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "ETHUSDT",
+   "day": "2020-04-25",
+   "gaps": [
+    [
+     "2020-04-25 02:00:00",
+     "2020-04-25 04:30:00",
+     150.0
+    ]
+   ],
+   "monthly_rows_day": 258,
+   "zip": "data/spot/daily/klines/ETHUSDT/5m/ETHUSDT-5m-2020-04-25.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "3cc54d25eeed7e0c32b9fdee44a740e3633d20a0eee1c0807af1157f3ea70cb8",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 258,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "LINKUSDT",
+   "day": "2019-03-12",
+   "gaps": [
+    [
+     "2019-03-12 02:00:00",
+     "2019-03-12 08:00:00",
+     360.0
+    ]
+   ],
+   "monthly_rows_day": 216,
+   "zip": "data/spot/daily/klines/LINKUSDT/5m/LINKUSDT-5m-2019-03-12.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "e1abde5b22810fdb8b53613414bdf6e6f545c6531e0473f44ebb0bf7bc05ace7",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 216,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "LINKUSDT",
+   "day": "2019-05-15",
+   "gaps": [
+    [
+     "2019-05-15 03:00:00",
+     "2019-05-15 13:00:00",
+     600.0
+    ]
+   ],
+   "monthly_rows_day": 168,
+   "zip": "data/spot/daily/klines/LINKUSDT/5m/LINKUSDT-5m-2019-05-15.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "ed4357a1c4379844a6f5831fc6efe3e3c08111f3049a4ac9ba513cdd5a59ccfb",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 168,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "LINKUSDT",
+   "day": "2019-06-07",
+   "gaps": [
+    [
+     "2019-06-07 21:15:00",
+     "2019-06-07 22:15:00",
+     60.0
+    ]
+   ],
+   "monthly_rows_day": 276,
+   "zip": "data/spot/daily/klines/LINKUSDT/5m/LINKUSDT-5m-2019-06-07.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "796f1decad8f704771dd35507c7b86860f52d8a9d31096a66aee9ea6a841e65c",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 276,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "LINKUSDT",
+   "day": "2019-08-15",
+   "gaps": [
+    [
+     "2019-08-15 02:00:00",
+     "2019-08-15 10:00:00",
+     480.0
+    ]
+   ],
+   "monthly_rows_day": 192,
+   "zip": "data/spot/daily/klines/LINKUSDT/5m/LINKUSDT-5m-2019-08-15.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "2fc1d7c9eac30561548bcbfe9bbcfce2ef5b790a33cf4ac409bb6535036759a2",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 192,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "LINKUSDT",
+   "day": "2019-11-13",
+   "gaps": [
+    [
+     "2019-11-13 02:00:00",
+     "2019-11-13 04:20:00",
+     140.0
+    ]
+   ],
+   "monthly_rows_day": 260,
+   "zip": "data/spot/daily/klines/LINKUSDT/5m/LINKUSDT-5m-2019-11-13.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "7c475779e4709affbc9e59c49854088a7ffb689b37259cd8d0c60471a3f2e7d2",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 260,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "LINKUSDT",
+   "day": "2019-11-25",
+   "gaps": [
+    [
+     "2019-11-25 02:00:00",
+     "2019-11-25 04:00:00",
+     120.0
+    ]
+   ],
+   "monthly_rows_day": 264,
+   "zip": "data/spot/daily/klines/LINKUSDT/5m/LINKUSDT-5m-2019-11-25.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "d175daf368276774a6407024230ec6f4e529a488a349c7488268857d471bd304",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 264,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "LINKUSDT",
+   "day": "2020-02-09",
+   "gaps": [
+    [
+     "2020-02-09 02:00:00",
+     "2020-02-09 03:00:00",
+     60.0
+    ]
+   ],
+   "monthly_rows_day": 276,
+   "zip": "data/spot/daily/klines/LINKUSDT/5m/LINKUSDT-5m-2020-02-09.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "7d0d60af3a61e1c36495bc8b59d6625e362153fc6878a680771eaabd7d253b44",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 276,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "LINKUSDT",
+   "day": "2020-02-19",
+   "gaps": [
+    [
+     "2020-02-19 11:40:00",
+     "2020-02-19 17:30:00",
+     350.0
+    ]
+   ],
+   "monthly_rows_day": 218,
+   "zip": "data/spot/daily/klines/LINKUSDT/5m/LINKUSDT-5m-2020-02-19.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "70fc4be16bf4bb1dd6bd498597ebaade0f161fe27ce49da8f89cb36bdb50f196",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 218,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "LINKUSDT",
+   "day": "2020-03-04",
+   "gaps": [
+    [
+     "2020-03-04 09:25:00",
+     "2020-03-04 11:30:00",
+     125.0
+    ]
+   ],
+   "monthly_rows_day": 263,
+   "zip": "data/spot/daily/klines/LINKUSDT/5m/LINKUSDT-5m-2020-03-04.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "bf23a20ee9f3d22942ed10a3ab3a8408e0ec550582c7e3e1450f2a4e0fc06da7",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 263,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "LINKUSDT",
+   "day": "2020-04-25",
+   "gaps": [
+    [
+     "2020-04-25 02:00:00",
+     "2020-04-25 04:30:00",
+     150.0
+    ]
+   ],
+   "monthly_rows_day": 258,
+   "zip": "data/spot/daily/klines/LINKUSDT/5m/LINKUSDT-5m-2020-04-25.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "a963a23b424265dcaf0b8e54b9242335c6a9542d7c8ed3feaa148ef363ddd5fe",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 258,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "LTCUSDT",
+   "day": "2017-12-18",
+   "gaps": [
+    [
+     "2017-12-18 10:05:00",
+     "2017-12-18 10:10:00",
+     5.0
+    ],
+    [
+     "2017-12-18 12:30:00",
+     "2017-12-18 13:30:00",
+     60.0
+    ]
+   ],
+   "monthly_rows_day": 275,
+   "zip": "data/spot/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2017-12-18.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "21abab7617b088ce5c5c6a5c5ec3ff8ecc02e17571561f6983d20619885400ee",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 275,
+   "monthly_rows_not_byte_identical_in_daily": 153,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 153,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "field_differences": [
+    "ignore"
+   ],
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "LTCUSDT",
+   "day": "2018-01-04",
+   "gaps": [
+    [
+     "2018-01-04 03:05:00",
+     "2018-01-04 05:05:00",
+     120.0
+    ]
+   ],
+   "monthly_rows_day": 264,
+   "zip": "data/spot/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2018-01-04.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "aee79594d83bd37d42e834d8e3cb58b2ae3d20beadc357c9f0ae04c93dc70048",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 264,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "LTCUSDT",
+   "day": "2018-02-08",
+   "gaps": [
+    [
+     "2018-02-08 00:30:00",
+     "2018-02-09 09:58:16",
+     2008.28
+    ]
+   ],
+   "monthly_rows_day": 6,
+   "zip": "data/spot/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2018-02-08.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "5f8ff1771321b6128c6bb312d6163874b32de5ea7a62695533d37ea4a3732d14",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 6,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "LTCUSDT",
+   "day": "2018-02-09",
+   "gaps": [
+    [
+     "2018-02-08 00:30:00",
+     "2018-02-09 09:58:16",
+     2008.28
+    ]
+   ],
+   "monthly_rows_day": 169,
+   "zip": "data/spot/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2018-02-09.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "78f6035b26cd89fa64d671bb33cd97a63b8003834855cbc166b2976b68cfb18b",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 168,
+   "monthly_rows_not_byte_identical_in_daily": 169,
+   "monthly_rows_key_fields_not_in_daily": 169,
+   "daily_rows_not_byte_identical_in_monthly": 168,
+   "daily_open_times_not_in_monthly": 168,
+   "monthly_open_times_not_in_daily": 169,
+   "daily_rows_in_gap": 0,
+   "field_differences": [],
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "LTCUSDT",
+   "day": "2018-02-10",
+   "gaps": [
+    [
+     "2018-02-10 06:03:16",
+     "2018-02-10 06:15:00",
+     11.72
+    ]
+   ],
+   "monthly_rows_day": 285,
+   "zip": "data/spot/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2018-02-10.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "b40a3a557db112c4234200d8c1f9a72a30cd4cde7db110ea88719094cafd34b7",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 285,
+   "monthly_rows_not_byte_identical_in_daily": 72,
+   "monthly_rows_key_fields_not_in_daily": 72,
+   "daily_rows_not_byte_identical_in_monthly": 72,
+   "daily_open_times_not_in_monthly": 72,
+   "monthly_open_times_not_in_daily": 72,
+   "daily_rows_in_gap": 0,
+   "field_differences": [],
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "LTCUSDT",
+   "day": "2018-02-11",
+   "gaps": [
+    [
+     "2018-02-11 04:00:00",
+     "2018-02-11 04:35:00",
+     35.0
+    ]
+   ],
+   "monthly_rows_day": 281,
+   "zip": "data/spot/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2018-02-11.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "d0bd60dc203b6ecaf28bc949c379234e22e6d9a697903005f2427d8e9c333c11",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 282,
+   "monthly_rows_not_byte_identical_in_daily": 1,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 2,
+   "daily_open_times_not_in_monthly": 1,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 1,
+   "field_differences": [
+    "close_time"
+   ],
+   "result": "patch: 1 bars from the daily file",
+   "added_open_times": [
+    "2018-02-11 04:00:00"
+   ]
+  },
+  {
+   "pair": "LTCUSDT",
+   "day": "2018-06-26",
+   "gaps": [
+    [
+     "2018-06-26 02:00:00",
+     "2018-06-26 12:00:00",
+     600.0
+    ]
+   ],
+   "monthly_rows_day": 168,
+   "zip": "data/spot/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2018-06-26.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "9a23821d03f3321b3d8cdf3cf49fde46f889da17048ece1f2ef2ac02a6ac2986",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 168,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "LTCUSDT",
+   "day": "2018-06-27",
+   "gaps": [
+    [
+     "2018-06-27 13:00:00",
+     "2018-06-27 14:45:00",
+     105.0
+    ]
+   ],
+   "monthly_rows_day": 267,
+   "zip": "data/spot/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2018-06-27.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "7f49389d3ccf8a16f754ac08c54f486d1cd930177639a834b9d54066b0280f82",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 267,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "LTCUSDT",
+   "day": "2018-07-04",
+   "gaps": [
+    [
+     "2018-07-04 00:25:00",
+     "2018-07-04 08:00:00",
+     455.0
+    ]
+   ],
+   "monthly_rows_day": 197,
+   "zip": "data/spot/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2018-07-04.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "198108ea336954339c0ed8397222957e43e73a378628875c556b36722544e2ef",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 197,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "LTCUSDT",
+   "day": "2018-10-19",
+   "gaps": [
+    [
+     "2018-10-19 06:00:00",
+     "2018-10-19 09:30:00",
+     210.0
+    ]
+   ],
+   "monthly_rows_day": 246,
+   "zip": "data/spot/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2018-10-19.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "3c56eaca6b60835c940840152688f5b2a67cf71064a0e248581250b24ce9edc3",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 246,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "LTCUSDT",
+   "day": "2018-11-14",
+   "gaps": [
+    [
+     "2018-11-14 02:00:00",
+     "2018-11-14 09:00:00",
+     420.0
+    ]
+   ],
+   "monthly_rows_day": 204,
+   "zip": "data/spot/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2018-11-14.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "e2200e4f2a2fc09c57cdf9b9111fa640d261dbda6144ab9387b9728e8495acbb",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 204,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "LTCUSDT",
+   "day": "2019-03-12",
+   "gaps": [
+    [
+     "2019-03-12 02:00:00",
+     "2019-03-12 08:00:00",
+     360.0
+    ]
+   ],
+   "monthly_rows_day": 216,
+   "zip": "data/spot/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2019-03-12.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "bc9c1b82b7a1e578c1e0400a88470559a658cfa6a44a4baf73f557ec78b4076c",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 216,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "LTCUSDT",
+   "day": "2019-05-15",
+   "gaps": [
+    [
+     "2019-05-15 03:00:00",
+     "2019-05-15 13:00:00",
+     600.0
+    ]
+   ],
+   "monthly_rows_day": 168,
+   "zip": "data/spot/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2019-05-15.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "8792f9f3e0bbd4392dbf48f0d848854707f6a54c839baedaaae81bcd20406d21",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 168,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "LTCUSDT",
+   "day": "2019-06-07",
+   "gaps": [
+    [
+     "2019-06-07 21:15:00",
+     "2019-06-07 22:15:00",
+     60.0
+    ]
+   ],
+   "monthly_rows_day": 276,
+   "zip": "data/spot/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2019-06-07.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "78e10ce946f1240b308900aaabc290589a69799721c4b2d4ee7cc4519d4159b1",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 276,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "LTCUSDT",
+   "day": "2019-08-15",
+   "gaps": [
+    [
+     "2019-08-15 02:00:00",
+     "2019-08-15 10:00:00",
+     480.0
+    ]
+   ],
+   "monthly_rows_day": 192,
+   "zip": "data/spot/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2019-08-15.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "0a377bb17eec9050353c70626cdb693e6035ece08d097fe9e0b0385902ee082d",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 192,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "LTCUSDT",
+   "day": "2019-11-13",
+   "gaps": [
+    [
+     "2019-11-13 02:00:00",
+     "2019-11-13 04:20:00",
+     140.0
+    ]
+   ],
+   "monthly_rows_day": 260,
+   "zip": "data/spot/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2019-11-13.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "41474f8ee76512c7ebf4b18c6b14d9245c6020134c41343801b54e7f9bb9f5fe",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 260,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "LTCUSDT",
+   "day": "2019-11-25",
+   "gaps": [
+    [
+     "2019-11-25 02:00:00",
+     "2019-11-25 04:00:00",
+     120.0
+    ]
+   ],
+   "monthly_rows_day": 264,
+   "zip": "data/spot/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2019-11-25.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "9cca9266160610721c6a9ff14ba7d69b5e15f7cf00bc708a3db0c430be0e2408",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 264,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "LTCUSDT",
+   "day": "2020-02-09",
+   "gaps": [
+    [
+     "2020-02-09 02:00:00",
+     "2020-02-09 03:00:00",
+     60.0
+    ]
+   ],
+   "monthly_rows_day": 276,
+   "zip": "data/spot/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2020-02-09.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "d1b86d7e3acb6aab7328d62e4df99819cc855f87d66e6226e9734e3a6b8ca071",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 276,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "LTCUSDT",
+   "day": "2020-02-19",
+   "gaps": [
+    [
+     "2020-02-19 11:40:00",
+     "2020-02-19 17:30:00",
+     350.0
+    ]
+   ],
+   "monthly_rows_day": 218,
+   "zip": "data/spot/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2020-02-19.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "dda605efa2e6689dcfcdf7aa1fb28ab76a0d2515d57f8899db79706d38ad48b8",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 218,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "LTCUSDT",
+   "day": "2020-03-04",
+   "gaps": [
+    [
+     "2020-03-04 09:25:00",
+     "2020-03-04 11:30:00",
+     125.0
+    ]
+   ],
+   "monthly_rows_day": 263,
+   "zip": "data/spot/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2020-03-04.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "5079745436f811318f6916ce74691cebb18fffffd61565c89546e0f2f0dc38ba",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 263,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "LTCUSDT",
+   "day": "2020-04-25",
+   "gaps": [
+    [
+     "2020-04-25 02:00:00",
+     "2020-04-25 04:30:00",
+     150.0
+    ]
+   ],
+   "monthly_rows_day": 258,
+   "zip": "data/spot/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2020-04-25.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "d33272dfffd7c1b6b3c4299334ad906a6fffd996ecff655abfb4976f910fa84b",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 258,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "NEOUSDT",
+   "day": "2017-12-18",
+   "gaps": [
+    [
+     "2017-12-18 10:05:00",
+     "2017-12-18 10:10:00",
+     5.0
+    ],
+    [
+     "2017-12-18 12:30:00",
+     "2017-12-18 13:30:00",
+     60.0
+    ]
+   ],
+   "monthly_rows_day": 275,
+   "zip": "data/spot/daily/klines/NEOUSDT/5m/NEOUSDT-5m-2017-12-18.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "16ed4281e89902e639d8773677343341f747627a2231a1d406af82667fc4a692",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 275,
+   "monthly_rows_not_byte_identical_in_daily": 153,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 153,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "field_differences": [
+    "ignore"
+   ],
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "NEOUSDT",
+   "day": "2018-01-04",
+   "gaps": [
+    [
+     "2018-01-04 03:05:00",
+     "2018-01-04 05:05:00",
+     120.0
+    ]
+   ],
+   "monthly_rows_day": 264,
+   "zip": "data/spot/daily/klines/NEOUSDT/5m/NEOUSDT-5m-2018-01-04.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "aeb9a04745cfeefe0e3d7d441b5d71bd5f6058a9fe7de221a65eee375e00794c",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 264,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "NEOUSDT",
+   "day": "2018-02-08",
+   "gaps": [
+    [
+     "2018-02-08 00:30:00",
+     "2018-02-09 09:58:16",
+     2008.27
+    ]
+   ],
+   "monthly_rows_day": 6,
+   "zip": "data/spot/daily/klines/NEOUSDT/5m/NEOUSDT-5m-2018-02-08.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "b3a8ab2a05a1bdbda2443f0a7c17bbd7fef17e8f353ac6107b3130f7981d522b",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 6,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "NEOUSDT",
+   "day": "2018-02-09",
+   "gaps": [
+    [
+     "2018-02-08 00:30:00",
+     "2018-02-09 09:58:16",
+     2008.27
+    ]
+   ],
+   "monthly_rows_day": 169,
+   "zip": "data/spot/daily/klines/NEOUSDT/5m/NEOUSDT-5m-2018-02-09.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "2521bf809707b8dcc08dab8efe4f4eeca4b952c8b4b623ab1a31ad765bb1f5f7",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 168,
+   "monthly_rows_not_byte_identical_in_daily": 169,
+   "monthly_rows_key_fields_not_in_daily": 169,
+   "daily_rows_not_byte_identical_in_monthly": 168,
+   "daily_open_times_not_in_monthly": 168,
+   "monthly_open_times_not_in_daily": 169,
+   "daily_rows_in_gap": 0,
+   "field_differences": [],
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "NEOUSDT",
+   "day": "2018-02-10",
+   "gaps": [
+    [
+     "2018-02-10 06:03:16",
+     "2018-02-10 06:15:00",
+     11.73
+    ]
+   ],
+   "monthly_rows_day": 285,
+   "zip": "data/spot/daily/klines/NEOUSDT/5m/NEOUSDT-5m-2018-02-10.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "59174459cce5b39ab9938d207d0376a15e3ab9cfb83d233c4c23fdb73917ff91",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 285,
+   "monthly_rows_not_byte_identical_in_daily": 72,
+   "monthly_rows_key_fields_not_in_daily": 72,
+   "daily_rows_not_byte_identical_in_monthly": 72,
+   "daily_open_times_not_in_monthly": 72,
+   "monthly_open_times_not_in_daily": 72,
+   "daily_rows_in_gap": 0,
+   "field_differences": [],
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "NEOUSDT",
+   "day": "2018-02-11",
+   "gaps": [
+    [
+     "2018-02-11 04:00:00",
+     "2018-02-11 04:35:00",
+     35.0
+    ]
+   ],
+   "monthly_rows_day": 281,
+   "zip": "data/spot/daily/klines/NEOUSDT/5m/NEOUSDT-5m-2018-02-11.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "1472732c9dd6c87ecbafae3cb5dd0bf8fa7d56414f636a9b56ba875853333094",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 282,
+   "monthly_rows_not_byte_identical_in_daily": 1,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 2,
+   "daily_open_times_not_in_monthly": 1,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 1,
+   "field_differences": [
+    "close_time"
+   ],
+   "result": "patch: 1 bars from the daily file",
+   "added_open_times": [
+    "2018-02-11 04:00:00"
+   ]
+  },
+  {
+   "pair": "NEOUSDT",
+   "day": "2018-06-26",
+   "gaps": [
+    [
+     "2018-06-26 02:00:00",
+     "2018-06-26 12:00:00",
+     600.0
+    ]
+   ],
+   "monthly_rows_day": 168,
+   "zip": "data/spot/daily/klines/NEOUSDT/5m/NEOUSDT-5m-2018-06-26.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "d06b692ff6668c305fde3d28128c5fd228e0c081c5450f430bff06e9c8bf9c8c",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 168,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "NEOUSDT",
+   "day": "2018-06-27",
+   "gaps": [
+    [
+     "2018-06-27 13:00:00",
+     "2018-06-27 14:45:00",
+     105.0
+    ]
+   ],
+   "monthly_rows_day": 267,
+   "zip": "data/spot/daily/klines/NEOUSDT/5m/NEOUSDT-5m-2018-06-27.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "26dad0e84d04785ed848c9b21cff86a995e6570dc8f7365c593aeb3f60e7bff0",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 267,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "NEOUSDT",
+   "day": "2018-07-04",
+   "gaps": [
+    [
+     "2018-07-04 00:25:00",
+     "2018-07-04 08:00:00",
+     455.0
+    ]
+   ],
+   "monthly_rows_day": 197,
+   "zip": "data/spot/daily/klines/NEOUSDT/5m/NEOUSDT-5m-2018-07-04.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "d9073dd88ced492c8aa927f8a2c7e1237486100d2416afbc2427abe8ef14d19f",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 197,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "NEOUSDT",
+   "day": "2018-10-19",
+   "gaps": [
+    [
+     "2018-10-19 06:00:00",
+     "2018-10-19 09:30:00",
+     210.0
+    ]
+   ],
+   "monthly_rows_day": 246,
+   "zip": "data/spot/daily/klines/NEOUSDT/5m/NEOUSDT-5m-2018-10-19.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "847f094c3f17d73905abc9a567165c435144ef03dcd48d589f3f7db92bc62d42",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 246,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "NEOUSDT",
+   "day": "2018-11-14",
+   "gaps": [
+    [
+     "2018-11-14 02:00:00",
+     "2018-11-14 09:00:00",
+     420.0
+    ]
+   ],
+   "monthly_rows_day": 204,
+   "zip": "data/spot/daily/klines/NEOUSDT/5m/NEOUSDT-5m-2018-11-14.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "d0a82349ff5289bffc8c500774accd4fd99f7e5437f8914e6b4e0f196e3704a8",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 204,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "NEOUSDT",
+   "day": "2019-03-12",
+   "gaps": [
+    [
+     "2019-03-12 02:00:00",
+     "2019-03-12 08:00:00",
+     360.0
+    ]
+   ],
+   "monthly_rows_day": 216,
+   "zip": "data/spot/daily/klines/NEOUSDT/5m/NEOUSDT-5m-2019-03-12.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "2eca3923ae226daf51f36342c47d98f3c20d91e194d288ed86428acfe7505d3a",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 216,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "NEOUSDT",
+   "day": "2019-05-15",
+   "gaps": [
+    [
+     "2019-05-15 03:00:00",
+     "2019-05-15 13:00:00",
+     600.0
+    ]
+   ],
+   "monthly_rows_day": 168,
+   "zip": "data/spot/daily/klines/NEOUSDT/5m/NEOUSDT-5m-2019-05-15.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "424a1760aaf3a9dbeb486da9ccb19819327d8b57304ab96e0b5017bb926e2f18",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 168,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "NEOUSDT",
+   "day": "2019-06-07",
+   "gaps": [
+    [
+     "2019-06-07 21:15:00",
+     "2019-06-07 22:15:00",
+     60.0
+    ]
+   ],
+   "monthly_rows_day": 276,
+   "zip": "data/spot/daily/klines/NEOUSDT/5m/NEOUSDT-5m-2019-06-07.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "f1256a5a70cb132da513767f34431e8f71abb33b96aec862b0a87b88c1ca2567",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 276,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "NEOUSDT",
+   "day": "2019-08-15",
+   "gaps": [
+    [
+     "2019-08-15 02:00:00",
+     "2019-08-15 10:00:00",
+     480.0
+    ]
+   ],
+   "monthly_rows_day": 192,
+   "zip": "data/spot/daily/klines/NEOUSDT/5m/NEOUSDT-5m-2019-08-15.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "7a4f1b9615fea1f60d8153271a14303ba596ae9944251c0ba873c63c35698b2b",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 192,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "NEOUSDT",
+   "day": "2019-11-13",
+   "gaps": [
+    [
+     "2019-11-13 02:00:00",
+     "2019-11-13 04:20:00",
+     140.0
+    ]
+   ],
+   "monthly_rows_day": 260,
+   "zip": "data/spot/daily/klines/NEOUSDT/5m/NEOUSDT-5m-2019-11-13.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "66328652130decbdd34b2bd251b3989c7580358612f5b9af4b635f1e3baf201a",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 260,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "NEOUSDT",
+   "day": "2019-11-25",
+   "gaps": [
+    [
+     "2019-11-25 02:00:00",
+     "2019-11-25 04:00:00",
+     120.0
+    ]
+   ],
+   "monthly_rows_day": 264,
+   "zip": "data/spot/daily/klines/NEOUSDT/5m/NEOUSDT-5m-2019-11-25.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "ecade45ffae62ef538b60e73169849d0fb30d7d0ec10ade9da82b35ce79ee6ee",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 264,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "NEOUSDT",
+   "day": "2020-02-09",
+   "gaps": [
+    [
+     "2020-02-09 02:00:00",
+     "2020-02-09 03:00:00",
+     60.0
+    ]
+   ],
+   "monthly_rows_day": 276,
+   "zip": "data/spot/daily/klines/NEOUSDT/5m/NEOUSDT-5m-2020-02-09.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "55e8db4740f9ee843ac7244942ca4221fc33fe3c230e404e2bebd7b5e60b3295",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 276,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "NEOUSDT",
+   "day": "2020-02-19",
+   "gaps": [
+    [
+     "2020-02-19 11:40:00",
+     "2020-02-19 17:30:00",
+     350.0
+    ]
+   ],
+   "monthly_rows_day": 218,
+   "zip": "data/spot/daily/klines/NEOUSDT/5m/NEOUSDT-5m-2020-02-19.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "5b14fa58e0dac2ba25309522fd1a5c70f10b719462537bc9c26bfb2a99a77716",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 218,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "NEOUSDT",
+   "day": "2020-03-04",
+   "gaps": [
+    [
+     "2020-03-04 09:25:00",
+     "2020-03-04 11:30:00",
+     125.0
+    ]
+   ],
+   "monthly_rows_day": 263,
+   "zip": "data/spot/daily/klines/NEOUSDT/5m/NEOUSDT-5m-2020-03-04.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "3f5567e217e549b6a146d21722c83dc5ac9fe547bbbc9aa327d6a750a8aa70ac",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 263,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "NEOUSDT",
+   "day": "2020-04-25",
+   "gaps": [
+    [
+     "2020-04-25 02:00:00",
+     "2020-04-25 04:30:00",
+     150.0
+    ]
+   ],
+   "monthly_rows_day": 258,
+   "zip": "data/spot/daily/klines/NEOUSDT/5m/NEOUSDT-5m-2020-04-25.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "6d0879752ce4119694b0d8c33a0548f4b5fdddd911d1e6397084c5220df842b1",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 258,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "TRXUSDT",
+   "day": "2018-06-26",
+   "gaps": [
+    [
+     "2018-06-26 02:00:00",
+     "2018-06-26 12:00:00",
+     600.0
+    ]
+   ],
+   "monthly_rows_day": 168,
+   "zip": "data/spot/daily/klines/TRXUSDT/5m/TRXUSDT-5m-2018-06-26.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "fe044b4748993c17065928ed97b500f512b0b0c85c5dfab23c5cf09b71a0c0d3",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 168,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "TRXUSDT",
+   "day": "2018-06-27",
+   "gaps": [
+    [
+     "2018-06-27 13:00:00",
+     "2018-06-27 14:45:00",
+     105.0
+    ]
+   ],
+   "monthly_rows_day": 267,
+   "zip": "data/spot/daily/klines/TRXUSDT/5m/TRXUSDT-5m-2018-06-27.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "51d2c1270fdf7bd9e6c394789d9e243706ab14bd58de424af70c5c76fcf0bfa9",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 267,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "TRXUSDT",
+   "day": "2018-07-04",
+   "gaps": [
+    [
+     "2018-07-04 00:25:00",
+     "2018-07-04 08:00:00",
+     455.0
+    ]
+   ],
+   "monthly_rows_day": 197,
+   "zip": "data/spot/daily/klines/TRXUSDT/5m/TRXUSDT-5m-2018-07-04.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "9bd72f663b23d0860a13d678bc7c76908bacc026747338b963cc161e79dc3f28",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 197,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "TRXUSDT",
+   "day": "2018-10-19",
+   "gaps": [
+    [
+     "2018-10-19 06:00:00",
+     "2018-10-19 09:30:00",
+     210.0
+    ]
+   ],
+   "monthly_rows_day": 246,
+   "zip": "data/spot/daily/klines/TRXUSDT/5m/TRXUSDT-5m-2018-10-19.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "b7ce25b44ce43afa53c24c1e0ef8308e7e71d2288f5169be162a12c62b22734b",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 246,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "TRXUSDT",
+   "day": "2018-11-14",
+   "gaps": [
+    [
+     "2018-11-14 02:00:00",
+     "2018-11-14 09:00:00",
+     420.0
+    ]
+   ],
+   "monthly_rows_day": 204,
+   "zip": "data/spot/daily/klines/TRXUSDT/5m/TRXUSDT-5m-2018-11-14.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "7a4e6986f65b9afa13db9d49fbe8436dec36abdcf67ec7cda3af60b53a91e04a",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 204,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "TRXUSDT",
+   "day": "2019-03-12",
+   "gaps": [
+    [
+     "2019-03-12 02:00:00",
+     "2019-03-12 08:00:00",
+     360.0
+    ]
+   ],
+   "monthly_rows_day": 216,
+   "zip": "data/spot/daily/klines/TRXUSDT/5m/TRXUSDT-5m-2019-03-12.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "f5b71f4be6d742c01863207ce69509ac2dfd7f3a920e852c2481d3b6738a4541",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 216,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "TRXUSDT",
+   "day": "2019-05-15",
+   "gaps": [
+    [
+     "2019-05-15 03:00:00",
+     "2019-05-15 13:00:00",
+     600.0
+    ]
+   ],
+   "monthly_rows_day": 168,
+   "zip": "data/spot/daily/klines/TRXUSDT/5m/TRXUSDT-5m-2019-05-15.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "eb54ac6e134303869af4589108b892a072a4607f7a69d327fb37a45318053127",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 168,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "TRXUSDT",
+   "day": "2019-06-07",
+   "gaps": [
+    [
+     "2019-06-07 21:15:00",
+     "2019-06-07 22:15:00",
+     60.0
+    ]
+   ],
+   "monthly_rows_day": 276,
+   "zip": "data/spot/daily/klines/TRXUSDT/5m/TRXUSDT-5m-2019-06-07.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "98338b6ef4b79b79d37acdaaa0fac0ef8d371bbf6e35ffeba89336aa4a896e57",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 276,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "TRXUSDT",
+   "day": "2019-08-15",
+   "gaps": [
+    [
+     "2019-08-15 02:00:00",
+     "2019-08-15 10:00:00",
+     480.0
+    ]
+   ],
+   "monthly_rows_day": 192,
+   "zip": "data/spot/daily/klines/TRXUSDT/5m/TRXUSDT-5m-2019-08-15.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "0849649aa9f4c108e088052358fb81fd72ce1a5f2df6475aca24b4813de0b2e5",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 192,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "TRXUSDT",
+   "day": "2019-11-13",
+   "gaps": [
+    [
+     "2019-11-13 02:00:00",
+     "2019-11-13 04:20:00",
+     140.0
+    ]
+   ],
+   "monthly_rows_day": 260,
+   "zip": "data/spot/daily/klines/TRXUSDT/5m/TRXUSDT-5m-2019-11-13.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "09a64008ddbdd36d84991b0fcce27c2cd5f403464f519f2af79ce933c3b9850c",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 260,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "TRXUSDT",
+   "day": "2019-11-25",
+   "gaps": [
+    [
+     "2019-11-25 02:00:00",
+     "2019-11-25 04:00:00",
+     120.0
+    ]
+   ],
+   "monthly_rows_day": 264,
+   "zip": "data/spot/daily/klines/TRXUSDT/5m/TRXUSDT-5m-2019-11-25.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "a7a0735567c0168a592d2a1433c178a582ccc019f8fd0297e2cd0b4ede2a0109",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 264,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "TRXUSDT",
+   "day": "2020-02-09",
+   "gaps": [
+    [
+     "2020-02-09 02:00:00",
+     "2020-02-09 03:00:00",
+     60.0
+    ]
+   ],
+   "monthly_rows_day": 276,
+   "zip": "data/spot/daily/klines/TRXUSDT/5m/TRXUSDT-5m-2020-02-09.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "78d32af6d64a285479680984869011e5b0b5f8c8cbd90955034745d3851cbe7d",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 276,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "TRXUSDT",
+   "day": "2020-02-19",
+   "gaps": [
+    [
+     "2020-02-19 11:40:00",
+     "2020-02-19 17:30:00",
+     350.0
+    ]
+   ],
+   "monthly_rows_day": 218,
+   "zip": "data/spot/daily/klines/TRXUSDT/5m/TRXUSDT-5m-2020-02-19.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "39981d04ed0336a3e4dc0bf8b9753436eddd50efc40f9a9eeffd319791fd0dd8",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 218,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "TRXUSDT",
+   "day": "2020-03-04",
+   "gaps": [
+    [
+     "2020-03-04 09:25:00",
+     "2020-03-04 11:30:00",
+     125.0
+    ]
+   ],
+   "monthly_rows_day": 263,
+   "zip": "data/spot/daily/klines/TRXUSDT/5m/TRXUSDT-5m-2020-03-04.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "ae37cddee2f22fc0dd89271bee245d6916826a317aff9e433cbf7dee4305bb84",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 263,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "TRXUSDT",
+   "day": "2020-04-25",
+   "gaps": [
+    [
+     "2020-04-25 02:00:00",
+     "2020-04-25 04:30:00",
+     150.0
+    ]
+   ],
+   "monthly_rows_day": 258,
+   "zip": "data/spot/daily/klines/TRXUSDT/5m/TRXUSDT-5m-2020-04-25.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "02566de4a0d732fe76a92d83ef7ce43fbfc64b7d34b66867b18a1e720934e93e",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 258,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "XLMUSDT",
+   "day": "2018-06-26",
+   "gaps": [
+    [
+     "2018-06-26 02:00:00",
+     "2018-06-26 12:00:00",
+     600.0
+    ]
+   ],
+   "monthly_rows_day": 168,
+   "zip": "data/spot/daily/klines/XLMUSDT/5m/XLMUSDT-5m-2018-06-26.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "a4bc0ed15ccfbc909ab353e7d74cb3d55c6e3592657fe733518a8ba6751c3864",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 168,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "XLMUSDT",
+   "day": "2018-06-27",
+   "gaps": [
+    [
+     "2018-06-27 13:00:00",
+     "2018-06-27 14:45:00",
+     105.0
+    ]
+   ],
+   "monthly_rows_day": 267,
+   "zip": "data/spot/daily/klines/XLMUSDT/5m/XLMUSDT-5m-2018-06-27.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "b035fa9b16a00638687ebe996f66fa855cd14983d3df2f05af5c43b0f1d707ae",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 267,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "XLMUSDT",
+   "day": "2018-07-04",
+   "gaps": [
+    [
+     "2018-07-04 00:25:00",
+     "2018-07-04 08:00:00",
+     455.0
+    ]
+   ],
+   "monthly_rows_day": 197,
+   "zip": "data/spot/daily/klines/XLMUSDT/5m/XLMUSDT-5m-2018-07-04.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "638639480b9448c8d14cd6d706af90b75bf557ba8214c8c01cc13cf1d568f8b6",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 197,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "XLMUSDT",
+   "day": "2018-10-19",
+   "gaps": [
+    [
+     "2018-10-19 06:00:00",
+     "2018-10-19 09:30:00",
+     210.0
+    ]
+   ],
+   "monthly_rows_day": 246,
+   "zip": "data/spot/daily/klines/XLMUSDT/5m/XLMUSDT-5m-2018-10-19.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "93663fd9b82114f149a03992273c625f851c3803e3c387e6314674d2f5a5916c",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 246,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "XLMUSDT",
+   "day": "2018-11-14",
+   "gaps": [
+    [
+     "2018-11-14 02:00:00",
+     "2018-11-14 09:00:00",
+     420.0
+    ]
+   ],
+   "monthly_rows_day": 204,
+   "zip": "data/spot/daily/klines/XLMUSDT/5m/XLMUSDT-5m-2018-11-14.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "7d23cd8c0946573ed264d6417ee63fb4e57d0e40136ebe21a952c3da8bcdf309",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 204,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "XLMUSDT",
+   "day": "2019-03-12",
+   "gaps": [
+    [
+     "2019-03-12 02:00:00",
+     "2019-03-12 08:00:00",
+     360.0
+    ]
+   ],
+   "monthly_rows_day": 216,
+   "zip": "data/spot/daily/klines/XLMUSDT/5m/XLMUSDT-5m-2019-03-12.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "e68983e1d0635abb7507e39902ba1ebef5ee5ef5e4f024e20ef473a152ae573e",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 216,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "XLMUSDT",
+   "day": "2019-05-15",
+   "gaps": [
+    [
+     "2019-05-15 03:00:00",
+     "2019-05-15 13:00:00",
+     600.0
+    ]
+   ],
+   "monthly_rows_day": 168,
+   "zip": "data/spot/daily/klines/XLMUSDT/5m/XLMUSDT-5m-2019-05-15.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "b9508e9cbe69d18bcc0b876adecd6d7998ab7222674cf8ad5af7b70177b7168b",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 168,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "XLMUSDT",
+   "day": "2019-06-07",
+   "gaps": [
+    [
+     "2019-06-07 21:15:00",
+     "2019-06-07 22:15:00",
+     60.0
+    ]
+   ],
+   "monthly_rows_day": 276,
+   "zip": "data/spot/daily/klines/XLMUSDT/5m/XLMUSDT-5m-2019-06-07.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "24558a3ecf3f0f731a71507f0c8b2cf0b34e7ccff39ae7b0ec6f2a245c49f064",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 276,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "XLMUSDT",
+   "day": "2019-08-15",
+   "gaps": [
+    [
+     "2019-08-15 02:00:00",
+     "2019-08-15 10:00:00",
+     480.0
+    ]
+   ],
+   "monthly_rows_day": 192,
+   "zip": "data/spot/daily/klines/XLMUSDT/5m/XLMUSDT-5m-2019-08-15.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "440e8067e14b8dfbbf105ffc39f2ddd8760a894099ac41fcf8903871786e85fc",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 192,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "XLMUSDT",
+   "day": "2019-11-13",
+   "gaps": [
+    [
+     "2019-11-13 02:00:00",
+     "2019-11-13 04:20:00",
+     140.0
+    ]
+   ],
+   "monthly_rows_day": 260,
+   "zip": "data/spot/daily/klines/XLMUSDT/5m/XLMUSDT-5m-2019-11-13.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "a2c9cc484ad602a01abe89e2d9c90c81d5b9c46e2908ae4fb37992f53da68c59",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 260,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "XLMUSDT",
+   "day": "2019-11-25",
+   "gaps": [
+    [
+     "2019-11-25 02:00:00",
+     "2019-11-25 04:00:00",
+     120.0
+    ]
+   ],
+   "monthly_rows_day": 264,
+   "zip": "data/spot/daily/klines/XLMUSDT/5m/XLMUSDT-5m-2019-11-25.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "b127704fb7f1e318fc60f9ddad721150da3e879804436818ea093605ad65ff2b",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 264,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "XLMUSDT",
+   "day": "2020-02-09",
+   "gaps": [
+    [
+     "2020-02-09 02:00:00",
+     "2020-02-09 03:00:00",
+     60.0
+    ]
+   ],
+   "monthly_rows_day": 276,
+   "zip": "data/spot/daily/klines/XLMUSDT/5m/XLMUSDT-5m-2020-02-09.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "5e8769cd91ca79df9dc119bd575bfd3fcdbd1c4fe562196ea799331aae19c5ba",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 276,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "XLMUSDT",
+   "day": "2020-02-19",
+   "gaps": [
+    [
+     "2020-02-19 11:40:00",
+     "2020-02-19 17:30:00",
+     350.0
+    ]
+   ],
+   "monthly_rows_day": 218,
+   "zip": "data/spot/daily/klines/XLMUSDT/5m/XLMUSDT-5m-2020-02-19.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "39f341b80a5fd28cc45a6616fa6a2541a5bd7778a5170c15e1e446741f5834c4",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 218,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "XLMUSDT",
+   "day": "2020-03-04",
+   "gaps": [
+    [
+     "2020-03-04 09:25:00",
+     "2020-03-04 11:30:00",
+     125.0
+    ]
+   ],
+   "monthly_rows_day": 263,
+   "zip": "data/spot/daily/klines/XLMUSDT/5m/XLMUSDT-5m-2020-03-04.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "d31ab120ce6d2e69917675a4a435e3425c42fbd46758a0aaba50c5bd8c1a5748",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 263,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "XLMUSDT",
+   "day": "2020-04-25",
+   "gaps": [
+    [
+     "2020-04-25 02:00:00",
+     "2020-04-25 04:30:00",
+     150.0
+    ]
+   ],
+   "monthly_rows_day": 258,
+   "zip": "data/spot/daily/klines/XLMUSDT/5m/XLMUSDT-5m-2020-04-25.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "067acabc1b3708a0d291189821bed9049f69ef194b03a3f18eaa366c6a8e518c",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 258,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "XRPUSDT",
+   "day": "2018-06-26",
+   "gaps": [
+    [
+     "2018-06-26 02:00:00",
+     "2018-06-26 12:00:00",
+     600.0
+    ]
+   ],
+   "monthly_rows_day": 168,
+   "zip": "data/spot/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2018-06-26.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "4385e98cc53d437cac923e9b04ffe01d9f35490459cd3d54419684a411e511c9",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 168,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "XRPUSDT",
+   "day": "2018-06-27",
+   "gaps": [
+    [
+     "2018-06-27 13:00:00",
+     "2018-06-27 14:45:00",
+     105.0
+    ]
+   ],
+   "monthly_rows_day": 267,
+   "zip": "data/spot/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2018-06-27.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "d1c94ae7bbd730ec702b584209af52fb8e02833206e455bc07396060ec71a9cb",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 267,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "XRPUSDT",
+   "day": "2018-07-04",
+   "gaps": [
+    [
+     "2018-07-04 00:25:00",
+     "2018-07-04 08:00:00",
+     455.0
+    ]
+   ],
+   "monthly_rows_day": 197,
+   "zip": "data/spot/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2018-07-04.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "437df2f0b129fee9df6ff7ecd0bcc971b91e6547e731d851a40eeb45c741933c",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 197,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "XRPUSDT",
+   "day": "2018-10-19",
+   "gaps": [
+    [
+     "2018-10-19 06:00:00",
+     "2018-10-19 09:30:00",
+     210.0
+    ]
+   ],
+   "monthly_rows_day": 246,
+   "zip": "data/spot/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2018-10-19.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "3335f6989c57df788e31f0fa0837cb73ee8ccb5aec33d783f599d91c026662cb",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 246,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "XRPUSDT",
+   "day": "2018-11-14",
+   "gaps": [
+    [
+     "2018-11-14 02:00:00",
+     "2018-11-14 09:00:00",
+     420.0
+    ]
+   ],
+   "monthly_rows_day": 204,
+   "zip": "data/spot/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2018-11-14.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "751f5a5c6f88bf70eea1646bbea856eca488322308905c788f8c63eadb19f2dc",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 204,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "XRPUSDT",
+   "day": "2019-03-12",
+   "gaps": [
+    [
+     "2019-03-12 02:00:00",
+     "2019-03-12 08:00:00",
+     360.0
+    ]
+   ],
+   "monthly_rows_day": 216,
+   "zip": "data/spot/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2019-03-12.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "b535c22928843230260d17a7f9ac0f88171273adc813bd55007bfaa3e1807d92",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 216,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "XRPUSDT",
+   "day": "2019-05-15",
+   "gaps": [
+    [
+     "2019-05-15 03:00:00",
+     "2019-05-15 13:00:00",
+     600.0
+    ]
+   ],
+   "monthly_rows_day": 168,
+   "zip": "data/spot/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2019-05-15.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "fbe853a17126637ce186585d9c0b550772294905a97f197d7ebb0d344be64379",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 168,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "XRPUSDT",
+   "day": "2019-06-07",
+   "gaps": [
+    [
+     "2019-06-07 21:15:00",
+     "2019-06-07 22:15:00",
+     60.0
+    ]
+   ],
+   "monthly_rows_day": 276,
+   "zip": "data/spot/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2019-06-07.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "afa8fa410efcb05133d21eaa69e721e63c8454ac3b854080fe7bd9e4e28b486a",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 276,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "XRPUSDT",
+   "day": "2019-08-15",
+   "gaps": [
+    [
+     "2019-08-15 02:00:00",
+     "2019-08-15 10:00:00",
+     480.0
+    ]
+   ],
+   "monthly_rows_day": 192,
+   "zip": "data/spot/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2019-08-15.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "063a983bcca72da698a9010c9f59585325a4791fa7f1d04205a09e5b6373bf31",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 192,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "XRPUSDT",
+   "day": "2019-11-13",
+   "gaps": [
+    [
+     "2019-11-13 02:00:00",
+     "2019-11-13 04:20:00",
+     140.0
+    ]
+   ],
+   "monthly_rows_day": 260,
+   "zip": "data/spot/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2019-11-13.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "6d154a9e55e7828b0f2ad52c1ebadd9a3d63747f2e987e2a3da4e712b748fa7b",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 260,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "XRPUSDT",
+   "day": "2019-11-25",
+   "gaps": [
+    [
+     "2019-11-25 02:00:00",
+     "2019-11-25 04:00:00",
+     120.0
+    ]
+   ],
+   "monthly_rows_day": 264,
+   "zip": "data/spot/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2019-11-25.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "7cdb45142e62f22cafdac1eeacc43103146b0f95de24e3e368fdb2ca6cd8ffa3",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 264,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "XRPUSDT",
+   "day": "2020-02-09",
+   "gaps": [
+    [
+     "2020-02-09 02:00:00",
+     "2020-02-09 03:00:00",
+     60.0
+    ]
+   ],
+   "monthly_rows_day": 276,
+   "zip": "data/spot/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2020-02-09.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "a180aaff6817a9e186b0d6bfd2ee2fd3cc12fbd7da1cfcda541ea780166aa982",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 276,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "XRPUSDT",
+   "day": "2020-02-19",
+   "gaps": [
+    [
+     "2020-02-19 11:40:00",
+     "2020-02-19 17:30:00",
+     350.0
+    ]
+   ],
+   "monthly_rows_day": 218,
+   "zip": "data/spot/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2020-02-19.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "a3d3696143fe2e1547a571a0f016806428d7bf6d0d1120ff12eec4098fda8123",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 218,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "XRPUSDT",
+   "day": "2020-03-04",
+   "gaps": [
+    [
+     "2020-03-04 09:25:00",
+     "2020-03-04 11:30:00",
+     125.0
+    ]
+   ],
+   "monthly_rows_day": 263,
+   "zip": "data/spot/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2020-03-04.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "fe2f4a85ebaa7b555baee4eec0131469a616a722f0352ce901ddda82198639ec",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 263,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  },
+  {
+   "pair": "XRPUSDT",
+   "day": "2020-04-25",
+   "gaps": [
+    [
+     "2020-04-25 02:00:00",
+     "2020-04-25 04:30:00",
+     150.0
+    ]
+   ],
+   "monthly_rows_day": 258,
+   "zip": "data/spot/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2020-04-25.zip",
+   "in_listing": true,
+   "checksum_in_listing": true,
+   "sha256": "3e4a1ad082b433971a050e7105a6a53f8914b5758a6adf6b081c958f76422a22",
+   "checksum_ok": true,
+   "header": false,
+   "daily_rows": 258,
+   "monthly_rows_not_byte_identical_in_daily": 0,
+   "monthly_rows_key_fields_not_in_daily": 0,
+   "daily_rows_not_byte_identical_in_monthly": 0,
+   "daily_open_times_not_in_monthly": 0,
+   "monthly_open_times_not_in_daily": 0,
+   "daily_rows_in_gap": 0,
+   "result": "daily file has no bar inside the gap (same hole): real outage, nothing to patch"
+  }
+ ],
+ "patched_files": [
+  {
+   "file": "binance-spot-BNBUSDT-5m-2018-02.csv",
+   "rows_before": 7654,
+   "rows_added_in_gaps": 0,
+   "days_replaced": [
+    "2018-02-09",
+    "2018-02-10"
+   ],
+   "rows_removed_by_day_replacement": 454,
+   "rows_inserted_by_day_replacement": 453,
+   "rows_after": 7653,
+   "sha256_before": "6254710b7b9f33eaceb17417189269b38b872eb237c464766bf57ef5f3531783",
+   "sha256_after": "722f72621c45c9effc6cdec0ff49712bcc5b4b895460ead5936c767d339d3821"
+  },
+  {
+   "file": "binance-spot-BTCUSDT-5m-2017-09.csv",
+   "rows_before": 8556,
+   "rows_added_in_gaps": 1,
+   "days_replaced": [],
+   "rows_removed_by_day_replacement": 0,
+   "rows_inserted_by_day_replacement": 0,
+   "rows_after": 8557,
+   "sha256_before": "b4245d22931b5397e3bfc911dbc8e8e5ac40056dfa6b7813ff524639caae5e62",
+   "sha256_after": "8454027f8061ec30c4f6e9b06ee813ecb215db2cb1a2658ae482594ea0e0ff86"
+  },
+  {
+   "file": "binance-spot-BTCUSDT-5m-2018-02.csv",
+   "rows_before": 7654,
+   "rows_added_in_gaps": 0,
+   "days_replaced": [
+    "2018-02-09",
+    "2018-02-10"
+   ],
+   "rows_removed_by_day_replacement": 454,
+   "rows_inserted_by_day_replacement": 453,
+   "rows_after": 7653,
+   "sha256_before": "9f523bdc4862a693bf08532cc3b8e56af38ffff19de89e7486bc1970bfe24195",
+   "sha256_after": "52a4c212de26cd1d7e848b05bfe0d8842f3bf7d5bd8d1f2204c60285d4947e87"
+  },
+  {
+   "file": "binance-spot-ETHUSDT-5m-2017-09.csv",
+   "rows_before": 8556,
+   "rows_added_in_gaps": 1,
+   "days_replaced": [],
+   "rows_removed_by_day_replacement": 0,
+   "rows_inserted_by_day_replacement": 0,
+   "rows_after": 8557,
+   "sha256_before": "4cfa38e5d0db28ca97e0dbb614f6e0d8874eba3ca7a273ed7d21e150e843b03b",
+   "sha256_after": "881a0a1b8f5c14b20bcbf42c38ffe5e5b623d95a281bbf5a1ff3195a2fd0a036"
+  },
+  {
+   "file": "binance-spot-ETHUSDT-5m-2018-02.csv",
+   "rows_before": 7654,
+   "rows_added_in_gaps": 0,
+   "days_replaced": [
+    "2018-02-09",
+    "2018-02-10"
+   ],
+   "rows_removed_by_day_replacement": 454,
+   "rows_inserted_by_day_replacement": 453,
+   "rows_after": 7653,
+   "sha256_before": "680c68b8ea7d0a818446d6f6b08421ed9dd078d6aa3a31a14c6fcb4e6f50010f",
+   "sha256_after": "b5a99799835f7991007d78814664ea824d656236d0ec0f57c575edeb46851908"
+  },
+  {
+   "file": "binance-spot-LTCUSDT-5m-2018-02.csv",
+   "rows_before": 7653,
+   "rows_added_in_gaps": 1,
+   "days_replaced": [
+    "2018-02-09",
+    "2018-02-10"
+   ],
+   "rows_removed_by_day_replacement": 454,
+   "rows_inserted_by_day_replacement": 453,
+   "rows_after": 7653,
+   "sha256_before": "1a8610d6f10215daf9b30113d7ab16e928ded94435ea2b9f156a886ed4ab864c",
+   "sha256_after": "6c982a145212a2c8e7ab1489908a4931964d52e6cb267cdf39801bc98339cf67"
+  },
+  {
+   "file": "binance-spot-NEOUSDT-5m-2018-02.csv",
+   "rows_before": 7653,
+   "rows_added_in_gaps": 1,
+   "days_replaced": [
+    "2018-02-09",
+    "2018-02-10"
+   ],
+   "rows_removed_by_day_replacement": 454,
+   "rows_inserted_by_day_replacement": 453,
+   "rows_after": 7653,
+   "sha256_before": "71fdde98295268331d6027114b0baf5623bdc3a5f21fa9f00e196222aa90e378",
+   "sha256_after": "811e94f5ded5c9e62aafffbe7ce751a9043f8b11456fd29d825ffd8069cb2478"
+  }
+ ],
+ "off_grid_runs": [
+  {
+   "pair": "BNBUSDT",
+   "days": [
+    "2018-02-09",
+    "2018-02-10"
+   ],
+   "per_day": [
+    {
+     "zip": "data/spot/daily/klines/BNBUSDT/5m/BNBUSDT-5m-2018-02-09.zip",
+     "in_listing": true,
+     "checksum_in_listing": true,
+     "sha256": "a6cfa3115eb01d87a16c6329b4c0b4ad453241a16e92a7934cc7245b08445c56",
+     "checksum_ok": true,
+     "header": false,
+     "day": "2018-02-09",
+     "monthly_rows": 169,
+     "monthly_off_grid": 169,
+     "daily_rows": 168,
+     "daily_off_grid": 0,
+     "daily_out_of_day": 0
+    },
+    {
+     "zip": "data/spot/daily/klines/BNBUSDT/5m/BNBUSDT-5m-2018-02-10.zip",
+     "in_listing": true,
+     "checksum_in_listing": true,
+     "sha256": "b356e5bf44f6d94d08ecfe3585441da3bcf97091c664dd69d55d8ff80bd784e5",
+     "checksum_ok": true,
+     "header": false,
+     "day": "2018-02-10",
+     "monthly_rows": 285,
+     "monthly_off_grid": 72,
+     "daily_rows": 285,
+     "daily_off_grid": 0,
+     "daily_out_of_day": 0
+    }
+   ],
+   "monthly_totals": {
+    "rows": 454,
+    "volume": 5755785.05,
+    "quote_volume": 54832833.4728,
+    "trades": 156217,
+    "taker_buy_volume": 2788355.38,
+    "taker_buy_quote_volume": 26590627.2664,
+    "max_high": 10.4444,
+    "min_low": 8.279,
+    "first_open": 8.2791,
+    "last_close": 9.2448
+   },
+   "daily_totals": {
+    "rows": 453,
+    "volume": 5755785.05,
+    "quote_volume": 54832833.4728,
+    "trades": 156217,
+    "taker_buy_volume": 2788355.38,
+    "taker_buy_quote_volume": 26590627.2664,
+    "max_high": 10.4444,
+    "min_low": 8.279,
+    "first_open": 8.2791,
+    "last_close": 9.2448
+   },
+   "totals_equal": true,
+   "result": "replace: monthly rows of these days -> daily on-grid rows (same trades re-bucketed)"
+  },
+  {
+   "pair": "BTCUSDT",
+   "days": [
+    "2018-02-09",
+    "2018-02-10"
+   ],
+   "per_day": [
+    {
+     "zip": "data/spot/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2018-02-09.zip",
+     "in_listing": true,
+     "checksum_in_listing": true,
+     "sha256": "d96c65c474e11697fa58f272558676b008b1f541ff08bf402a0e0cef7e5d1b27",
+     "checksum_ok": true,
+     "header": false,
+     "day": "2018-02-09",
+     "monthly_rows": 169,
+     "monthly_off_grid": 169,
+     "daily_rows": 168,
+     "daily_off_grid": 0,
+     "daily_out_of_day": 0
+    },
+    {
+     "zip": "data/spot/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2018-02-10.zip",
+     "in_listing": true,
+     "checksum_in_listing": true,
+     "sha256": "a33e4f40247f01ca48cfc87eb312cd23d8b7f969637c1b38fa1408fa248a97f5",
+     "checksum_ok": true,
+     "header": false,
+     "day": "2018-02-10",
+     "monthly_rows": 285,
+     "monthly_off_grid": 72,
+     "daily_rows": 285,
+     "daily_off_grid": 0,
+     "daily_out_of_day": 0
+    }
+   ],
+   "monthly_totals": {
+    "rows": 454,
+    "volume": 69864.423478,
+    "quote_volume": 596759891.7429,
+    "trades": 810669,
+    "taker_buy_volume": 34910.764086,
+    "taker_buy_quote_volume": 298371296.5016,
+    "max_high": 9065.78,
+    "min_low": 7789.9,
+    "first_open": 7789.9,
+    "last_close": 8533.98
+   },
+   "daily_totals": {
+    "rows": 453,
+    "volume": 69864.423478,
+    "quote_volume": 596759891.7429,
+    "trades": 810669,
+    "taker_buy_volume": 34910.764086,
+    "taker_buy_quote_volume": 298371296.5016,
+    "max_high": 9065.78,
+    "min_low": 7789.9,
+    "first_open": 7789.9,
+    "last_close": 8533.98
+   },
+   "totals_equal": true,
+   "result": "replace: monthly rows of these days -> daily on-grid rows (same trades re-bucketed)"
+  },
+  {
+   "pair": "ETHUSDT",
+   "days": [
+    "2018-02-09",
+    "2018-02-10"
+   ],
+   "per_day": [
+    {
+     "zip": "data/spot/daily/klines/ETHUSDT/5m/ETHUSDT-5m-2018-02-09.zip",
+     "in_listing": true,
+     "checksum_in_listing": true,
+     "sha256": "da0e9923928a166af696c8c9a7c94d5a8cfd42f931f41ffe1ab0de8e842d0bd3",
+     "checksum_ok": true,
+     "header": false,
+     "day": "2018-02-09",
+     "monthly_rows": 169,
+     "monthly_off_grid": 169,
+     "daily_rows": 168,
+     "daily_off_grid": 0,
+     "daily_out_of_day": 0
+    },
+    {
+     "zip": "data/spot/daily/klines/ETHUSDT/5m/ETHUSDT-5m-2018-02-10.zip",
+     "in_listing": true,
+     "checksum_in_listing": true,
+     "sha256": "1807a26cf0f131942166124020433565adc1eb37d76572586f79c0bad55ec16d",
+     "checksum_ok": true,
+     "header": false,
+     "day": "2018-02-10",
+     "monthly_rows": 285,
+     "monthly_off_grid": 72,
+     "daily_rows": 285,
+     "daily_off_grid": 0,
+     "daily_out_of_day": 0
+    }
+   ],
+   "monthly_totals": {
+    "rows": 454,
+    "volume": 310265.74057,
+    "quote_volume": 266237632.9958,
+    "trades": 538583,
+    "taker_buy_volume": 155009.94205,
+    "taker_buy_quote_volume": 132903575.7112,
+    "max_high": 911.2,
+    "min_low": 781.66,
+    "first_open": 781.66,
+    "last_close": 851.15
+   },
+   "daily_totals": {
+    "rows": 453,
+    "volume": 310265.74057,
+    "quote_volume": 266237632.9958,
+    "trades": 538583,
+    "taker_buy_volume": 155009.94205,
+    "taker_buy_quote_volume": 132903575.7112,
+    "max_high": 911.2,
+    "min_low": 781.66,
+    "first_open": 781.66,
+    "last_close": 851.15
+   },
+   "totals_equal": true,
+   "result": "replace: monthly rows of these days -> daily on-grid rows (same trades re-bucketed)"
+  },
+  {
+   "pair": "LTCUSDT",
+   "days": [
+    "2018-02-09",
+    "2018-02-10"
+   ],
+   "per_day": [
+    {
+     "zip": "data/spot/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2018-02-09.zip",
+     "in_listing": true,
+     "checksum_in_listing": true,
+     "sha256": "78f6035b26cd89fa64d671bb33cd97a63b8003834855cbc166b2976b68cfb18b",
+     "checksum_ok": true,
+     "header": false,
+     "day": "2018-02-09",
+     "monthly_rows": 169,
+     "monthly_off_grid": 169,
+     "daily_rows": 168,
+     "daily_off_grid": 0,
+     "daily_out_of_day": 0
+    },
+    {
+     "zip": "data/spot/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2018-02-10.zip",
+     "in_listing": true,
+     "checksum_in_listing": true,
+     "sha256": "b40a3a557db112c4234200d8c1f9a72a30cd4cde7db110ea88719094cafd34b7",
+     "checksum_ok": true,
+     "header": false,
+     "day": "2018-02-10",
+     "monthly_rows": 285,
+     "monthly_off_grid": 72,
+     "daily_rows": 285,
+     "daily_off_grid": 0,
+     "daily_out_of_day": 0
+    }
+   ],
+   "monthly_totals": {
+    "rows": 454,
+    "volume": 198312.24925,
+    "quote_volume": 31248571.7355,
+    "trades": 85585,
+    "taker_buy_volume": 95871.57402,
+    "taker_buy_quote_volume": 15102678.6977,
+    "max_high": 169.0,
+    "min_low": 142.37,
+    "first_open": 142.37,
+    "last_close": 154.65
+   },
+   "daily_totals": {
+    "rows": 453,
+    "volume": 198312.24925,
+    "quote_volume": 31248571.7355,
+    "trades": 85585,
+    "taker_buy_volume": 95871.57402,
+    "taker_buy_quote_volume": 15102678.6977,
+    "max_high": 169.0,
+    "min_low": 142.37,
+    "first_open": 142.37,
+    "last_close": 154.65
+   },
+   "totals_equal": true,
+   "result": "replace: monthly rows of these days -> daily on-grid rows (same trades re-bucketed)"
+  },
+  {
+   "pair": "NEOUSDT",
+   "days": [
+    "2018-02-09",
+    "2018-02-10"
+   ],
+   "per_day": [
+    {
+     "zip": "data/spot/daily/klines/NEOUSDT/5m/NEOUSDT-5m-2018-02-09.zip",
+     "in_listing": true,
+     "checksum_in_listing": true,
+     "sha256": "2521bf809707b8dcc08dab8efe4f4eeca4b952c8b4b623ab1a31ad765bb1f5f7",
+     "checksum_ok": true,
+     "header": false,
+     "day": "2018-02-09",
+     "monthly_rows": 169,
+     "monthly_off_grid": 169,
+     "daily_rows": 168,
+     "daily_off_grid": 0,
+     "daily_out_of_day": 0
+    },
+    {
+     "zip": "data/spot/daily/klines/NEOUSDT/5m/NEOUSDT-5m-2018-02-10.zip",
+     "in_listing": true,
+     "checksum_in_listing": true,
+     "sha256": "59174459cce5b39ab9938d207d0376a15e3ab9cfb83d233c4c23fdb73917ff91",
+     "checksum_ok": true,
+     "header": false,
+     "day": "2018-02-10",
+     "monthly_rows": 285,
+     "monthly_off_grid": 72,
+     "daily_rows": 285,
+     "daily_off_grid": 0,
+     "daily_out_of_day": 0
+    }
+   ],
+   "monthly_totals": {
+    "rows": 454,
+    "volume": 794546.673,
+    "quote_volume": 88718627.8126,
+    "trades": 147325,
+    "taker_buy_volume": 402874.155,
+    "taker_buy_quote_volume": 45063420.1306,
+    "max_high": 119.79,
+    "min_low": 100.301,
+    "first_open": 109.32,
+    "last_close": 107.3
+   },
+   "daily_totals": {
+    "rows": 453,
+    "volume": 794546.673,
+    "quote_volume": 88718627.8126,
+    "trades": 147325,
+    "taker_buy_volume": 402874.155,
+    "taker_buy_quote_volume": 45063420.1306,
+    "max_high": 119.79,
+    "min_low": 100.301,
+    "first_open": 109.32,
+    "last_close": 107.3
+   },
+   "totals_equal": true,
+   "result": "replace: monthly rows of these days -> daily on-grid rows (same trades re-bucketed)"
+  }
+ ]
+}

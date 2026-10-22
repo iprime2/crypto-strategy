@@ -1,0 +1,87 @@
+{
+ "OX_funding": {
+  "real_mean_funding_pnl_bps": -0.32721347972972975,
+  "P1_mean_funding_pnl_bps": -0.2199145983119725,
+  "real_share_crossing_a_funding_instant": 0.4172297297297297,
+  "real_funding_pnl_p1_p99": [
+   -7.14256,
+   3.735713999999999
+  ],
+  "gates_without_funding": {
+   "n": 2960,
+   "n_p1": 12796,
+   "net": 7.7568400271434985,
+   "p_net": 0.2455,
+   "diff": 19.39738877367054,
+   "p_diff": 0.0,
+   "h1": -1.8903351949707972,
+   "h2": 18.361890803226594,
+   "coins_pos": 10,
+   "need": 10,
+   "n_weeks": 247,
+   "t1": false,
+   "t2": true,
+   "t3": false,
+   "t4": true,
+   "all": false
+  },
+  "gates_with_funding": {
+   "n": 2960,
+   "n_p1": 12796,
+   "net": 7.42962654741377,
+   "p_net": 0.2535,
+   "diff": 19.290089892252784,
+   "p_diff": 0.0,
+   "h1": -2.189113453035315,
+   "h2": 18.003418746488997,
+   "coins_pos": 10,
+   "need": 10,
+   "n_weeks": 247,
+   "t1": false,
+   "t2": true,
+   "t3": false,
+   "t4": true,
+   "all": false
+  }
+ },
+ "OT_construction": {
+  "P1_level_err_max": 4.440892098500626e-16,
+  "P1_wrong_side": 0,
+  "P3_level_err_max": 0.0,
+  "P3_touch_outside_window": 0,
+  "real_touch_outside_week": 0,
+  "exit_not_after_entry": 0,
+  "P1_m_counts": {
+   "P1H_0.5": 662,
+   "P1H_0.75": 540,
+   "P1L_0.5": 666,
+   "P1L_0.75": 514,
+   "P1L_1.25": 359,
+   "P1L_1.5": 321,
+   "P1H_1.25": 427,
+   "P1H_1.5": 381
+  },
+  "weeks_open_outside_prior_range": 0,
+  "weeks_open_outside_examples": []
+ },
+ "OX_construction": {
+  "P1_level_err_max": 4.440892098500626e-16,
+  "P1_wrong_side": 0,
+  "P3_level_err_max": 0.0,
+  "P3_touch_outside_window": 0,
+  "real_touch_outside_week": 0,
+  "exit_not_after_entry": 0,
+  "P1_m_counts": {
+   "P1L_0.5": 2386,
+   "P1L_0.75": 1942,
+   "P1L_1.25": 1420,
+   "P1L_1.5": 1268,
+   "P1H_0.5": 2016,
+   "P1H_0.75": 1606,
+   "P1H_1.25": 1153,
+   "P1H_1.5": 1005
+  },
+  "weeks_open_outside_prior_range": 0,
+  "weeks_open_outside_examples": []
+ }
+}
