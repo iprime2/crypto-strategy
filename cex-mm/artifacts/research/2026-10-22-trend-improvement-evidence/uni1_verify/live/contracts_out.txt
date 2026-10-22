@@ -1,0 +1,28 @@
+
+######## implementation cv (CVALS else $25/first close)
+  daily  $1,000: FULL 1.119 (static24 0.926, nine 1.239) POST 0.802 (0.600, 0.827) 2024-05.. 1.151 (nine 0.984) mdd -27.0% vol 19.0% orders/yr 665 fees/yr 1.18%
+          gated out: 2020:XTZ,EOS; 2022:MATIC,SOL,AVAX; 2023:MATIC; 2024:SOL,AVAX; 2025:SOL,1000PEPE; 2026:SOL,ZEC | 2026 members BTC ETH XRP DOGE BNB ADA LINK (E $3,248)
+  daily  $2,500: FULL 1.061 (static24 0.936, nine 1.244) POST 0.795 (0.608, 0.832) 2024-05.. 1.136 (nine 0.986) mdd -26.9% vol 18.9% orders/yr 853 fees/yr 1.17%
+          gated out: 2020:XTZ; 2022:MATIC,SOL; 2023:MATIC; 2024:SOL,AVAX; 2025:SOL,1000PEPE; 2026:SOL,ZEC | 2026 members BTC ETH XRP DOGE BNB ADA LINK (E $7,500)
+  daily  $5,000: FULL 0.987 (static24 0.866, nine 1.249) POST 0.766 (0.577, 0.836) 2024-05.. 1.094 (nine 0.989) mdd -27.5% vol 18.4% orders/yr 987 fees/yr 1.13%
+          gated out: 2022:MATIC,SOL; 2023:MATIC; 2024:SOL,AVAX; 2025:SOL; 2026:SOL | 2026 members BTC ETH XRP DOGE BNB 1000PEPE ADA LINK (E $13,489)
+  weekly $1,000: FULL 1.045 (static24 0.986, nine 1.096) POST 0.742 (0.587, 0.650) 2024-05.. 0.974 (nine 0.707) mdd -19.6% vol 12.9% orders/yr 137 fees/yr 0.27%
+          gated out: 2020:XTZ,EOS; 2022:MATIC,SOL,AVAX; 2023:MATIC; 2024:SOL,AVAX,TRB; 2025:SOL,1000PEPE,SUI; 2026:SOL,ZEC | 2026 members BTC ETH XRP DOGE BNB SUI LINK (E $2,229)
+  weekly $2,500: FULL 1.079 (static24 0.891, nine 1.096) POST 0.770 (0.489, 0.634) 2024-05.. 1.017 (nine 0.716) mdd -18.8% vol 12.8% orders/yr 146 fees/yr 0.26%
+          gated out: 2020:XTZ,EOS; 2022:MATIC,SOL,AVAX; 2023:MATIC; 2024:SOL,AVAX,TRB; 2025:SOL,1000PEPE,SUI; 2026:SOL,ZEC | 2026 members BTC ETH XRP DOGE BNB SUI LINK (E $5,687)
+  weekly $5,000: FULL 0.942 (static24 0.836, nine 1.119) POST 0.702 (0.441, 0.655) 2024-05.. 0.845 (nine 0.747) mdd -17.8% vol 12.3% orders/yr 163 fees/yr 0.26%
+          gated out: 2022:MATIC,SOL; 2023:MATIC; 2024:SOL,AVAX,TRB; 2025:SOL,1000PEPE; 2026:SOL,ZEC | 2026 members BTC ETH XRP DOGE BNB SUI LINK (E $9,903)
+
+######## Delta India real cv
+  daily  $1,000: FULL 1.094 (static24 0.908, nine 1.239) POST 0.759 (0.640, 0.827) 2024-05.. 1.143 (nine 0.984) mdd -27.0% vol 18.9% orders/yr 666 fees/yr 1.15%
+          gated out: 2020:XTZ,EOS; 2022:SOL,AVAX; 2024:SOL,AVAX; 2025:SOL; 2026:SOL | 2026 members BTC ETH XRP DOGE BNB SUI 1000PEPE LINK (E $3,126)
+  daily  $2,500: FULL 1.054 (static24 0.917, nine 1.244) POST 0.783 (0.611, 0.832) 2024-05.. 1.139 (nine 0.986) mdd -26.2% vol 18.8% orders/yr 861 fees/yr 1.13%
+          gated out: 2020:XTZ; 2022:SOL; 2024:SOL; 2025:SOL | 2026 members BTC ETH SOL XRP DOGE BNB 1000PEPE AVAX LINK (E $7,297)
+  daily  $5,000: FULL 1.050 (static24 0.846, nine 1.249) POST 0.865 (0.582, 0.836) 2024-05.. 1.045 (nine 0.989) mdd -26.7% vol 18.4% orders/yr 1030 fees/yr 1.10%
+          gated out:  | 2026 members BTC ETH SOL XRP DOGE BNB 1000PEPE AVAX LINK (E $14,189)
+  weekly $1,000: FULL 0.997 (static24 0.969, nine 1.096) POST 0.663 (0.573, 0.650) 2024-05.. 0.837 (nine 0.707) mdd -19.6% vol 12.9% orders/yr 145 fees/yr 0.27%
+          gated out: 2020:XTZ,EOS; 2022:MATIC,SOL,AVAX; 2024:SOL,AVAX; 2025:SOL,1000PEPE; 2026:SOL,ZEC | 2026 members BTC ETH XRP DOGE BNB SUI LINK (E $2,141)
+  weekly $2,500: FULL 1.002 (static24 0.888, nine 1.096) POST 0.643 (0.535, 0.634) 2024-05.. 0.831 (nine 0.716) mdd -18.8% vol 12.7% orders/yr 165 fees/yr 0.26%
+          gated out: 2020:XTZ,EOS; 2022:SOL,AVAX; 2024:SOL; 2025:SOL; 2026:SOL | 2026 members BTC ETH XRP DOGE BNB 1000PEPE AVAX LINK (E $5,347)
+  weekly $5,000: FULL 0.936 (static24 0.838, nine 1.119) POST 0.690 (0.457, 0.655) 2024-05.. 0.903 (nine 0.747) mdd -17.9% vol 12.2% orders/yr 179 fees/yr 0.24%
+          gated out: 2022:SOL; 2024:SOL; 2025:SOL | 2026 members BTC ETH SOL XRP DOGE BNB 1000PEPE AVAX LINK (E $9,735)

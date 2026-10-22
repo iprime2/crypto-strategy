@@ -1,0 +1,13 @@
+Delta records: {np.str_('ADA'): -2.26, np.str_('BCH'): -3.98, np.str_('BNB'): 11.62, np.str_('BTC'): 8.09, np.str_('DOGE'): 4.44, np.str_('ETH'): 7.75, np.str_('LINK'): -0.58, np.str_('LTC'): -2.24, np.str_('XRP'): 5.42}
+
+=== daily
+  none FULL 1.050 vs 0.851 d +0.198 [-0.17,+0.53] | POST 0.862 vs 0.586 d +0.276 [-0.22,+0.74] P<=0 0.12 | funding/yr FULL 3.65% vs 3.13%, POST 1.67% vs 1.23% | CAGR +19.2% vs +13.6%
+  S0   FULL 1.011 vs 0.833 d +0.178 [-0.19,+0.51] | POST 0.816 vs 0.566 d +0.251 [-0.25,+0.72] P<=0 0.14 | funding/yr FULL 4.36% vs 3.43%, POST 2.38% vs 1.53% | CAGR +18.4% vs +13.3%
+  S1   FULL 0.987 vs 0.762 d +0.224 [-0.15,+0.55] | POST 0.801 vs 0.524 d +0.277 [-0.23,+0.75] P<=0 0.12 | funding/yr FULL 4.81% vs 4.63%, POST 2.62% vs 2.13% | CAGR +17.9% vs +12.0%
+  S2   FULL 0.987 vs 0.776 d +0.212 [-0.16,+0.54] | POST 0.802 vs 0.542 d +0.260 [-0.24,+0.73] P<=0 0.13 | funding/yr FULL 4.80% vs 4.40%, POST 2.61% vs 1.88% | CAGR +17.9% vs +12.2%
+
+=== weekly
+  none FULL 0.984 vs 0.810 d +0.174 [-0.18,+0.52] | POST 0.777 vs 0.492 d +0.286 [-0.23,+0.79] P<=0 0.12 | funding/yr FULL 2.23% vs 1.93%, POST 1.00% vs 0.73% | CAGR +11.9% vs +8.7%
+  S0   FULL 0.944 vs 0.791 d +0.152 [-0.20,+0.50] | POST 0.732 vs 0.471 d +0.261 [-0.26,+0.76] P<=0 0.14 | funding/yr FULL 2.72% vs 2.14%, POST 1.46% vs 0.93% | CAGR +11.3% vs +8.4%
+  S1   FULL 0.922 vs 0.723 d +0.199 [-0.15,+0.55] | POST 0.718 vs 0.431 d +0.287 [-0.24,+0.79] P<=0 0.12 | funding/yr FULL 2.99% vs 2.88%, POST 1.61% vs 1.32% | CAGR +11.0% vs +7.6%
+  S2   FULL 0.923 vs 0.737 d +0.186 [-0.16,+0.54] | POST 0.719 vs 0.448 d +0.271 [-0.25,+0.77] P<=0 0.14 | funding/yr FULL 2.98% vs 2.73%, POST 1.60% vs 1.15% | CAGR +11.0% vs +7.8%

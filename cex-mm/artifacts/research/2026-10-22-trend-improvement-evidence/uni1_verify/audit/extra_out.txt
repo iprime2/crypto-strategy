@@ -1,0 +1,8 @@
+(a) Q/(V*C) at reset rows for coins ranked <= 30 (30-row medians):
+   largest |log(Q/(V*C))|: [('2024-01-01', np.str_('BAKE'), 22, np.float64(1.11)), ('2022-01-01', np.str_('SUSHI'), 20, np.float64(0.923)), ('2021-01-03', np.str_('SUSHI'), 8, np.float64(0.938)), ('2021-01-01', np.str_('SUSHI'), 8, np.float64(0.938)), ('2025-01-01', np.str_('PNUT'), 9, np.float64(1.062)), ('2022-01-02', np.str_('SUSHI'), 20, np.float64(0.942)), ('2022-01-01', np.str_('SAND'), 4, np.float64(1.059)), ('2025-01-05', np.str_('AAVE'), 18, np.float64(0.944))]
+(b) static-24 daily: forced flattens on held/targeted rows: [(np.str_('EOS'), '2025-05-21', 0.0047, None, None)]
+(b) static-24 weekly: forced flattens on held/targeted rows: [(np.str_('EOS'), '2025-05-21', 0.003, None, None)]
+(c) daily UNI-1: imputed 391 coin-days, Sharpe 1.0497 -> 1.0452
+(c) daily static-24: imputed 391 coin-days, Sharpe 0.8512 -> 0.8493
+(c) weekly UNI-1: imputed 420 coin-days, Sharpe 0.9838 -> 0.9793
+(c) weekly static-24: imputed 420 coin-days, Sharpe 0.8101 -> 0.8082

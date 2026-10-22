@@ -20,6 +20,7 @@ crypto-strategy/
     ├── 05-risk-hedging-pnl-failure-modes.md
     ├── 06-godark-vanilla-mm-strategy-analysis.md   prior GoDark MM vs STRATEGY.md
     ├── 07-trend-rule-and-prop-trading-research.md  2026-10 research: systematic trend rule for own capital and prop-firm accounts
+    ├── 08-trend-rule-improvement-research.md       2026-10-22 research: pre-registered tests of improvements to the trend rule (none adopted)
     ├── godark-mm-bot/        export + porting guide from vanilla-mm-rust
     └── papers/               33 open-access PDFs referenced by 01-academic-papers.md
 ```
@@ -33,6 +34,7 @@ crypto-strategy/
 4. `resource/03-exchange-apis-okx-binance-bybit.md` — comparison table and recommendations before touching any API.
 5. `resource/05-risk-hedging-pnl-failure-modes.md` — risk-control checklist and failure-mode catalogue; these are the go-live requirements.
 6. `resource/07-trend-rule-and-prop-trading-research.md` — the 2026-10-13 strategy research: why the long/flat trend rule (not market making) is the strategy for own capital and prop-firm accounts, its exact rule, the evidence and its limits, and the eight-week plan. Evidence in `cex-mm/artifacts/research/2026-10-13-prop-strategy-evidence/`.
+7. `resource/08-trend-rule-improvement-research.md` — the 2026-10-22 re-analysis of that rule: 26 pre-registered signal, sizing, universe, cost, overlay and timing changes judged (25 run, SIG-9 gated off by its diagnostic) on the nine, the 24 ex-ante perps and Delta, each on the panels its plan entry names; none passed, so both paper books are unchanged; the one structural finding is rebalance timing luck in the weekly slot, and tax matters more than any rule change. Memo `cex-mm/artifacts/research/2026-10-22-trend-improvement.md`; evidence in `cex-mm/artifacts/research/2026-10-22-trend-improvement-evidence/`.
 
 ## Conventions in the research notes
 

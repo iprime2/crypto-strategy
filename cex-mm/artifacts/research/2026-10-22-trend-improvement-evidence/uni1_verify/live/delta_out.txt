@@ -1,0 +1,80 @@
+coin           cv       mark    1ct$  t24h$M med30$M min30$M dVol60 bVol60  sprd   d10bp$   d25bp$ | full pos $ @E5k TV.40 ct, take cost bps (half-spread+walk) | Emin2ct TV.40 / TV.25
+1000PEPE     1000    0.00469    4.69    0.17    0.13    0.02   0.93   1.10  10.7    48440   527173 | $  202   43 ct    5.3 | $    232 / $    371  launch 2025-12-29
+AAVE            1      156.1  156.12    5.68    7.91    2.57   0.78    nan   1.3   160072   549950 | $  286    2 ct    0.6 | $  5,466 / $  8,745  launch 2024-05-06
+ADA             1     0.2269    0.23    0.75    1.34    0.28   0.74   0.78  10.1    15185    51825 | $  284 1251 ct    6.2 | $      8 / $     13  launch 2024-04-18
+AKE         10000    0.02465  246.50   24.33   18.11    5.91   3.80    nan   3.7   140557   297331 | $   59    0 ct    0.0 | $ 42,104 / $ 67,366  launch 2026-07-22
+ARB             1     0.1914    0.19    0.21    0.20    0.04   1.59    nan   1.0    88981   862530 | $  140  732 ct    0.5 | $     14 / $     22  launch 2024-04-24
+AVAX            1      9.749    9.75    2.41    4.55    1.84   0.88   0.86   4.1    16235    78003 | $  258   27 ct    2.0 | $    377 / $    603  launch 2024-04-08
+BCH          0.01      288.5    2.89    1.23    1.40    0.76   0.93   1.08   4.2   299350   604235 | $  206   72 ct    2.1 | $    140 / $    224  launch 2024-04-10
+BNB           0.1      750.2   75.02    2.47    2.50    1.35   0.37   0.39   0.3  1183302  2467604 | $  575    8 ct    0.1 | $  1,304 / $  2,086  launch 2024-04-10
+BTC         0.001  8.459e+04   84.59 1035.43 1122.51  317.26   0.34   0.42   0.1 56041216 126044389 | $  526    6 ct    0.0 | $  1,609 / $  2,575  launch 2023-12-18
+DOGE          100    0.08253    8.25    4.51    7.76    3.01   0.66   0.73   1.2   104912   504240 | $  304   37 ct    1.8 | $    272 / $    435  launch 2024-04-08
+ENA             1     0.2156    0.22    0.88    0.21    0.06   1.27    nan   0.9    81795   540427 | $  175  813 ct    0.5 | $     12 / $     20  launch 2024-05-06
+ETH          0.01       2489   24.89  690.87  731.94  183.58   0.41   0.58   0.2 64981464 79443854 | $  385   15 ct    0.1 | $    646 / $  1,033  launch 2024-02-05
+FIL             1      1.058    1.06    0.69    0.98    0.08   1.11    nan   1.9    14619    77268 | $  199  189 ct    0.9 | $     53 / $     85  launch 2024-05-09
+HYPE          0.1      81.56    8.16    0.59    0.71    0.31   0.64    nan   0.2   245862   500548 | $  348   43 ct    0.2 | $    234 / $    375  launch 2025-06-04
+LINK            1       12.6   12.60    1.37    2.98    1.27   0.69   0.77   1.6   277379   451595 | $  288   23 ct    0.8 | $    437 / $    699  launch 2024-04-10
+LTC           0.1      61.55    6.16    1.49    4.00    1.01   0.61   0.63   3.3   107244   692349 | $  350   57 ct    1.6 | $    176 / $    281  launch 2024-04-10
+NEAR            1      5.306    5.31    0.98    1.59    0.64   1.38    nan   5.7     2077    10252 | $  161   30 ct    2.8 | $    329 / $    527  launch 2024-04-18
+PUMP         1000   0.005117    5.12    0.28    0.42    0.10   1.43    nan   5.9     2286    12534 | $  155   30 ct    2.9 | $    330 / $    528  launch 2025-07-16
+SOL             1      107.7  107.71  152.25  179.18   69.57   0.58   0.63   1.0 24010902 34812980 | $  353    3 ct    0.5 | $  3,051 / $  4,882  launch 2024-04-08
+SUI             1      1.038    1.04    0.76    1.07    0.35   0.96    nan   1.9   360193  1104628 | $  232  223 ct    1.0 | $     45 / $     72  launch 2024-04-24
+TAO          0.01      274.5    2.74    0.20    0.35    0.09   0.94    nan   0.7   132496   474266 | $  235   86 ct    0.4 | $    117 / $    187  launch 2024-07-02
+TRUMP         0.1      1.846    0.18    0.16    0.14    0.06   1.13    nan  21.7        0     5328 | $  197 1064 ct   10.8 | $      9 / $     15  launch 2025-01-18
+UNI             1      7.526    7.53   12.17   14.78    6.28   1.15    nan   4.0    25395   140578 | $  193   26 ct    2.0 | $    389 / $    623  launch 2024-04-15
+WLD             1     0.5761    0.58    0.44    0.22    0.06   1.20    nan   5.2     4357    16564 | $  186  323 ct    2.6 | $     31 / $     50  launch 2024-04-24
+XRP             1      1.375    1.38   14.50   16.22    5.88   0.60   0.78   1.5  1036440  4111712 | $  284  207 ct    0.7 | $     48 / $     77  launch 2024-04-10
+ZEC           0.1       1349  134.87   14.59   12.36    3.55   1.29   1.37   0.4  1320693  3036382 | $  162    1 ct    0.2 | $  8,316 / $ 13,306  launch 2025-10-06
+
+Gate (>= 2 contracts at full signal; plan exempts the live nine) per set and capital, Binance vol60 at 2026-09-30, Delta mark now
+  2026      TV 0.25 $1,000: <2 ct ['BTC', 'ETH', 'SOL', 'BNB'] | gate-relevant (non-nine) ['SOL'] | rounds to 0 ct ['SOL']
+  2026      TV 0.25 $2,500: <2 ct ['BTC', 'SOL'] | gate-relevant (non-nine) ['SOL'] | rounds to 0 ct []
+  2026      TV 0.25 $5,000: <2 ct [] | gate-relevant (non-nine) [] | rounds to 0 ct []
+  2026      TV 0.40 $1,000: <2 ct ['BTC', 'SOL', 'BNB'] | gate-relevant (non-nine) ['SOL'] | rounds to 0 ct []
+  2026      TV 0.40 $2,500: <2 ct ['SOL'] | gate-relevant (non-nine) ['SOL'] | rounds to 0 ct []
+  2026      TV 0.40 $5,000: <2 ct [] | gate-relevant (non-nine) [] | rounds to 0 ct []
+  2026      equity for every member >= 2 ct: TV 0.40 $3,051 (SOL), TV 0.25 $4,882 (SOL)
+  2027proxy TV 0.25 $1,000: <2 ct ['BTC', 'ETH', 'ZEC', 'SOL', 'BNB'] | gate-relevant (non-nine) ['ZEC', 'SOL'] | rounds to 0 ct ['ZEC', 'SOL']
+  2027proxy TV 0.25 $2,500: <2 ct ['BTC', 'ZEC', 'SOL'] | gate-relevant (non-nine) ['ZEC', 'SOL'] | rounds to 0 ct ['ZEC']
+  2027proxy TV 0.25 $5,000: <2 ct ['ZEC'] | gate-relevant (non-nine) ['ZEC'] | rounds to 0 ct []
+  2027proxy TV 0.40 $1,000: <2 ct ['BTC', 'ZEC', 'SOL', 'BNB'] | gate-relevant (non-nine) ['ZEC', 'SOL'] | rounds to 0 ct ['ZEC']
+  2027proxy TV 0.40 $2,500: <2 ct ['ZEC', 'SOL'] | gate-relevant (non-nine) ['ZEC', 'SOL'] | rounds to 0 ct []
+  2027proxy TV 0.40 $5,000: <2 ct ['ZEC'] | gate-relevant (non-nine) ['ZEC'] | rounds to 0 ct []
+  2027proxy equity for every member >= 2 ct: TV 0.40 $8,316 (ZEC), TV 0.25 $13,306 (ZEC)
+
+Taker cost to fill the full-signal position from flat (bps vs mid, walk of the live L2 ask side) vs the backtest's 2.0 bps slippage:
+  2026      E1000_TV0.4   BTC:0.0 ETH:0.1 SOL:0.5 XRP:0.7 DOGE:1.6 BNB:0.1 1000PEPE:5.3 AVAX:2.0 LINK:0.8
+  2026      E5000_TV0.4   BTC:0.0 ETH:0.1 SOL:0.5 XRP:0.7 DOGE:1.8 BNB:0.1 1000PEPE:5.3 AVAX:2.0 LINK:0.8
+  2026      E5000_TV0.25  BTC:0.0 ETH:0.1 SOL:0.5 XRP:0.7 DOGE:1.8 BNB:0.1 1000PEPE:5.3 AVAX:2.0 LINK:0.8
+  2027proxy E1000_TV0.4   BTC:0.0 ETH:0.1 ZEC:0.0 SOL:0.5 XRP:0.7 DOGE:1.6 BNB:0.1 1000PEPE:5.3 LINK:0.8
+  2027proxy E5000_TV0.4   BTC:0.0 ETH:0.1 ZEC:0.2 SOL:0.5 XRP:0.7 DOGE:1.8 BNB:0.1 1000PEPE:5.3 LINK:0.8
+  2027proxy E5000_TV0.25  BTC:0.0 ETH:0.1 ZEC:0.2 SOL:0.5 XRP:0.7 DOGE:1.8 BNB:0.1 1000PEPE:5.3 LINK:0.8
+
+Delta-own 30-day median turnover ranking (launch <= 2025-10-21; metals/xStocks/indices shown, marked X):
+   1 BTC       $ 1122.51M launch 2023-12-18 
+   2 ETH       $  731.94M launch 2024-02-05 
+   3 SOL       $  179.18M launch 2024-04-08 
+   4 XRP       $   16.22M launch 2024-04-10 
+   5 UNI       $   14.78M launch 2024-04-15 
+   6 ZEC       $   12.36M launch 2025-10-06 
+   7 AAVE      $    7.91M launch 2024-05-06 
+   8 DOGE      $    7.76M launch 2024-04-08 
+   9 AVAX      $    4.55M launch 2024-04-08 
+  10 LTC       $    4.00M launch 2024-04-10 
+  11 LINK      $    2.98M launch 2024-04-10 
+  12 MUBARAK   $    2.58M launch 2025-03-21 
+  13 BNB       $    2.50M launch 2024-04-10 
+  14 DOT       $    1.70M launch 2024-04-15 
+  15 NEAR      $    1.59M launch 2024-04-18 
+  16 BCH       $    1.40M launch 2024-04-10 
+  17 ADA       $    1.34M launch 2024-04-18 
+  18 VVV       $    1.30M launch 2025-01-29 
+  19 SUI       $    1.07M launch 2024-04-24 
+  20 AIN       $    1.06M launch 2025-07-16 
+  21 FIL       $    0.98M launch 2024-05-09 
+  22 HYPE      $    0.71M launch 2025-06-04 
+  23 H         $    0.58M launch 2025-07-16 
+  24 GRIFFAIN  $    0.43M launch 2025-01-22 
+  25 PUMP      $    0.42M launch 2025-07-16 
+  Delta-own top-9 crypto: ['BTC', 'ETH', 'SOL', 'XRP', 'UNI', 'ZEC', 'AAVE', 'DOGE', 'AVAX']
+wrote /tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/uni1_verify/live/delta_out.json

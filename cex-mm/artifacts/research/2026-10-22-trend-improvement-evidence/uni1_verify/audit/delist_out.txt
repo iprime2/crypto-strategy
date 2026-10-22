@@ -1,0 +1,89 @@
+== daily: delisting events of U members inside the window: 1
+      delisting hit: MATIC 2024-09-04 close 0.3846 held False w 0.0000 pnl30d -0.1469% total +1.0035% flatten cost ~0.00000%
+   coins ever in U: [np.str_('1000PEPE'), np.str_('AVAX'), np.str_('BCH'), np.str_('BNB'), np.str_('BTC'), np.str_('DOGE'), np.str_('EOS'), np.str_('ETH'), np.str_('LINK'), np.str_('LTC'), np.str_('MATIC'), np.str_('SOL'), np.str_('XRP'), np.str_('XTZ')]
+   1000PEPE  U rows   638 (2025-01-01..2026-09-30) W!=0 days   204 lives 1 LAST rows [] zeroQ rows 0 (in window 0) missing rows in window 0 (0 while in U: []) frozen-with-Q>0 0 Q<$1M while in U 0
+   AVAX      U rows  1004 (2024-01-01..2026-09-30) W!=0 days   409 lives 1 LAST rows [] zeroQ rows 0 (in window 0) missing rows in window 0 (0 while in U: []) frozen-with-Q>0 0 Q<$1M while in U 0
+   BCH       U rows   611 (2020-04-30..2021-12-31) W!=0 days   381 lives 1 LAST rows [] zeroQ rows 0 (in window 0) missing rows in window 0 (0 while in U: []) frozen-with-Q>0 0 Q<$1M while in U 0
+   BNB       U rows  2345 (2020-04-30..2026-09-30) W!=0 days  1358 lives 1 LAST rows [] zeroQ rows 0 (in window 0) missing rows in window 0 (0 while in U: []) frozen-with-Q>0 0 Q<$1M while in U 0
+   BTC       U rows  2345 (2020-04-30..2026-09-30) W!=0 days  1343 lives 1 LAST rows [] zeroQ rows 0 (in window 0) missing rows in window 0 (0 while in U: []) frozen-with-Q>0 0 Q<$1M while in U 0
+   DOGE      U rows  1369 (2023-01-01..2026-09-30) W!=0 days   582 lives 1 LAST rows [] zeroQ rows 0 (in window 0) missing rows in window 0 (0 while in U: []) frozen-with-Q>0 0 Q<$1M while in U 0
+   EOS       U rows   976 (2020-04-30..2022-12-31) W!=0 days   391 lives 1 LAST rows ['2025-05-21'] zeroQ rows 0 (in window 0) missing rows in window 0 (0 while in U: []) frozen-with-Q>0 0 Q<$1M while in U 0
+   ETH       U rows  2345 (2020-04-30..2026-09-30) W!=0 days  1343 lives 1 LAST rows [] zeroQ rows 0 (in window 0) missing rows in window 0 (0 while in U: []) frozen-with-Q>0 0 Q<$1M while in U 0
+   LINK      U rows  2345 (2020-04-30..2026-09-30) W!=0 days  1161 lives 1 LAST rows [] zeroQ rows 0 (in window 0) missing rows in window 0 (0 while in U: []) frozen-with-Q>0 0 Q<$1M while in U 0
+   LTC       U rows  1341 (2020-04-30..2023-12-31) W!=0 days   706 lives 1 LAST rows [] zeroQ rows 0 (in window 0) missing rows in window 5 (5 while in U: ['2022-02-26', '2022-02-27', '2022-02-28', '2022-04-01', '2022-04-02']) frozen-with-Q>0 0 Q<$1M while in U 0
+   MATIC     U rows  1096 (2022-01-01..2024-12-31) W!=0 days   386 lives 1 LAST rows ['2024-09-04'] zeroQ rows 7 (in window 7) missing rows in window 0 (0 while in U: []) frozen-with-Q>0 0 Q<$1M while in U 0
+   SOL       U rows  1734 (2022-01-01..2026-09-30) W!=0 days   761 lives 1 LAST rows [] zeroQ rows 0 (in window 0) missing rows in window 5 (5 while in U: ['2022-02-26', '2022-02-27', '2022-02-28', '2022-04-01', '2022-04-02']) frozen-with-Q>0 0 Q<$1M while in U 0
+   XRP       U rows  2345 (2020-04-30..2026-09-30) W!=0 days  1194 lives 1 LAST rows [] zeroQ rows 0 (in window 0) missing rows in window 5 (5 while in U: ['2022-02-26', '2022-02-27', '2022-02-28', '2022-04-01', '2022-04-02']) frozen-with-Q>0 0 Q<$1M while in U 0
+   XTZ       U rows   611 (2020-04-30..2021-12-31) W!=0 days   317 lives 1 LAST rows [] zeroQ rows 0 (in window 0) missing rows in window 0 (0 while in U: []) frozen-with-Q>0 0 Q<$1M while in U 0
+== weekly: delisting events of U members inside the window: 1
+      delisting hit: MATIC 2024-09-04 close 0.3846 held False w 0.0000 pnl30d +0.0000% total +0.7325% flatten cost ~0.00000%
+   coins ever in U: [np.str_('1000PEPE'), np.str_('AVAX'), np.str_('BCH'), np.str_('BNB'), np.str_('BTC'), np.str_('DOGE'), np.str_('EOS'), np.str_('ETH'), np.str_('LINK'), np.str_('LTC'), np.str_('MATIC'), np.str_('SOL'), np.str_('XRP'), np.str_('XTZ')]
+   1000PEPE  U rows   634 (2025-01-05..2026-09-30) W!=0 days   200 lives 1 LAST rows [] zeroQ rows 0 (in window 0) missing rows in window 0 (0 while in U: []) frozen-with-Q>0 0 Q<$1M while in U 0
+   AVAX      U rows   998 (2024-01-07..2026-09-30) W!=0 days   403 lives 1 LAST rows [] zeroQ rows 0 (in window 0) missing rows in window 0 (0 while in U: []) frozen-with-Q>0 0 Q<$1M while in U 0
+   BCH       U rows   612 (2020-04-30..2022-01-01) W!=0 days   381 lives 1 LAST rows [] zeroQ rows 0 (in window 0) missing rows in window 0 (0 while in U: []) frozen-with-Q>0 0 Q<$1M while in U 0
+   BNB       U rows  2345 (2020-04-30..2026-09-30) W!=0 days  1358 lives 1 LAST rows [] zeroQ rows 0 (in window 0) missing rows in window 0 (0 while in U: []) frozen-with-Q>0 0 Q<$1M while in U 0
+   BTC       U rows  2345 (2020-04-30..2026-09-30) W!=0 days  1343 lives 1 LAST rows [] zeroQ rows 0 (in window 0) missing rows in window 0 (0 while in U: []) frozen-with-Q>0 0 Q<$1M while in U 0
+   DOGE      U rows  1369 (2023-01-01..2026-09-30) W!=0 days   582 lives 1 LAST rows [] zeroQ rows 0 (in window 0) missing rows in window 0 (0 while in U: []) frozen-with-Q>0 0 Q<$1M while in U 0
+   EOS       U rows   976 (2020-04-30..2022-12-31) W!=0 days   391 lives 1 LAST rows ['2025-05-21'] zeroQ rows 0 (in window 0) missing rows in window 0 (0 while in U: []) frozen-with-Q>0 0 Q<$1M while in U 0
+   ETH       U rows  2345 (2020-04-30..2026-09-30) W!=0 days  1343 lives 1 LAST rows [] zeroQ rows 0 (in window 0) missing rows in window 0 (0 while in U: []) frozen-with-Q>0 0 Q<$1M while in U 0
+   LINK      U rows  2345 (2020-04-30..2026-09-30) W!=0 days  1161 lives 1 LAST rows [] zeroQ rows 0 (in window 0) missing rows in window 0 (0 while in U: []) frozen-with-Q>0 0 Q<$1M while in U 0
+   LTC       U rows  1347 (2020-04-30..2024-01-06) W!=0 days   708 lives 1 LAST rows [] zeroQ rows 0 (in window 0) missing rows in window 5 (5 while in U: ['2022-02-26', '2022-02-27', '2022-02-28', '2022-04-01', '2022-04-02']) frozen-with-Q>0 0 Q<$1M while in U 0
+   MATIC     U rows  1099 (2022-01-02..2025-01-04) W!=0 days   385 lives 1 LAST rows ['2024-09-04'] zeroQ rows 7 (in window 7) missing rows in window 0 (0 while in U: []) frozen-with-Q>0 0 Q<$1M while in U 0
+   SOL       U rows  1733 (2022-01-02..2026-09-30) W!=0 days   760 lives 1 LAST rows [] zeroQ rows 0 (in window 0) missing rows in window 5 (5 while in U: ['2022-02-26', '2022-02-27', '2022-02-28', '2022-04-01', '2022-04-02']) frozen-with-Q>0 0 Q<$1M while in U 0
+   XRP       U rows  2345 (2020-04-30..2026-09-30) W!=0 days  1194 lives 1 LAST rows [] zeroQ rows 0 (in window 0) missing rows in window 5 (5 while in U: ['2022-02-26', '2022-02-27', '2022-02-28', '2022-04-01', '2022-04-02']) frozen-with-Q>0 0 Q<$1M while in U 0
+   XTZ       U rows   612 (2020-04-30..2022-01-01) W!=0 days   317 lives 1 LAST rows [] zeroQ rows 0 (in window 0) missing rows in window 0 (0 while in U: []) frozen-with-Q>0 0 Q<$1M while in U 0
+
+MATIC: first 2020-10-22 last finite 2024-09-11 last Q>0 2024-09-04
+   2024-08-31 O 0.4211 H 0.4271 L 0.417 C 0.4196 Q 5.317e+07 F 0.000300 W_d 0.0000 W_w 0.0000 U_d True
+   2024-09-01 O 0.4196 H 0.4204 L 0.3961 C 0.4021 Q 9.922e+07 F 0.000300 W_d 0.0000 W_w 0.0000 U_d True
+   2024-09-02 O 0.402 H 0.4154 L 0.3956 C 0.4111 Q 1.09e+08 F 0.000243 W_d 0.0000 W_w 0.0000 U_d True
+   2024-09-03 O 0.4111 H 0.4154 L 0.3959 C 0.398 Q 1.173e+08 F 0.000897 W_d 0.0000 W_w 0.0000 U_d True
+   2024-09-04 O 0.398 H 0.4009 L 0.376 C 0.3846 Q 5.362e+07 F 0.006236 W_d 0.0000 W_w 0.0000 U_d True
+   2024-09-05 O 0.3846 H 0.3846 L 0.3846 C 0.3846 Q 0 F 0.000300 W_d 0.0000 W_w 0.0000 U_d True
+   2024-09-06 O 0.3846 H 0.3846 L 0.3846 C 0.3846 Q 0 F 0.000300 W_d 0.0000 W_w 0.0000 U_d True
+   2024-09-07 O 0.3846 H 0.3846 L 0.3846 C 0.3846 Q 0 F 0.000300 W_d 0.0000 W_w 0.0000 U_d True
+
+POL: first 2024-09-13 last finite 2026-09-30 last Q>0 2026-09-30
+   2026-09-26 O 0.11615 H 0.12059 L 0.11531 C 0.1204 Q 2.658e+07 F 0.000300 W_d 0.0000 W_w 0.0000 U_d False
+   2026-09-27 O 0.1204 H 0.12548 L 0.11882 C 0.12192 Q 2.239e+07 F 0.000238 W_d 0.0000 W_w 0.0000 U_d False
+   2026-09-28 O 0.1219 H 0.12318 L 0.11164 C 0.1168 Q 4.563e+07 F 0.000008 W_d 0.0000 W_w 0.0000 U_d False
+   2026-09-29 O 0.11679 H 0.12527 L 0.11261 C 0.11751 Q 3.821e+07 F -0.000156 W_d 0.0000 W_w 0.0000 U_d False
+   2026-09-30 O 0.1175 H 0.12058 L 0.11066 C 0.1139 Q 2.495e+07 F -0.000570 W_d 0.0000 W_w 0.0000 U_d False
+
+EOS: first 2020-01-08 last finite 2025-05-21 last Q>0 2025-05-21
+   2025-05-17 O 0.839 H 0.845 L 0.779 C 0.808 Q 1.359e+08 F -0.000019 W_d 0.0000 W_w 0.0000 U_d False
+   2025-05-18 O 0.807 H 0.847 L 0.77 C 0.815 Q 1.002e+08 F -0.000145 W_d 0.0000 W_w 0.0000 U_d False
+   2025-05-19 O 0.815 H 0.817 L 0.751 C 0.775 Q 8.027e+07 F 0.000201 W_d 0.0000 W_w 0.0000 U_d False
+   2025-05-20 O 0.775 H 0.792 L 0.756 C 0.786 Q 7.85e+07 F 0.000103 W_d 0.0000 W_w 0.0000 U_d False
+   2025-05-21 O 0.786 H 0.794 L 0.715 C 0.746 Q 2.039e+07 F 0.000300 W_d 0.0000 W_w 0.0000 U_d False
+   2025-05-22 O nan H nan L nan C nan Q nan F 0.000300 W_d 0.0000 W_w 0.0000 U_d False
+   2025-05-23 O nan H nan L nan C nan Q nan F 0.000300 W_d 0.0000 W_w 0.0000 U_d False
+   2025-05-24 O nan H nan L nan C nan Q nan F 0.000300 W_d 0.0000 W_w 0.0000 U_d False
+
+XTZ: first 2020-02-06 last finite 2026-09-30 last Q>0 2026-09-30
+   2026-09-26 O 0.3317 H 0.3365 L 0.3215 C 0.3283 Q 3.888e+06 F 0.000190 W_d 0.0000 W_w 0.0000 U_d False
+   2026-09-27 O 0.3283 H 0.3284 L 0.3186 C 0.3206 Q 2.608e+06 F -0.000073 W_d 0.0000 W_w 0.0000 U_d False
+   2026-09-28 O 0.3207 H 0.3239 L 0.3041 C 0.3126 Q 4.254e+06 F -0.000177 W_d 0.0000 W_w 0.0000 U_d False
+   2026-09-29 O 0.3127 H 0.3265 L 0.3027 C 0.3114 Q 3.362e+06 F 0.000148 W_d 0.0000 W_w 0.0000 U_d False
+   2026-09-30 O 0.3116 H 0.326 L 0.3084 C 0.3161 Q 4.078e+06 F 0.000129 W_d 0.0000 W_w 0.0000 U_d False
+
+Reset ranks of blow-up / delisted high-turnover names (daily resets, eligible-list rank; '-' = not eligible):
+  2020-04-30 top12 eligible: BTC(1) ETH(2) LINK(3) BCH(4) XTZ(5) LTC(6) BNB(7) EOS(8) XRP(9) ETC(10) DASH(11) XLM(12)
+      LUNA:-/-(age 0) FTT:-/-(age 0) SRM:-/-(age 0) 1000LUNC:-/-(age 0) USTC:-/-(age 0) WAVES:-/-(age 0) BTCST:-/-(age 0) CVC:-/-(age 0) MATIC:-/-(age 0) FTM:-/-(age 0) ADA:17/17(age 91) DOT:-/-(age 0) SOL:-/-(age 0) AVAX:-/-(age 0) DOGE:-/-(age 0) 1000SHIB:-/-(age 0) XTZ:5/5(age 85) EOS:8/8(age 114)
+  2021-01-01 top12 eligible: BTC(1) ETH(2) XRP(3) LTC(4) LINK(5) BCH(6) EOS(7) BNB(8) XTZ(9)
+      LUNA:-/-(age 0) FTT:-/-(age 0) SRM:-/56(age 119) 1000LUNC:-/-(age 0) USTC:-/-(age 0) WAVES:-/19(age 143) BTCST:-/-(age 0) CVC:-/57(age 52) MATIC:-/72(age 72) FTM:-/71(age 100) ADA:-/9(age 337) DOT:-/14(age 133) SOL:-/39(age 110) AVAX:-/35(age 101) DOGE:-/49(age 176) 1000SHIB:-/-(age 0) XTZ:9/32(age 331) EOS:7/10(age 360)
+  2022-01-01 top12 eligible: BTC(1) ETH(2) MATIC(3) SOL(4) AVAX(5) XRP(6) NEAR(7) DOT(8) ADA(9) BNB(10) FTM(11) DOGE(12)
+      LUNA:-/3(age 339) FTT:-/-(age 0) SRM:48/69(age 484) 1000LUNC:-/-(age 0) USTC:-/-(age 0) WAVES:47/68(age 508) BTCST:-/-(age 9) CVC:76/121(age 417) MATIC:3/5(age 437) FTM:11/16(age 465) ADA:9/14(age 702) DOT:8/13(age 498) SOL:4/6(age 475) AVAX:5/8(age 466) DOGE:12/17(age 541) 1000SHIB:-/9(age 237) XTZ:21/27(age 696) EOS:18/23(age 725)
+  2023-01-01 top12 eligible: BTC(1) ETH(2) DOGE(3) XRP(4) BNB(5) LTC(6) MATIC(7) LINK(8) MASK(9) SOL(10) ADA(11) CHZ(12)
+      LUNA:-/-(age 465) FTT:-/-(age 214) SRM:-/-(age 802) 1000LUNC:-/36(age 115) USTC:-/-(age 0) WAVES:18/20(age 868) BTCST:-/-(age 9) CVC:-/-(age 749) MATIC:7/7(age 802) FTM:16/17(age 825) ADA:11/12(age 1067) DOT:20/22(age 863) SOL:10/10(age 835) AVAX:21/23(age 831) DOGE:3/3(age 906) 1000SHIB:26/31(age 602) XTZ:63/72(age 1061) EOS:19/21(age 1090)
+  2024-01-01 top12 eligible: BTC(1) ETH(2) SOL(3) AVAX(4) XRP(5) ADA(6) DOGE(7) OP(8) MATIC(9) LINK(10) BNB(11) TRB(12)
+      LUNA:-/-(age 465) FTT:-/-(age 214) SRM:-/-(age 802) 1000LUNC:25/36(age 480) USTC:-/-(age 36) WAVES:50/69(age 1233) BTCST:-/-(age 9) CVC:-/-(age 749) MATIC:9/12(age 1167) FTM:21/26(age 1190) ADA:6/8(age 1432) DOT:14/18(age 1228) SOL:3/3(age 1200) AVAX:4/5(age 1196) DOGE:7/9(age 1271) 1000SHIB:22/28(age 967) XTZ:87/126(age 1426) EOS:31/43(age 1455)
+  2025-01-01 top12 eligible: BTC(1) ETH(2) XRP(3) SOL(4) DOGE(5) 1000PEPE(6) SUI(7) BNB(8) LINK(9) ADA(10) HBAR(11) AVAX(12)
+      LUNA:-/-(age 465) FTT:-/-(age 214) SRM:-/-(age 802) 1000LUNC:83/127(age 846) USTC:-/-(age 402) WAVES:-/-(age 1395) BTCST:-/-(age 9) CVC:-/-(age 749) MATIC:-/-(age 1414) FTM:26/35(age 1556) ADA:10/11(age 1798) DOT:19/26(age 1594) SOL:4/4(age 1566) AVAX:12/15(age 1562) DOGE:5/5(age 1637) 1000SHIB:16/21(age 1333) XTZ:61/93(age 1792) EOS:39/54(age 1821)
+  2026-01-01 top12 eligible: BTC(1) ETH(2) SOL(3) ZEC(4) XRP(5) DOGE(6) BNB(7) SUI(8) 1000PEPE(9) ADA(10) AVAX(11) BCH(12)
+      LUNA:-/-(age 465) FTT:-/-(age 214) SRM:-/-(age 802) 1000LUNC:32/46(age 1211) USTC:-/-(age 767) WAVES:-/-(age 1395) BTCST:-/-(age 9) CVC:-/352(age 231) MATIC:-/-(age 1414) FTM:-/-(age 1561) ADA:10/13(age 2163) DOT:23/31(age 1959) SOL:3/3(age 1931) AVAX:11/14(age 1927) DOGE:6/6(age 2002) 1000SHIB:29/40(age 1698) XTZ:87/140(age 2157) EOS:-/-(age 1961)
+LUNA: first close 2021-01-28, last finite 2022-05-13, last Q>0 2022-05-12 close 0.008, lives 1, zero-Q rows 1, ever in UNI-1 U: False
+FTT: first close 2022-04-15, last finite 2026-09-30, last Q>0 2022-11-14 close 1.59, lives 1, zero-Q rows 1416, ever in UNI-1 U: False
+SRM: first close 2020-09-05, last finite 2024-05-28, last Q>0 2022-11-15 close 0.287, lives 1, zero-Q rows 560, ever in UNI-1 U: False
+1000LUNC: first close 2022-09-09, last finite 2026-09-30, last Q>0 2026-09-30 close 0.053, lives 1, zero-Q rows 0, ever in UNI-1 U: False
+WAVES: first close 2020-08-12, last finite 2026-09-30, last Q>0 2024-06-11 close 1.3355, lives 1, zero-Q rows 841, ever in UNI-1 U: False

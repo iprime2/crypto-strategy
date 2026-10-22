@@ -1,0 +1,40 @@
+LUNA last rows:
+   2022-05-05 O 86.161 H 87.79 L 78.101 C 82.283 Q 1.571e+09 F -0.00040
+   2022-05-06 O 82.286 H 82.991 L 76.953 C 77.243 Q 1.273e+09 F -0.00073
+   2022-05-07 O 77.243 H 77.444 L 62.679 C 68.126 Q 2.154e+09 F -0.00061
+   2022-05-08 O 68.126 H 68.529 L 59.35 C 64.237 Q 3.932e+09 F -0.00060
+   2022-05-09 O 64.241 H 65.316 L 29.641 C 30.106 Q 9.561e+09 F -0.00041
+   2022-05-10 O 30.121 H 39.8 L 13.22 C 17.505 Q 2.228e+10 F -0.00611
+   2022-05-11 O 17.506 H 19.68 L 0.4761 C 1.0902 Q 2.881e+10 F -0.02360
+   2022-05-12 O 1.09 H 1.3828 L 0.0031 C 0.008 Q 5.311e+09 F -0.02401
+   2022-05-13 O 0.008 H 0.008 L 0.008 C 0.008 Q 0 F +0.00010
+
+UNI-1__age121 daily: Sharpe 0.9663; resets: 2021-01-01 +['YFI'] -['XTZ']; 2022-01-01 +['LUNA', 'MATIC', 'SAND'] -['BCH', 'EOS', 'YFI']; 2023-01-01 +['DOGE', 'MASK'] -['LUNA', 'SAND']; 2024-01-01 +['AVAX', 'SOL'] -['LTC', 'MASK']; 2025-01-01 +['1000PEPE'] -['MATIC']; 2026-01-01 +[] -[]
+   LUNA total P&L -0.9426%; Apr25-May14 daily: []
+   W LUNA 2022-05-01..12: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+   Sharpe with LUNA P&L removed: 0.9747
+      delisting hit: LUNA 2022-05-12 close 0.008 held False w 0.0000 pnl30d +0.0000% total -0.9426% flatten cost ~0.00000%
+      delisting hit: MATIC 2024-09-04 close 0.3846 held False w 0.0000 pnl30d -0.1469% total +1.0050% flatten cost ~0.00000%
+
+UNI-1__age121 weekly: Sharpe 0.9120; resets: 2021-01-03 +['YFI'] -['XTZ']; 2022-01-02 +['LUNA', 'MATIC', 'SAND'] -['BCH', 'EOS', 'YFI']; 2023-01-01 +['DOGE', 'MASK'] -['LUNA', 'SAND']; 2024-01-07 +['AVAX', 'SOL'] -['LTC', 'MASK']; 2025-01-05 +['1000PEPE'] -['MATIC']; 2026-01-04 +[] -[]
+   LUNA total P&L -0.5699%; Apr25-May14 daily: []
+   W LUNA 2022-05-01..12: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+   Sharpe with LUNA P&L removed: 0.9196
+      delisting hit: LUNA 2022-05-12 close 0.008 held False w 0.0000 pnl30d +0.0000% total -0.5699% flatten cost ~0.00000%
+      delisting hit: MATIC 2024-09-04 close 0.3846 held False w 0.0000 pnl30d +0.0000% total +0.7050% flatten cost ~0.00000%
+
+UNI-1 FULL / POST Sharpe vs the age floor (N 9, H 18, yearly); static-24 daily 0.8512 weekly 0.8101
+   age 121: daily 0.966/0.733 mdd -28.1% | weekly 0.912/0.679 mdd -20.6% | entrants after start: ['1000PEPE', 'AVAX', 'DOGE', 'LUNA', 'MASK', 'MATIC', 'SAND', 'SOL', 'YFI']
+   age 200: daily 0.968/0.733 mdd -26.9% | weekly 0.922/0.679 mdd -19.3% | entrants after start: ['1000PEPE', 'AVAX', 'DOGE', 'LUNA', 'MASK', 'MATIC', 'SAND', 'SOL']
+   age 250: daily 0.968/0.733 mdd -26.9% | weekly 0.922/0.679 mdd -19.3% | entrants after start: ['1000PEPE', 'AVAX', 'DOGE', 'LUNA', 'MASK', 'MATIC', 'SAND', 'SOL']
+   age 300: daily 0.968/0.733 mdd -26.9% | weekly 0.922/0.679 mdd -19.3% | entrants after start: ['1000PEPE', 'AVAX', 'DOGE', 'LUNA', 'MASK', 'MATIC', 'SAND', 'SOL']
+   age 330: daily 0.968/0.733 mdd -26.9% | weekly 0.922/0.679 mdd -19.3% | entrants after start: ['1000PEPE', 'AVAX', 'DOGE', 'LUNA', 'MASK', 'MATIC', 'SAND', 'SOL']
+   age 335: daily 0.968/0.733 mdd -26.9% | weekly 0.922/0.679 mdd -19.3% | entrants after start: ['1000PEPE', 'AVAX', 'DOGE', 'LUNA', 'MASK', 'MATIC', 'SAND', 'SOL']
+   age 340: daily 1.051/0.863 mdd -26.5% | weekly 0.922/0.679 mdd -19.3% | entrants after start: ['1000PEPE', 'AVAX', 'DOGE', 'LUNA', 'MASK', 'MATIC', 'SAND', 'SOL']
+   age 345: daily 1.050/0.862 mdd -26.5% | weekly 0.984/0.777 mdd -18.2% | entrants after start: ['1000PEPE', 'AVAX', 'DOGE', 'MATIC', 'SOL']
+   age 350: daily 1.050/0.862 mdd -26.5% | weekly 0.984/0.777 mdd -18.2% | entrants after start: ['1000PEPE', 'AVAX', 'DOGE', 'MATIC', 'SOL']
+   age 365: daily 1.050/0.862 mdd -26.5% | weekly 0.984/0.777 mdd -18.2% | entrants after start: ['1000PEPE', 'AVAX', 'DOGE', 'MATIC', 'SOL']
+   age 380: daily 1.050/0.862 mdd -26.5% | weekly 0.984/0.777 mdd -18.2% | entrants after start: ['1000PEPE', 'AVAX', 'DOGE', 'MATIC', 'SOL']
+   age 400: daily 1.050/0.862 mdd -26.5% | weekly 0.984/0.777 mdd -18.2% | entrants after start: ['1000PEPE', 'AVAX', 'DOGE', 'MATIC', 'SOL']
+   age 450: daily 1.063/0.882 mdd -25.9% | weekly 1.002/0.805 mdd -17.7% | entrants after start: ['1000PEPE', 'AVAX', 'DOGE', 'MATIC', 'SOL']
+   age 500: daily 0.989/0.764 mdd -27.6% | weekly 0.931/0.690 mdd -18.0% | entrants after start: ['1000PEPE', 'AVAX', 'DOGE', 'MATIC', 'SOL']

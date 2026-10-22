@@ -1,0 +1,40 @@
+
+=== daily (all deltas vs static-24 through D-0; bootstrap block 20, 1000 draws)
+  UNI-1                                        FULL 1.050 (d +0.198 [-0.17,+0.53] P 0.16) | 2020-21 1.459 (d +0.053) | POST 0.862 (d +0.276 [-0.22,+0.74] P 0.12) | vol 18.4% mdd -26.5%
+  static-24: FULL 0.851 2020-21 1.406 POST 0.586 vol 16.6% mdd -24.7%
+  restart 2022-01-01..2026-09-30: UNI-1 0.862 vs static-24 0.586 d +0.276 [-0.22,+0.74] P<=0 0.12; CAGR +13.0% vs +7.8%; mdd -17.4% vs -18.2%
+  hybrid: static-24 to 2021, UNI-1 from 2022   FULL 1.028 (d +0.177 [-0.16,+0.47] P 0.15) | 2020-21 1.406 (d +0.000) | POST 0.862 (d +0.276 [-0.22,+0.74] P 0.12) | vol 17.3% mdd -24.6%
+  C1 static start-9 never reset ['BTC', 'ETH', 'LINK', 'BCH', 'XTZ', 'LTC', 'BNB', 'EOS', 'XRP'] FULL 0.884 (d +0.032 [-0.26,+0.32] P 0.43) | 2020-21 1.459 (d +0.053) | POST 0.599 (d +0.013 [-0.34,+0.39] P 0.48) | vol 18.5% mdd -28.4%
+     C1 vs UNI-1: FULL -0.166 POST -0.263
+  C4 UNI-1 frozen at its 2022 set ['BTC', 'ETH', 'MATIC', 'SOL', 'XRP', 'BNB', 'LINK', 'LTC', 'EOS'] FULL 1.007 (d +0.156 [-0.17,+0.45] P 0.19) | 2020-21 1.459 (d +0.053) | POST 0.797 (d +0.210 [-0.23,+0.64] P 0.14) | vol 18.8% mdd -26.9%
+     C4 vs UNI-1: POST -0.065
+  C3 UNI-1 rule inside the static-24 only      FULL 0.932 (d +0.080 [-0.22,+0.38] P 0.31) | 2020-21 1.459 (d +0.053) | POST 0.678 (d +0.092 [-0.27,+0.45] P 0.30) | vol 18.7% mdd -28.4%
+       2020-04-30 ['BTC', 'ETH', 'LINK', 'BCH', 'XTZ', 'LTC', 'BNB', 'EOS', 'XRP']
+       2021-01-01 ['BTC', 'ETH', 'XRP', 'LTC', 'LINK', 'BCH', 'EOS', 'BNB', 'XTZ']
+       2022-01-01 ['BTC', 'ETH', 'XRP', 'BNB', 'LINK', 'LTC', 'EOS', 'XTZ', 'BCH']
+       2023-01-01 ['BTC', 'ETH', 'XRP', 'BNB', 'LTC', 'LINK', 'EOS', 'BCH', 'XTZ']
+       2024-01-01 ['BTC', 'ETH', 'XRP', 'ADA', 'LINK', 'BNB', 'LTC', 'BCH', 'EOS']
+       2025-01-01 ['BTC', 'ETH', 'XRP', 'BNB', 'LINK', 'ADA', 'LTC', 'BCH', 'EOS']
+       2026-01-01 ['BTC', 'ETH', 'ZEC', 'XRP', 'BNB', 'ADA', 'BCH', 'LINK', 'LTC']
+  C5 hindsight nine (reference, not ex-ante)   FULL 1.250 (d +0.399 [+0.04,+0.74] P 0.01) | 2020-21 2.092 (d +0.686) | POST 0.837 (d +0.250 [-0.19,+0.66] P 0.12) | vol 18.7% mdd -21.9%
+  C6 UNI-1 rule with N=24, H=48                FULL 0.805 (d -0.046 [-0.29,+0.15] P 0.74) | 2020-21 1.406 (d +0.000) | POST 0.498 (d -0.088 [-0.46,+0.24] P 0.72) | vol 15.8% mdd -25.4%
+
+=== weekly (all deltas vs static-24 through D-0; bootstrap block 20, 1000 draws)
+  UNI-1                                        FULL 0.984 (d +0.174 [-0.18,+0.52] P 0.18) | 2020-21 1.422 (d -0.052) | POST 0.777 (d +0.286 [-0.23,+0.79] P 0.12) | vol 12.2% mdd -18.2%
+  static-24: FULL 0.810 2020-21 1.474 POST 0.492 vol 11.0% mdd -17.0%
+  restart 2022-01-01..2026-09-30: UNI-1 0.774 vs static-24 0.489 d +0.285 [-0.23,+0.79] P<=0 0.12; CAGR +7.7% vs +4.4%; mdd -10.2% vs -11.6%
+  hybrid: static-24 to 2021, UNI-1 from 2022   FULL 0.992 (d +0.182 [-0.14,+0.50] P 0.15) | 2020-21 1.474 (d +0.000) | POST 0.776 (d +0.285 [-0.23,+0.79] P 0.12) | vol 11.4% mdd -16.8%
+  C1 static start-9 never reset ['BTC', 'ETH', 'LINK', 'BCH', 'XTZ', 'LTC', 'BNB', 'EOS', 'XRP'] FULL 0.819 (d +0.009 [-0.28,+0.28] P 0.47) | 2020-21 1.422 (d -0.052) | POST 0.514 (d +0.022 [-0.34,+0.39] P 0.47) | vol 12.2% mdd -18.2%
+     C1 vs UNI-1: FULL -0.165 POST -0.263
+  C4 UNI-1 frozen at its 2022 set ['BTC', 'ETH', 'MATIC', 'SOL', 'XRP', 'BNB', 'LINK', 'LTC', 'EOS'] FULL 0.961 (d +0.151 [-0.17,+0.43] P 0.20) | 2020-21 1.422 (d -0.052) | POST 0.743 (d +0.252 [-0.17,+0.67] P 0.12) | vol 12.4% mdd -18.3%
+     C4 vs UNI-1: POST -0.034
+  C3 UNI-1 rule inside the static-24 only      FULL 0.850 (d +0.040 [-0.23,+0.30] P 0.40) | 2020-21 1.422 (d -0.052) | POST 0.566 (d +0.075 [-0.28,+0.42] P 0.35) | vol 12.3% mdd -18.2%
+       2020-04-30 ['BTC', 'ETH', 'LINK', 'BCH', 'XTZ', 'LTC', 'BNB', 'EOS', 'XRP']
+       2021-01-03 ['BTC', 'ETH', 'XRP', 'LTC', 'LINK', 'BCH', 'BNB', 'EOS', 'XTZ']
+       2022-01-02 ['BTC', 'ETH', 'XRP', 'BNB', 'LINK', 'LTC', 'EOS', 'XTZ', 'BCH']
+       2023-01-01 ['BTC', 'ETH', 'XRP', 'BNB', 'LTC', 'LINK', 'EOS', 'BCH', 'XTZ']
+       2024-01-07 ['BTC', 'ETH', 'XRP', 'ADA', 'BNB', 'LINK', 'LTC', 'BCH', 'EOS']
+       2025-01-05 ['BTC', 'ETH', 'XRP', 'BNB', 'ADA', 'LINK', 'LTC', 'BCH', 'EOS']
+       2026-01-04 ['BTC', 'ETH', 'ZEC', 'XRP', 'BNB', 'ADA', 'BCH', 'LINK', 'LTC']
+  C5 hindsight nine (reference, not ex-ante)   FULL 1.121 (d +0.310 [-0.04,+0.64] P 0.05) | 2020-21 2.011 (d +0.537) | POST 0.660 (d +0.168 [-0.26,+0.57] P 0.22) | vol 12.4% mdd -16.9%
+  C6 UNI-1 rule with N=24, H=48                FULL 0.707 (d -0.103 [-0.35,+0.11] P 0.84) | 2020-21 1.474 (d +0.000) | POST 0.296 (d -0.196 [-0.59,+0.15] P 0.86) | vol 10.3% mdd -18.0%

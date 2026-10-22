@@ -1,0 +1,18 @@
+2020-04-30 
+2021-01-01 
+2022-01-01 kept EOS(18) Q 269M vs rank19 LRC 232M (ratio 1.16); last entrant SOL(4) 942M vs best non-member AVAX(5) 736M ratio 1.28
+2023-01-01 last entrant DOGE(3) 662M vs best non-member MASK(9) 191M ratio 3.46
+2024-01-01 last entrant AVAX(4) 983M vs best non-member ADA(6) 510M ratio 1.93
+2025-01-01 last entrant 1000PEPE(6) 1613M vs best non-member SUI(7) 1105M ratio 1.46
+2026-01-01 
+H 16: daily 1.044/0.853 | weekly 0.979/0.769
+H 17: daily 1.044/0.853 | weekly 0.979/0.769
+H 18: daily 1.050/0.862 | weekly 0.984/0.777
+H 19: daily 0.990/0.767 | weekly 0.872/0.594
+H 20: daily 0.995/0.776 | weekly 0.910/0.660
+daily 2022-01-01 dropped incumbent XTZ rank 21 Q 182.9M vs rank18 EOS 269.1M -> needs +47.2% to stay
+daily 2023-01-01 dropped incumbent EOS rank 19 Q 100.1M vs rank18 WAVES 102.6M -> needs +2.5% to stay
+daily 2024-01-01 dropped incumbent LTC rank 20 Q 224.7M vs rank18 ATOM 236.6M -> needs +5.3% to stay
+weekly 2022-01-02 dropped incumbent XTZ rank 21 Q 171.7M vs rank18 EOS 263.7M -> needs +53.5% to stay
+weekly 2023-01-01 dropped incumbent EOS rank 19 Q 100.1M vs rank18 WAVES 102.6M -> needs +2.5% to stay
+weekly 2024-01-07 dropped incumbent LTC rank 20 Q 214.3M vs rank18 DYDX 221.7M -> needs +3.5% to stay

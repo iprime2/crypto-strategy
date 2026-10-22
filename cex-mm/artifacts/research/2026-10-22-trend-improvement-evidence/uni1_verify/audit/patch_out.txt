@@ -1,0 +1,6 @@
+filled 71 coin-rows; DASH Oct-2022 funding sum before 0.00675 after 0.00675
+funding already present on gap days (sample): [('IOTA', '2022-02-26', -0.00063952), ('IOTA', '2022-02-27', -0.00052573), ('IOTA', '2022-02-28', -0.00054203), ('IOTA', '2022-04-01', 0.00030000000000000003), ('IOTA', '2022-04-02', 0.00030000000000000003)]
+daily: FULL UNI-1 1.0497 -> 1.0459; static-24 0.8512 -> 0.8601; delta +0.1985 -> +0.1858
+        POST UNI-1 0.8618 -> 0.8557; static-24 0.5863 -> 0.6000; delta +0.2755 -> +0.2557; MDD UNI-1 -0.2649->-0.2682 static -0.2474->-0.2401; membership unchanged: True
+weekly: FULL UNI-1 0.9838 -> 0.9844; static-24 0.8101 -> 0.8193; delta +0.1737 -> +0.1651
+        POST UNI-1 0.7771 -> 0.7779; static-24 0.4915 -> 0.5053; delta +0.2855 -> +0.2726; MDD UNI-1 -0.1823->-0.1820 static -0.1697->-0.1675; membership unchanged: True

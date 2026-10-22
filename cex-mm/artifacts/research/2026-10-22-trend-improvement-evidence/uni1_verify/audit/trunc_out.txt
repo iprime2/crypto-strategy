@@ -1,0 +1,37 @@
+2020-07-01 done; fails so far 0
+2020-08-31 done; fails so far 0
+2020-09-08 done; fails so far 0
+2020-12-31 done; fails so far 0
+2021-01-01 done; fails so far 0
+2021-02-26 done; fails so far 0
+2021-05-16 done; fails so far 0
+2021-09-14 done; fails so far 0
+2021-12-31 done; fails so far 0
+2022-01-01 done; fails so far 0
+2022-01-02 done; fails so far 0
+2022-02-27 done; fails so far 0
+2022-05-10 done; fails so far 0
+2022-10-14 done; fails so far 0
+2022-11-09 done; fails so far 0
+2023-01-01 done; fails so far 0
+2023-11-07 done; fails so far 0
+2024-01-01 done; fails so far 0
+2024-01-07 done; fails so far 0
+2024-07-12 done; fails so far 0
+2024-09-10 done; fails so far 0
+2024-12-26 done; fails so far 0
+2025-01-01 done; fails so far 0
+2025-03-18 done; fails so far 0
+2025-04-21 done; fails so far 0
+2025-05-21 done; fails so far 0
+2025-07-21 done; fails so far 0
+2025-07-27 done; fails so far 0
+2026-01-01 done; fails so far 0
+2026-02-25 done; fails so far 0
+
+cut rows: ['2020-07-01', '2020-08-31', '2020-09-08', '2020-12-31', '2021-01-01', '2021-02-26', '2021-05-16', '2021-09-14', '2021-12-31', '2022-01-01', '2022-01-02', '2022-02-27', '2022-05-10', '2022-10-14', '2022-11-09', '2023-01-01', '2023-11-07', '2024-01-01', '2024-01-07', '2024-07-12', '2024-09-10', '2024-12-26', '2025-01-01', '2025-03-18', '2025-04-21', '2025-05-21', '2025-07-21', '2025-07-27', '2026-01-01', '2026-02-25']
+checks: 480 (rows 30 x 2 modes x 4 cells x 2 cadences); failures: 0
+
+Simulator one-row look-ahead (position forced to 0 at close t because row t+1 has no close/Q>0), UNI-1:
+  daily: 0 forced flattens on rows the book holds or targets
+  weekly: 0 forced flattens on rows the book holds or targets
