@@ -1,6 +1,6 @@
-# Binance queue imbalance: it calls the next 4.5 bps tick, but pulling the threatened quote on it gains little so far
+# Binance queue imbalance: it calls the next 4.5 bps tick, but pulling the threatened quote on it failed its out-of-sample test
 
-**Date:** 2026-10-21 (out-of-sample result due 22 Oct) · **Venue:** Delta India mainnet, real orders · **Symbol:** ADAUSD · **Runs:** `20261020T110544Z` (stage 1, 100 contracts, 4.9 h), `20261020T155754Z` (stage 2, 200 contracts, 22.6 h), `20261021T143121Z` (c1a8080, concurrent order calls, 200 contracts, 2.5 h); 1,281 real fills in all · **Tape:** shadow recorder `20261020T105953Z`, `20261020T155640Z`, `20261021T143109Z`.
+**Date:** 2026-10-21 (out-of-sample result 22 Oct: fail) · **Venue:** Delta India mainnet, real orders · **Symbol:** ADAUSD · **Runs:** `20261020T110544Z` (stage 1, 100 contracts, 4.9 h), `20261020T155754Z` (stage 2, 200 contracts, 22.6 h), `20261021T143121Z` (c1a8080, concurrent order calls, 200 contracts, 2.5 h); 1,281 real fills in all · **Tape:** shadow recorder `20261020T105953Z`, `20261020T155640Z`, `20261021T143109Z`.
 
 Scripts (read-only, run on the VM, copied verbatim into `2026-10-21-binance-imbalance-evidence/`): `microprice.py` (the signal), `lean_replay.py` (the counterfactual), `refresh_fills.py` (brings a run's `fills.json` up to date from Delta with a signed GET). Follows `2026-10-21-live-stage1-2-tick-pickoff-latency.md`, which found that the remaining losses come right after a Binance tick and listed this study as step 4.
 
@@ -89,15 +89,33 @@ Written at 18:30Z on 21 Oct and committed with this draft. The live run it reads
 - **Pass:** a default-off knob PR that pulls the threatened side on Binance imbalance, woken by the Binance book update, then a demo QA run, the owner's merge, and a live trial under the existing stop rule.
 - **Fail:** drop the idea and record it here.
 
-## Out-of-sample result
+## Out-of-sample result (22 Oct 2026, 13:31Z): both rules fail; the idea is dropped
 
-Pending: the run reaches 20 h at about 13:00Z on 22 Oct.
+Run `20261021T170240Z` (42b5eef), 17:02Z on 21 Oct to 13:30Z on 22 Oct (20.5 h): 633 real fills, 1,054 taker sweeps, average fee 1.32 bps. Its `fills.json` was refreshed from Delta first (85 new rows). Tape: shadow recorder `20261021T170231Z`. `lean_replay.py` md5 feec8e0d…, the committed copy.
+
+**Calibration:** 11 phantom fills against 633 real (1.7% ≤ 3%), so the result stands.
+
+| Row (PnL $) | PnL60 | PnL300 | Avoided fills' own PnL60 | Pooled with the three earlier runs, PnL60 / PnL300 |
+|---|---|---|---|---|
+| Real quotes | +4.21 | +4.87 | – | +8.41 / +8.80 |
+| pull 0.2 | +3.23 | +4.27 | **+0.98** | +7.76 / +9.16 |
+| away 2 (read 850 ms early) | +4.35 | +4.93 | **+0.85** | +9.07 / +9.22 |
+
+| Condition | pull 0.2 | away 2 |
+|---|---|---|
+| 1. This run: PnL60 and PnL300 ≥ real quotes | **fail** (both below) | pass (+0.14, +0.06) |
+| 2. This run: the avoided fills' own PnL60 < 0 | **fail** (+0.98: it skipped winners) | **fail** (+0.85) |
+| 3. Pooled: PnL60 and PnL300 ≥ real quotes | **fail** (PnL60 7.76 < 8.41) | pass |
+| **Verdict** | **fail** | **fail** |
+
+- **The mechanism does not hold.** The fills these rules would have skipped made money 60 s later in the two long, calm runs (stage 2 and this one, 43 h together). Only in the two shorter runs (stage 1, with its fast 14–15Z market, and c1a8080) did they lose money, as the rules intend. Across all four runs the skipped fills made +$0.71 (pull 0.2) and +$1.14 (away 2) at 60 s. The imbalance says which way the next tick goes, but at a 5 bps half-spread and 0.6 s writes, the fills it warns about are on average not losers. `away 2` finishing level with the real quotes comes from the better prices on the fills it keeps, not from skipping pick-offs.
+- **Not judged.** The script also prints the other variants. The `lean` rows did better than the real quotes on this run (`lean 1`, read 850 ms early: +5.73 / +6.85), but `lean 1` was below the real quotes in sample at 60 s (3.98 vs 4.20). Seen only after the data, this is not a result; anything built on it needs its own pre-registered test on new data.
 
 ## Next experiment
 
-The test above, then (only on a pass) one knob: pull θ = 0.2 on the threatened side.
-- **Metric:** net60 per $ traded and the pick-off share (fills within 2 s of a ≥ 3 bps Binance move toward the quote).
-- **Success:** net60 per $ above the previous run's at ≥ 300 fills and no rise in rejects.
-- **Stop:** the existing stop rule and $15 daily stop.
+None from this memo: the pull knob is not built. The measurements stay useful:
+- the imbalance study (finding 1);
+- the mainnet cancel latency (finding 4);
+- a replay calibrated to under 2% phantom fills, which can test the next idea before any code.
 
 Hold the half-spread at 5 bps (previous memo).
