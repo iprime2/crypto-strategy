@@ -1,0 +1,641 @@
+{
+ "info": {
+  "binance_ann_pct": {
+   "BTC": 4.19,
+   "ETH": 3.65,
+   "XRP": 1.91,
+   "BNB": 0.04,
+   "ADA": 2.96,
+   "LTC": 4.5,
+   "LINK": 4.96,
+   "DOGE": 3.77,
+   "BCH": -2.86
+  },
+  "delta_ann_pct": {
+   "BTC": 8.09,
+   "ETH": 7.75,
+   "XRP": 5.42,
+   "BNB": 11.62,
+   "ADA": -2.26,
+   "LTC": -2.24,
+   "LINK": -0.58,
+   "DOGE": 4.44,
+   "BCH": -3.98
+  },
+  "ratio": {
+   "XRP": 2.839,
+   "ADA": -0.761,
+   "LINK": -0.117,
+   "DOGE": 1.179
+  },
+  "pooled_ratio": 0.517
+ },
+ "baseline|A-daily": {
+  "binance": {
+   "var": 0.8367,
+   "base": 0.8367,
+   "delta": 0.0,
+   "var_fund": 0.0156,
+   "base_fund": 0.0156,
+   "var_cagr": 0.1293,
+   "base_cagr": 0.1293
+  },
+  "as_run": {
+   "var": 0.7872,
+   "base": 0.7872,
+   "delta": 0.0,
+   "var_fund": 0.0235,
+   "base_fund": 0.0235,
+   "var_cagr": 0.1204,
+   "base_cagr": 0.1204
+  },
+  "plan": {
+   "var": 0.787,
+   "base": 0.787,
+   "delta": 0.0,
+   "var_fund": 0.0235,
+   "base_fund": 0.0235,
+   "var_cagr": 0.1204,
+   "base_cagr": 0.1204
+  },
+  "plan_clip1": {
+   "var": 0.7535,
+   "base": 0.7535,
+   "delta": 0.0,
+   "var_fund": 0.0289,
+   "base_fund": 0.0289,
+   "var_cagr": 0.1143,
+   "base_cagr": 0.1143
+  }
+ },
+ "baseline|A-weekly": {
+  "binance": {
+   "var": 0.6599,
+   "base": 0.6599,
+   "delta": 0.0,
+   "var_fund": 0.0091,
+   "base_fund": 0.0091,
+   "var_cagr": 0.0651,
+   "base_cagr": 0.0651
+  },
+  "as_run": {
+   "var": 0.6079,
+   "base": 0.6079,
+   "delta": 0.0,
+   "var_fund": 0.0145,
+   "base_fund": 0.0145,
+   "var_cagr": 0.0594,
+   "base_cagr": 0.0594
+  },
+  "plan": {
+   "var": 0.6078,
+   "base": 0.6078,
+   "delta": 0.0,
+   "var_fund": 0.0145,
+   "base_fund": 0.0145,
+   "var_cagr": 0.0594,
+   "base_cagr": 0.0594
+  },
+  "plan_clip1": {
+   "var": 0.577,
+   "base": 0.577,
+   "delta": 0.0,
+   "var_fund": 0.0177,
+   "base_fund": 0.0177,
+   "var_cagr": 0.056,
+   "base_cagr": 0.056
+  }
+ },
+ "baseline|B-daily": {
+  "binance": {
+   "var": 0.5863,
+   "base": 0.5863,
+   "delta": 0.0,
+   "var_fund": 0.0123,
+   "base_fund": 0.0123,
+   "var_cagr": 0.0778,
+   "base_cagr": 0.0778
+  },
+  "as_run": {
+   "var": 0.5657,
+   "base": 0.5657,
+   "delta": 0.0,
+   "var_fund": 0.0153,
+   "base_fund": 0.0153,
+   "var_cagr": 0.0746,
+   "base_cagr": 0.0746
+  },
+  "plan": {
+   "var": 0.5895,
+   "base": 0.5895,
+   "delta": 0.0,
+   "var_fund": 0.0118,
+   "base_fund": 0.0118,
+   "var_cagr": 0.0784,
+   "base_cagr": 0.0784
+  },
+  "plan_clip1": {
+   "var": 0.5522,
+   "base": 0.5522,
+   "delta": 0.0,
+   "var_fund": 0.0172,
+   "base_fund": 0.0172,
+   "var_cagr": 0.0725,
+   "base_cagr": 0.0725
+  }
+ },
+ "baseline|B-weekly": {
+  "binance": {
+   "var": 0.4915,
+   "base": 0.4915,
+   "delta": 0.0,
+   "var_fund": 0.0073,
+   "base_fund": 0.0073,
+   "var_cagr": 0.044,
+   "base_cagr": 0.044
+  },
+  "as_run": {
+   "var": 0.4706,
+   "base": 0.4706,
+   "delta": 0.0,
+   "var_fund": 0.0093,
+   "base_fund": 0.0093,
+   "var_cagr": 0.0419,
+   "base_cagr": 0.0419
+  },
+  "plan": {
+   "var": 0.4919,
+   "base": 0.4919,
+   "delta": 0.0,
+   "var_fund": 0.0072,
+   "base_fund": 0.0072,
+   "var_cagr": 0.0441,
+   "base_cagr": 0.0441
+  },
+  "plan_clip1": {
+   "var": 0.4586,
+   "base": 0.4586,
+   "delta": 0.0,
+   "var_fund": 0.0105,
+   "base_fund": 0.0105,
+   "var_cagr": 0.0407,
+   "base_cagr": 0.0407
+  }
+ },
+ "SIG-3a|A-daily": {
+  "binance": {
+   "var": 0.5544,
+   "base": 0.8367,
+   "delta": -0.2823,
+   "var_fund": 0.0181,
+   "base_fund": 0.0156,
+   "var_cagr": 0.0921,
+   "base_cagr": 0.1293
+  },
+  "as_run": {
+   "var": 0.4926,
+   "base": 0.7872,
+   "delta": -0.2946,
+   "var_fund": 0.03,
+   "base_fund": 0.0235,
+   "var_cagr": 0.0792,
+   "base_cagr": 0.1204
+  },
+  "plan": {
+   "var": 0.4802,
+   "base": 0.787,
+   "delta": -0.3068,
+   "var_fund": 0.0324,
+   "base_fund": 0.0235,
+   "var_cagr": 0.0766,
+   "base_cagr": 0.1204
+  },
+  "plan_clip1": {
+   "var": 0.4481,
+   "base": 0.7535,
+   "delta": -0.3054,
+   "var_fund": 0.0386,
+   "base_fund": 0.0289,
+   "var_cagr": 0.07,
+   "base_cagr": 0.1143
+  }
+ },
+ "SIG-3a|A-weekly": {
+  "binance": {
+   "var": 0.5071,
+   "base": 0.6599,
+   "delta": -0.1528,
+   "var_fund": 0.0114,
+   "base_fund": 0.0091,
+   "var_cagr": 0.0557,
+   "base_cagr": 0.0651
+  },
+  "as_run": {
+   "var": 0.4442,
+   "base": 0.6079,
+   "delta": -0.1637,
+   "var_fund": 0.0189,
+   "base_fund": 0.0145,
+   "var_cagr": 0.0477,
+   "base_cagr": 0.0594
+  },
+  "plan": {
+   "var": 0.4319,
+   "base": 0.6078,
+   "delta": -0.1759,
+   "var_fund": 0.0203,
+   "base_fund": 0.0145,
+   "var_cagr": 0.0461,
+   "base_cagr": 0.0594
+  },
+  "plan_clip1": {
+   "var": 0.4012,
+   "base": 0.577,
+   "delta": -0.1759,
+   "var_fund": 0.0242,
+   "base_fund": 0.0177,
+   "var_cagr": 0.0422,
+   "base_cagr": 0.056
+  }
+ },
+ "SIG-3a|B-daily": {
+  "binance": {
+   "var": 0.4813,
+   "base": 0.5863,
+   "delta": -0.1049,
+   "var_fund": 0.0134,
+   "base_fund": 0.0123,
+   "var_cagr": 0.0659,
+   "base_cagr": 0.0778
+  },
+  "as_run": {
+   "var": 0.4532,
+   "base": 0.5657,
+   "delta": -0.1125,
+   "var_fund": 0.0179,
+   "base_fund": 0.0153,
+   "var_cagr": 0.0611,
+   "base_cagr": 0.0746
+  },
+  "plan": {
+   "var": 0.4702,
+   "base": 0.5895,
+   "delta": -0.1192,
+   "var_fund": 0.0151,
+   "base_fund": 0.0118,
+   "var_cagr": 0.064,
+   "base_cagr": 0.0784
+  },
+  "plan_clip1": {
+   "var": 0.4333,
+   "base": 0.5522,
+   "delta": -0.1189,
+   "var_fund": 0.021,
+   "base_fund": 0.0172,
+   "var_cagr": 0.0578,
+   "base_cagr": 0.0725
+  }
+ },
+ "SIG-3a|B-weekly": {
+  "binance": {
+   "var": 0.4175,
+   "base": 0.4915,
+   "delta": -0.0741,
+   "var_fund": 0.0084,
+   "base_fund": 0.0073,
+   "var_cagr": 0.0378,
+   "base_cagr": 0.044
+  },
+  "as_run": {
+   "var": 0.3897,
+   "base": 0.4706,
+   "delta": -0.0809,
+   "var_fund": 0.0113,
+   "base_fund": 0.0093,
+   "var_cagr": 0.0348,
+   "base_cagr": 0.0419
+  },
+  "plan": {
+   "var": 0.4055,
+   "base": 0.4919,
+   "delta": -0.0865,
+   "var_fund": 0.0095,
+   "base_fund": 0.0072,
+   "var_cagr": 0.0365,
+   "base_cagr": 0.0441
+  },
+  "plan_clip1": {
+   "var": 0.3707,
+   "base": 0.4586,
+   "delta": -0.0879,
+   "var_fund": 0.0132,
+   "base_fund": 0.0105,
+   "var_cagr": 0.0329,
+   "base_cagr": 0.0407
+  }
+ },
+ "SIG-10|A-daily": {
+  "binance": {
+   "var": 0.7428,
+   "base": 0.8367,
+   "delta": -0.0939,
+   "var_fund": 0.0201,
+   "base_fund": 0.0156,
+   "var_cagr": 0.1396,
+   "base_cagr": 0.1293
+  },
+  "as_run": {
+   "var": 0.6825,
+   "base": 0.7872,
+   "delta": -0.1047,
+   "var_fund": 0.0323,
+   "base_fund": 0.0235,
+   "var_cagr": 0.1257,
+   "base_cagr": 0.1204
+  },
+  "plan": {
+   "var": 0.6768,
+   "base": 0.787,
+   "delta": -0.1102,
+   "var_fund": 0.0335,
+   "base_fund": 0.0235,
+   "var_cagr": 0.1244,
+   "base_cagr": 0.1204
+  },
+  "plan_clip1": {
+   "var": 0.6406,
+   "base": 0.7535,
+   "delta": -0.1129,
+   "var_fund": 0.0409,
+   "base_fund": 0.0289,
+   "var_cagr": 0.1161,
+   "base_cagr": 0.1143
+  }
+ },
+ "SIG-10|A-weekly": {
+  "binance": {
+   "var": 0.5795,
+   "base": 0.6599,
+   "delta": -0.0804,
+   "var_fund": 0.012,
+   "base_fund": 0.0091,
+   "var_cagr": 0.0694,
+   "base_cagr": 0.0651
+  },
+  "as_run": {
+   "var": 0.5178,
+   "base": 0.6079,
+   "delta": -0.0901,
+   "var_fund": 0.0201,
+   "base_fund": 0.0145,
+   "var_cagr": 0.0608,
+   "base_cagr": 0.0594
+  },
+  "plan": {
+   "var": 0.5118,
+   "base": 0.6078,
+   "delta": -0.096,
+   "var_fund": 0.0208,
+   "base_fund": 0.0145,
+   "var_cagr": 0.06,
+   "base_cagr": 0.0594
+  },
+  "plan_clip1": {
+   "var": 0.4779,
+   "base": 0.577,
+   "delta": -0.0991,
+   "var_fund": 0.0252,
+   "base_fund": 0.0177,
+   "var_cagr": 0.0553,
+   "base_cagr": 0.056
+  }
+ },
+ "SIG-10|B-daily": {
+  "binance": {
+   "var": 0.5229,
+   "base": 0.5863,
+   "delta": -0.0633,
+   "var_fund": 0.0153,
+   "base_fund": 0.0123,
+   "var_cagr": 0.0833,
+   "base_cagr": 0.0778
+  },
+  "as_run": {
+   "var": 0.4981,
+   "base": 0.5657,
+   "delta": -0.0676,
+   "var_fund": 0.0199,
+   "base_fund": 0.0153,
+   "var_cagr": 0.0783,
+   "base_cagr": 0.0746
+  },
+  "plan": {
+   "var": 0.5186,
+   "base": 0.5895,
+   "delta": -0.0709,
+   "var_fund": 0.0161,
+   "base_fund": 0.0118,
+   "var_cagr": 0.0825,
+   "base_cagr": 0.0784
+  },
+  "plan_clip1": {
+   "var": 0.4812,
+   "base": 0.5522,
+   "delta": -0.0711,
+   "var_fund": 0.0231,
+   "base_fund": 0.0172,
+   "var_cagr": 0.0749,
+   "base_cagr": 0.0725
+  }
+ },
+ "SIG-10|B-weekly": {
+  "binance": {
+   "var": 0.3429,
+   "base": 0.4915,
+   "delta": -0.1486,
+   "var_fund": 0.0086,
+   "base_fund": 0.0073,
+   "var_cagr": 0.0352,
+   "base_cagr": 0.044
+  },
+  "as_run": {
+   "var": 0.318,
+   "base": 0.4706,
+   "delta": -0.1525,
+   "var_fund": 0.0116,
+   "base_fund": 0.0093,
+   "var_cagr": 0.0321,
+   "base_cagr": 0.0419
+  },
+  "plan": {
+   "var": 0.3334,
+   "base": 0.4919,
+   "delta": -0.1585,
+   "var_fund": 0.0096,
+   "base_fund": 0.0072,
+   "var_cagr": 0.0341,
+   "base_cagr": 0.0441
+  },
+  "plan_clip1": {
+   "var": 0.3027,
+   "base": 0.4586,
+   "delta": -0.1559,
+   "var_fund": 0.0136,
+   "base_fund": 0.0105,
+   "var_cagr": 0.0301,
+   "base_cagr": 0.0407
+  }
+ },
+ "UNI-2|A10-daily": {
+  "binance": {
+   "var": 1.0426,
+   "base": 0.8367,
+   "delta": 0.2059,
+   "var_fund": 0.0216,
+   "base_fund": 0.0156,
+   "var_cagr": 0.1562,
+   "base_cagr": 0.1293
+  },
+  "as_run": {
+   "var": 0.9949,
+   "base": 0.7872,
+   "delta": 0.2077,
+   "var_fund": 0.0287,
+   "base_fund": 0.0235,
+   "var_cagr": 0.1479,
+   "base_cagr": 0.1204
+  },
+  "plan": {
+   "var": 0.9946,
+   "base": 0.787,
+   "delta": 0.2076,
+   "var_fund": 0.0287,
+   "base_fund": 0.0235,
+   "var_cagr": 0.1479,
+   "base_cagr": 0.1204
+  },
+  "plan_clip1": {
+   "var": 0.9624,
+   "base": 0.7535,
+   "delta": 0.2089,
+   "var_fund": 0.0336,
+   "base_fund": 0.0289,
+   "var_cagr": 0.1423,
+   "base_cagr": 0.1143
+  }
+ },
+ "UNI-2|A10-weekly": {
+  "binance": {
+   "var": 0.8629,
+   "base": 0.6599,
+   "delta": 0.203,
+   "var_fund": 0.0131,
+   "base_fund": 0.0091,
+   "var_cagr": 0.0822,
+   "base_cagr": 0.0651
+  },
+  "as_run": {
+   "var": 0.8129,
+   "base": 0.6079,
+   "delta": 0.2049,
+   "var_fund": 0.0179,
+   "base_fund": 0.0145,
+   "var_cagr": 0.077,
+   "base_cagr": 0.0594
+  },
+  "plan": {
+   "var": 0.8127,
+   "base": 0.6078,
+   "delta": 0.2049,
+   "var_fund": 0.0179,
+   "base_fund": 0.0145,
+   "var_cagr": 0.077,
+   "base_cagr": 0.0594
+  },
+  "plan_clip1": {
+   "var": 0.7823,
+   "base": 0.577,
+   "delta": 0.2053,
+   "var_fund": 0.0208,
+   "base_fund": 0.0177,
+   "var_cagr": 0.0738,
+   "base_cagr": 0.056
+  }
+ },
+ "UNI-2|B25G-daily": {
+  "binance": {
+   "var": 0.722,
+   "base": 0.6292,
+   "delta": 0.0928,
+   "var_fund": 0.0149,
+   "base_fund": 0.0125,
+   "var_cagr": 0.0961,
+   "base_cagr": 0.0842
+  },
+  "as_run": {
+   "var": 0.7021,
+   "base": 0.6092,
+   "delta": 0.093,
+   "var_fund": 0.0177,
+   "base_fund": 0.0154,
+   "var_cagr": 0.093,
+   "base_cagr": 0.081
+  },
+  "plan": {
+   "var": 0.7241,
+   "base": 0.6314,
+   "delta": 0.0927,
+   "var_fund": 0.0146,
+   "base_fund": 0.0121,
+   "var_cagr": 0.0965,
+   "base_cagr": 0.0846
+  },
+  "plan_clip1": {
+   "var": 0.6886,
+   "base": 0.5955,
+   "delta": 0.0931,
+   "var_fund": 0.0196,
+   "base_fund": 0.0173,
+   "var_cagr": 0.0909,
+   "base_cagr": 0.0789
+  }
+ },
+ "UNI-2|B25G-weekly": {
+  "binance": {
+   "var": 0.5924,
+   "base": 0.504,
+   "delta": 0.0884,
+   "var_fund": 0.009,
+   "base_fund": 0.0074,
+   "var_cagr": 0.0522,
+   "base_cagr": 0.0448
+  },
+  "as_run": {
+   "var": 0.5721,
+   "base": 0.4825,
+   "delta": 0.0897,
+   "var_fund": 0.0109,
+   "base_fund": 0.0094,
+   "var_cagr": 0.0503,
+   "base_cagr": 0.0427
+  },
+  "plan": {
+   "var": 0.592,
+   "base": 0.5027,
+   "delta": 0.0893,
+   "var_fund": 0.009,
+   "base_fund": 0.0074,
+   "var_cagr": 0.0522,
+   "base_cagr": 0.0448
+  },
+  "plan_clip1": {
+   "var": 0.5601,
+   "base": 0.4702,
+   "delta": 0.0899,
+   "var_fund": 0.0121,
+   "base_fund": 0.0105,
+   "var_cagr": 0.0491,
+   "base_cagr": 0.0415
+  }
+ }
+}

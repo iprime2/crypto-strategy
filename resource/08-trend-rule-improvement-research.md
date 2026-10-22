@@ -4,9 +4,9 @@
 
 ## Executive summary: the rule stays as it is
 
-- **Decision: no change.** The running rule and both paper books (daily TV 0.40 band 0 since 2026-10-08; weekly TV 0.25 band 10 % at Monday 00:00 UTC since 2026-10-19) stay exactly as they are. There is no third paper book and no restart, because nothing changed. The live ADA market-making run that another session started on mainnet (`cex-mm/artifacts/research/2026-10-19-pr-e-demo-qa.md`, `cex-mm/artifacts/research/2026-10-21-live-stage1-2-tick-pickoff-latency.md`) is a different strategy and was not touched.
+- **Decision: no change.** The running rule and both paper books (daily TV 0.40 band 0 since 2026-10-08; weekly TV 0.25 band 10 % at Monday 00:00 UTC since 2026-10-19) stay exactly as they are. There is no third paper book and no restart, because nothing changed. The live ADA market-making run that another session started on mainnet (`cex-mm/artifacts/research/2026-10-21-live-stage1-2-tick-pickoff-latency.md`) is a different strategy and was not touched.
 - **Why:** 26 pre-registered cells were judged and none passed the rule fixed before the first run. One of them, SIG-9, was gated off by its own diagnostic and never ran. The bar was a Sharpe gain on the 24-coin ex-ante panel from 2022 of at least max(0.05, 2.37 × its bootstrap sd), plus no loss elsewhere, or equal Sharpe with a named operational gain.
-- **Closest class I miss:** tranching the weekly book (TIME-1) gained +0.176 (95 % CI +0.03 to +0.33, P 0.009) against a hurdle of 0.183, and needs 594 orders a year at $1,000 on the nine (409 on Delta) against a cap of 350. TIME-4 (two hand sessions) and COMBO-C fail the same way.
+- **Closest class I miss:** tranching the weekly book (TIME-1) gained +0.176 (95 % CI +0.03 to +0.33, P 0.009) against a hurdle of 0.183, and needs 594 orders a year at $1,000 on the nine (409 on Delta) against a cap of 350. TIME-4 (two hand sessions) fails the same way: +0.159 against a 0.169 hurdle, and 332 orders a year at $1,000 on the nine against a cap of 220. COMBO-C misses its hurdle (+0.165 against 0.184) and sits below TIME-1 alone on every panel.
 - **The one structural finding is timing luck.** The weekly book's slot is the worst of the seven weekdays on all three panels: Sharpe 1.121 vs a mean of 1.230 (Binance nine), 0.810 vs 0.895 (24 ex-ante), 0.704 vs 0.980 (Delta). Tranching lands on the mean at no expected cost, but it needs daily execution, which means a bot.
 - **UNI-1** (a yearly liquidity-ranked universe) first passed as a research number, then failed on corrected data. It is parked with a fixed re-test for the annual review.
 - **Everything else fails clearly:** graded and alternative signals (SIG-2, SIG-3b, SIG-1B, SIG-3a, SIG-4, SIG-7A, SIG-10, SIG-11, SIG-13; SIG-9 gated off), three vol estimators, a correlation factor, a minimum-contract rule, gold, the funding cut-out (OVL-2), the fast-exit veto (OVL-3), the decision-hour tranche and two combinations (COMBO-A, COMBO-B).
@@ -19,7 +19,7 @@
 
 The user asked for the trend strategy to be re-analysed against research papers and practitioner blogs, then improved and restarted if the evidence allowed it. The strategy is the long/flat time-series-momentum rule on nine Delta India perps, specified in `resource/07-trend-rule-and-prop-trading-research.md`. At each 00:00 UTC close the signal is `max(mean_L sign(P_t/P_{t-L} − 1), 0)` over L = 20, 60 and 120 days, so zero to three positive lookbacks map to 0, 0, 1/3 and 1. The weight is `sig × (TV/N) / max(vol60, 0.05)`. Costs are 7.31 bps a side (5.31 taker incl. GST plus 2 slippage), and longs pay funding. The two baselines are D (daily, TV 0.40, cap 2x, band 0) and W (weekly, TV 0.25, cap 1x, 10 % band, decision on the Sunday candle, executed Monday 00:05 UTC) (`cex-mm/artifacts/research/2026-10-22-trend-improvement-evidence/phase1_plan.md` §1).
 
-The study ran in three phases. Every result was judged against a plan frozen before the first backtest. Three departures from that plan are listed under Limits; none changes a verdict.
+The study ran in three phases. Every result was judged against a plan frozen before the first backtest. Four departures from that plan are listed under Limits; none changes a verdict.
 
 | Phase | What was done | Output |
 |---|---|---|
@@ -46,14 +46,20 @@ The windows are FULL, POST (2022-01-01..2026-09-30, 1,734 days), H1 (to 2023-12-
   - the B POST gain is at least the hurdle, with P(gain ≤ 0) ≤ 0.10;
   - no loss below −0.03 on A POST, A FULL or C FULL;
   - a positive gain in both halves of B;
-  - every neighbour at least 0 and within 0.10 of the primary;
+  - every neighbour's B POST gain at least 0 and no more than 0.10 below the primary's;
   - drawdown at matched vol no worse than the baseline's by 2 pp, and worst 7-day by 1 pp;
   - the cell's own extra conditions.
-- **Class II (same Sharpe, cheaper).** The B POST gain is at least −0.03 with a CI lower bound of at least −0.10, and a named operational metric improves by the stated amount on A, B and C.
+- **Class II (same Sharpe, cheaper).** A cell passes only if all of these hold:
+  - the B POST gain is at least −0.03, with a CI lower bound of at least −0.10;
+  - at least −0.03 on A POST, A FULL and C FULL, and neither half of B below −0.05;
+  - a named operational metric improves by the stated amount on A, B and C;
+  - no neighbour below −0.08 on B POST, and the operational gain holds in every neighbour;
+  - drawdown at matched vol no worse than the baseline's by 2 pp, and worst 7-day by 1 pp;
+  - the cell's own extra conditions.
 - **Research class (UNI-1 only).** UNI-1 is compared with the static ex-ante 24, never with the hindsight nine. A pass is a number for the annual review, and a live rule only at $5,000 or more.
 - **Default.** Any failure on any item means "do nothing".
 
-**Multiple-testing haircut.** The hurdle is the expected maximum of N null differences (Bailey and López de Prado). At N = 24 that is 1.98 × the cell's own bootstrap sd. Amendment A3 raised N to an effective 90: the 26 cells, 4 Phase 1 smoke runs and 60 prior cells from the 2026-10-13 study. The plan states the multiplier as 2.37, and the judge used it. The plan's own formula gives 2.49 at N = 90, and 2.37 corresponds to N of about 64 (`verdicts.md` says about 66, an arithmetic slip). No verdict differs between 2.37 and 2.49 (`cex-mm/artifacts/research/2026-10-22-trend-improvement-evidence/phase2/verdicts.md`, "How each condition was read" and flag 1).
+**Multiple-testing haircut.** The hurdle is the expected maximum of N null differences (Bailey and López de Prado, [SSRN 2460551](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2460551) [UNVERIFIED]). At N = 24 that is 1.98 × the cell's own bootstrap sd. Amendment A3 raised N to an effective 90: the 26 cells, 4 Phase 1 smoke runs and 60 prior cells from the 2026-10-13 study. The plan states the multiplier as 2.37, and the judge used it. The plan's own formula gives 2.49 at N = 90, and 2.37 corresponds to N of about 64 (`verdicts.md` says about 66, an arithmetic slip). No verdict differs between 2.37 and 2.49 (`cex-mm/artifacts/research/2026-10-22-trend-improvement-evidence/phase2/verdicts.md`, "How each condition was read" and flag 1).
 
 **Amendment A-2026-10-21** was added before run 1. Its text says sections 1–9 stand as written, but A3 replaced the 1.98 multiplier in section 5 condition 1 with 2.37, and A6 added a condition-2 check on the Delta-funding line (`…/phase1_plan.md` §10):
 
@@ -64,7 +70,7 @@ The windows are FULL, POST (2022-01-01..2026-09-30, 1,734 days), H1 (to 2023-12-
 | A3 | Haircut with N_eff = 90, and a flag for parameters already seen in a local run (COST-2 m, SIG-2 d, OVL-2 window and threshold, TIME-1 K) |
 | A4 | Phase 3 pass rule on fidelity only: paper equity within $8 a month of its model line at $1,000, orders, fees and funding within 20 %, every rebalance executed |
 | A5 | Intraday-low equity and on-venue leverage reporting |
-| A6 | Delta-funding stress line: majors floored at 0.01 %/8 h, other coins scaled by the 2025–26 Delta/Binance ratio |
+| A6 | Delta-funding stress line: majors floored at 0.01 %/8 h, other coins scaled by the 2025–26 Delta/Binance ratio (as written; the harness ran a different floor, see Funding and Limits) |
 | A7, A8 | New cells SZ-17 (hourly realized-variance vol) and SIG-13 (trend on the funding-adjusted index) |
 | A9 | Open-interest diagnostic D-2, deferred to the annual review |
 | A10 | D-4, Delta MARK closes against last-trade closes on panel C |
@@ -106,7 +112,7 @@ The windows are FULL, POST (2022-01-01..2026-09-30, 1,734 days), H1 (to 2023-12-
 
 ## What the literature says, angle by angle
 
-Web access was poor. The proxy blocked arXiv, SSRN, journals and blogs. Only raw GitHub files, data.binance.vision and the Delta India API opened, and several angles ran after the shared search budget was spent. So most literature facts below are search-summary level. The code facts are first-hand (`cex-mm/artifacts/research/2026-10-22-trend-improvement-evidence/phase1/notes/academic_signal.md` §0; `…/phase1/notes/costs_funding.md` §0; `…/phase1/notes/overlays.md`, Method).
+Web access was poor. The proxy blocked arXiv, SSRN, journals and blogs. Only raw GitHub files, data.binance.vision and the Delta India API opened, and several angles ran after the shared search budget was spent. So most literature facts below are search-summary level. The code facts are first-hand (`cex-mm/artifacts/research/2026-10-22-trend-improvement-evidence/phase1/notes/academic_signal.md`, the Sourcing and proxy-probe paragraphs and §0; `…/phase1/notes/costs_funding.md` §0; `…/phase1/notes/overlays.md`, Method).
 
 ### Academic signal construction
 
@@ -115,7 +121,7 @@ Web access was poor. The proxy blocked arXiv, SSRN, journals and blogs. Only raw
   - Sepp and Lucic test 84 futures (data 1959–2026). Against the SG Trend Index over 2000–2026, net of costs and 2/20 fees, their linear system scores Sharpe 0.47, their binary system 0.50 and their normalised-sign system 0.55. Ledoit-Wolf p-values of 0.96, 0.82 and 0.62 cannot tell them apart, and the binary system turns over about half as much ([tsmom_system.md](https://raw.githubusercontent.com/ArturSepp/TrendFollowingSystems/405871df74923634f1b1eb38e53cfcfa7fd7aa60/docs/tsmom_system.md) [VERIFIED]). Their Bussgang argument says a sign signal keeps about 0.80 of the linear signal's covariance with returns.
   - On 88 futures at zero cost, the continuous MACD trio scored 1.111 against 1.392 for the 12-month sign ([arXiv 1904.04912](https://arxiv.org/abs/1904.04912) [UNVERIFIED]).
   - Baltas and Kosowski's t-statistic "TREND" rule is "insignificantly different" from sign. Its turnover saving is quoted as 24 % (TREND alone), more than a third (TREND with Yang-Zhang vol) or two thirds (an earlier version) in different summaries ([CME PDF](https://www.cmegroup.com/education/files/demystifiing-time-series-momentum-strategies.pdf) [UNVERIFIED]).
-- **Speed.** Moskowitz, Ooi and Pedersen find all 12 monthly lags positive and longer lags mostly negative ([SSRN 2089463](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2089463) [UNVERIFIED]). Hurst, Ooi and Pedersen blend 1-, 3- and 12-month signals over 67 markets back to 1880 ([AQR](https://www.aqr.com/Insights/Research/Journal-Article/A-Century-of-Evidence-on-Trend-Following-Investing) [UNVERIFIED]). Combining speeds beats any single one, and our 20/60/120-day blend is that design.
+- **Speed.** Moskowitz, Ooi and Pedersen find all 12 monthly lags positive and longer lags mostly negative ([SSRN 2089463](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2089463) [UNVERIFIED]). Hurst, Ooi and Pedersen blend 1-, 3- and 12-month signals over 67 markets back to 1880 ([AQR](https://www.aqr.com/Insights/Research/Journal-Article/A-Century-of-Evidence-on-Trend-Following-Investing) [UNVERIFIED]). Blending speeds is the standard design, and our 20/60/120-day blend follows it. A blend does not always beat the best single speed, though. Goulding, Harvey and Mazzoleni's equal slow/fast blend beats both legs on US equities (0.51 against 0.41 and 0.34), but on 43 futures over 1990–2022 the 1/3/12-month average scores 0.59 against 0.64 for the static 12-month rule ([tradingstrategy-ai notes](https://raw.githubusercontent.com/tradingstrategy-ai/docs/master/source/learn/trend-following.rst) [SECONDARY]). In the repo's own grid the 120-day lookback alone scored 1.21 against 1.12 for the blend, a pick `resource/07-trend-rule-and-prop-trading-research.md` rejects as selection.
 - **Turning points.** Goulding, Harvey and Mazzoleni's dynamic slow/fast rule scores 0.80 against 0.64 for a static 12-month rule on 43 futures from 1990 to 2022. Over 2009–2022 it scores 0.22 against 0.06, and the authors write "the fix is not to trade faster" ([tradingstrategy-ai notes](https://raw.githubusercontent.com/tradingstrategy-ai/docs/master/source/learn/trend-following.rst) [SECONDARY]).
 - **Barbell.** A vendor paper that drops the 125-day horizon is in-sample and Bayesian-weighted ([arXiv 2510.23150](https://arxiv.org/abs/2510.23150) [UNVERIFIED]).
 - **What Phase 2 found.** Every signal cell was flat or worse, which is what this literature predicts (results table below).
@@ -156,9 +162,9 @@ Web access was poor. The proxy blocked arXiv, SSRN, journals and blogs. Only raw
 - **"Shape, not return" is the consensus.** Summitward (BTC, ETH and SOL, 2017–2025) finds vol scaling alone at Sharpe 0.74 and drawdown −17 %, and the full trend rule at 0.79 and about −15 % ([Summitward](https://summitward.com/learn/crypto-trend-following) [UNVERIFIED]).
 - **Man Group** puts peak risk-adjusted return at 10–15 coins, a cost and liquidity statement ([Man](https://www.man.com/insights/in-crypto-we-trend) [UNVERIFIED]).
 - **Grayscale** finds BTC moving-average rules "not particularly sensitive to the choice of the lookback window" ([Grayscale](https://research.grayscale.com/reports/the-trend-is-your-friend-managing-bitcoins-volatility-with-momentum-signals) [UNVERIFIED]).
-- **Every single-author crypto repo read is in-sample.**
+- **Every single-author crypto trend repo read is in-sample.**
   - TrendCore beats buy-and-hold Sharpe on only 50 % of 64 other assets, but has a shallower drawdown on all of them, after about 350 logged trials ([README](https://raw.githubusercontent.com/0x-boss/quant_crypto_strategy/master/README.md) [VERIFIED]).
-  - A cross-sectional repo goes from training Sharpe 0.42 to −2.18 out of sample in 2025–26 ([README](https://raw.githubusercontent.com/prams2104/crypto-momentum-backtest/main/README.md) [VERIFIED]).
+  - The one repo read with a train and out-of-sample split is a cross-sectional one, a rejected family. It goes from training Sharpe 0.42 to −2.18 out of sample in 2025–26 ([README](https://raw.githubusercontent.com/prams2104/crypto-momentum-backtest/main/README.md) [VERIFIED]).
 - **Carver's execution algorithm** rests passively for up to 300 s, then crosses on time-out, adverse move or book imbalance ([algo_original_best.py](https://raw.githubusercontent.com/robcarver17/pysystemtrade/master/sysexecution/algos/algo_original_best.py) [VERIFIED]). It is the model for the untested COST-4.
 
 ### Universe and diversification
@@ -173,7 +179,7 @@ Web access was poor. The proxy blocked arXiv, SSRN, journals and blogs. Only raw
 - **Fees** [VERIFIED, [Delta API](https://api.india.delta.exchange/v2/products?contract_types=perpetual_futures)]: maker 0.0002, taker 0.0005 before GST, i.e. 2.36 / 5.90 bps after 18 % GST. The 2.12 / 5.31 bps in every cost line assumes a 10 % referral discount (0.018 % / 0.045 % × 1.18) that no source read in this study confirmed [SYNTHETIC] (`…/phase1/notes/costs_funding.md` §1.1). At 5.90 bps the daily book's fees would rise by about 0.09 % a year (14.8x turnover × 0.59 bps) and the weekly book's by about 0.02 % [SYNTHETIC]; COST-5 (confirm the tier from the first fills) covers this.
 - **Funding mechanics.** Funding stamps change only at 00:00, 08:00 and 16:00 UTC. BTC never printed above 0.01 %/8 h in 22 months.
 - **Realized funding paid by longs, 2025-01..2026-10:** BTC 8.09 %, ETH 7.75 %, BNB 11.62 %, XRP 5.42 %, DOGE 4.44 %, ADA −2.26 %, LTC −2.24 %, LINK −0.58 %, BCH −3.98 % a year of notional (`…/phase1/notes/costs_funding.md` §1.3).
-- **Funding is a real cost but not an independent one** [LOCAL]. Coin-days with trailing 7-day funding of 12–30 % a year are the best trend days: +66.7 bps (12–20 %, t 4.5) and +62.2 bps (20–30 %, t 3.0) next-day gross on Binance 2020–26, with the signal on. A rule that trims exposure in proportion to funding was harmful (`…/phase1/notes/costs_funding.md` §2.2).
+- **Funding is a real cost but not an independent one** [LOCAL]. With the signal on, coin-days with trailing 7-day funding of 12–30 % a year are the best trend days on Delta: +74.5 bps (12–20 %, t 3.1) and +129.2 bps (20–30 %, t 3.2) next-day gross, against +31.4 bps at 30–50 % and −8.2 bps above 50 %. Binance 2022–26 has the same shape (+51.3 and +73.9 against +23.7 and +22.1). On Binance 2020–26 every bucket above 12 % earns about the same (+61.9 to +67.5 bps). A rule that trims exposure in proportion to funding was harmful (`…/phase1/notes/costs_funding.md` §2.2).
 - **Passive execution study** [LOCAL]. Post-only orders with a 4 h taker fallback save 2–3 bps a side on BTC, ETH and XRP. They lose 1–6 bps on the thin alts, where 5–7 % go unfilled (§4).
 - **Measured slippage.** Taker slippage in the daily paper book runs from 0.03 bps (BTC) to 6.61 bps (ADA) (§1.4).
 - **Literature.** Patient execution beats market orders for slow traders (Harris and Hasbrouck, [doi](https://doi.org/10.2307/2331388); Frazzini, Israel and Moskowitz, [SSRN 3229719](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3229719); both [UNVERIFIED], from memory).
@@ -218,7 +224,7 @@ All 26 primary cells, from `cex-mm/artifacts/research/2026-10-22-trend-improveme
 | SZ-3 | Carver mixed vol 0.7/0.3 | II | d −0.060, w −0.066 | d −0.15..+0.04, w −0.15..+0.03 | | FAIL: turnover −2 to −5 % (needed −10 %) |
 | SZ-17 | Hourly realized-variance vol | II (A, C) | no B | | | FAIL: A POST d −0.080, C FULL d −0.151 |
 | SZ-6b | Correlation factor | I | d +0.011, w +0.001 | d −0.03..+0.05, w −0.04..+0.04 | 0.050, 0.050 | FAIL: extra +0.05 on A, B, C; A FULL −0.019 |
-| SZ-13 | Minimum-contract eligibility | II ($1,000) | no B | | | FAIL: orders do not fall (A daily 871.5 → 871.5 a year) |
+| SZ-13 | Minimum-contract eligibility | II ($1,000) | no B | | | FAIL: orders barely move (A daily 871.5 → 871.5 a year; C weekly −3.9 %) |
 | UNI-1 | Yearly liquidity-ranked 9 | Research | d +0.256, w +0.273 | d −0.24..+0.73, w −0.24..+0.77 | | FAIL after the data fix: daily matched-vol maxDD −24.51 % vs −24.01 % |
 | UNI-2 | Gold as a tenth instrument (its B is the 24 plus DOGE, plus gold, vs those 25) | I | d +0.093, w +0.088 | d +0.01..+0.20, w +0.02..+0.18 | 0.112, 0.100 | FAIL: below hurdle; B+gold H1 −0.017 |
 | COST-2 | Contract buffer, b 0.10, m 0.75 | II | d +0.030 | −0.01..+0.07 | | FAIL: fee cut 0.189 pp at A $1,000 (bar 0.20); C $1,000 path effect +0.133 (bound ±0.08) |
@@ -271,7 +277,7 @@ The practical reading:
 
 - Tranching costs nothing on average and removes about ±0.1 Sharpe of path luck.
 - It needs daily execution, which in this repo means a bot.
-- If the weekly hand book is ever replaced by a bot book, tranching is the first change to adopt, after a re-test on the gap-patched data.
+- If the weekly hand book is ever replaced by a bot book, tranching is the first change to re-test on the gap-patched data. It must be tested against the bot version `resource/07-trend-rule-and-prop-trading-research.md` already names, the daily rule with the 10 % band, which this study did not run as such. The nearest line here is the K = 1 control (daily at TV 0.25 with a 10 % band). It gains less than TIME-1 on B POST (+0.105 against +0.176) at 2.8 times the turnover, but more on A FULL (+0.132 against +0.119) and on C (+0.307 against +0.272) (`…/phase2/verdicts.md` TIME-1).
 - Today it is designed only. `cex-mm/scripts/trend_paper.py` has `--weekly`, `--band`, `--target-vol` and `--orders-only` flags and no tranche mode (checked 2026-10-22).
 
 ### UNI-1: a number that reproduces but fails its own rule
@@ -308,10 +314,14 @@ The diversification case remains real. Gold's correlation to the nine is 0.14, w
 
 Funding is the book's largest running cost. The weekly baseline pays 1.93 % of equity a year on B against 0.22 % in fees (`…/phase2/summary.md`; verdicts OVL-3 detail). It is also the most tempting thing to "fix", and every fix failed:
 
-- **OVL-2, the funding cut-out**, goes flat on a coin while its 30-day funding exceeds 30 % a year. It cut funding on B daily from 3.13 % to 1.25 % and gained +0.138 / +0.105, but at P 0.12 / 0.13 and with a negative H1 (−0.125 / −0.067). It also cost 2.33 pp of CAGR. It binds in 88 episodes on the daily book and 72 on the weekly. Only 30 and 27 of them are from 2022 on, and 23 of those coin-runs sit in one 2024-03/04 cluster (`…/phase2/verdicts.md` OVL-2).
+- **OVL-2, the funding cut-out**, goes flat on a coin while its 30-day funding exceeds 30 % a year. It cut funding on B daily from 3.13 % to 1.25 % and gained +0.138 / +0.105, but at P 0.12 / 0.13 and with a negative H1 (−0.125 / −0.067). It also cost 2.33 pp of CAGR. Outside 2021 (the plan's count leaves 2021 out) it binds in 88 episodes on the daily book, 58 of them in 2020, and 72 on the weekly. Only 30 and 27 of them are from 2022 on, and 23 of those coin-runs sit in one 2024-03/04 cluster (`…/phase2/verdicts.md` OVL-2).
 - **SIG-13**, which runs the signal on a funding-adjusted price index, lowered funding but lost Sharpe on both books.
 - **SZ-15**, a proportional funding penalty, was already harmful in Phase 1 and was not re-run.
-- **The Delta-funding stress line (A6)** floors the majors at the 0.01 %/8 h cap. It lowers the baseline's A POST Sharpe from 0.837 to 0.787 daily and from 0.660 to 0.608 weekly, and B weekly POST from 0.492 to 0.471 (`…/phase2/results/baseline.json`, `…/phase2/results/TIME-1.json`). That is a level cost, not a reason to change the rule.
+- **The Delta-funding stress line (A6)**, as the harness ran it, floors each of the nine at its own Delta 2025–26 mean funding and leaves every other coin on Binance funding (`…/engine/harness.py`, `delta_funding_stress`). The floors are BNB 11.62, BTC 8.09, ETH 7.75, XRP 5.42 and DOGE 4.44 % a year. For LINK, LTC, ADA and BCH the mean is negative, so their floor binds only on days when Binance funding is even lower. That line lowers the baseline's A POST Sharpe from 0.837 to 0.787 daily and from 0.660 to 0.608 weekly, and B weekly POST from 0.492 to 0.471 (`…/phase2/results/baseline.json`, `…/phase2/results/TIME-1.json`).
+  - The plan's A6 text is different: max(Binance, 0.01 %/8 h) for BTC, ETH, BNB, LTC and BCH, and Binance × the Delta/Binance mean ratio for the other coins. It was run after the review, unchanged in every other respect (`…/phase2/a6_plan/`). Read literally, the ratios for ADA (−0.76) and LINK (−0.12) are negative, and the 15 coins with no Delta record take a pooled ratio of 0.52, so on B the "stress" lowers funding. A POST is then unchanged from the as-run line (0.787 / 0.608), and B POST rises slightly on the daily book (0.586 to 0.590) and stays at 0.492 on the weekly.
+  - With every ratio clipped at 1, so the line is never milder than Binance, A POST falls to 0.753 daily and 0.577 weekly, and B POST to 0.552 and 0.459.
+  - No verdict moves under any of the three readings. A6 gates condition 2 only for SIG-3a, SIG-10 and UNI-2. On A POST SIG-3a stays at −0.29 to −0.31 daily and SIG-10 at −0.10 to −0.11, both below −0.03, and UNI-2 stays above +0.20. All three fail class I condition 1 anyway.
+  - It is a level cost, not a reason to change the rule.
 
 ### Costs and execution diagnostics
 
@@ -322,7 +332,7 @@ Funding is the book's largest running cost. The weekly baseline pays 1.93 % of e
   - its required 2022–23 and 2025–26 windows were not produced (extra 6b).
 
   Against the 10 % band, COST-2 trades the same number of orders at A $1,000 (548 vs 549) for 0.15 pp less in fees (`…/phase2/verdicts.md` COST-2).
-- **D-3, decision-to-fill drift, 00:00 → 00:05 UTC** (Binance 5 m, 2024-01..2026-09). Buys drift +0.05 bps (t 0.07) and sells +3.79 bps (t 3.55). Prices rise before the book sells, which favours the seller. The A2 trigger (an absolute mean above 2 bps) fired on sells; because the drift favours the seller, the re-run was waived and every cell kept the 7.31 bps line (`…/phase2/diagnostics.md` D-3; decision in `…/phase2/summary.md`, Diagnostic outcomes).
+- **D-3, decision-to-fill drift, 00:00 → about 00:10 UTC** (Binance 5 m, 2024-01..2026-09). The code takes the 00:00 bar's open and the close of the bar that opens at 00:05, so the window is about ten minutes, although `…/phase2/diagnostics.md` labels it 00:00 → 00:05; the VM book fills at about 00:05:13–00:05:29 (`…/phase1/notes/completeness_critic.md`). Buys drift +0.05 bps (t 0.07) and sells +3.79 bps (t 3.55). Prices rise before the book sells, which favours the seller. The A2 trigger (an absolute mean above 2 bps) fired on sells; because the drift favours the seller, the re-run was waived and every cell kept the 7.31 bps line (`…/phase2/diagnostics.md` D-3; decision in `…/phase2/summary.md`, Diagnostic outcomes).
 - **D-4, Delta MARK vs last-trade closes.** The sleeve signs agree 99.61 / 99.86 / 99.89 % of the time. The daily rule scores 0.994 on last-trade and 0.985 on MARK; the weekly 0.704 and 0.709. Either series is fine. A third book would use last-trade closes, as the parked UNI-1 spec does.
 - **COST-4, passive execution,** was not tested. It needs a real order path and the user's go-ahead (`…/phase1_plan.md` §9).
 
@@ -338,7 +348,7 @@ Amendment A1 carried three after-tax readings on every line. Over the FULL windo
 | B, daily baseline (TV 0.40) | 13.6 % | +4.1 % | −18.4 % | +9.2 % |
 | C, weekly baseline (Delta) | 7.0 % | +2.7 % | −10.7 % | +4.7 % |
 
-These are backtest CAGRs (B over 2020-05..2026-09, C over 2024-08..2026-10), not forecasts. `resource/07-trend-rule-and-prop-trading-research.md` sets the forward expectation at Sharpe 0.3–0.8, about +4 % to +9 % a year before tax. Over 2025-01..2026-10 the weekly book on Delta made +0.1 % a year before tax, and −0.2 % / −2.5 % / −13.7 % after the slab / per-segment / per-coin-day readings (`…/phase2/results/TIME-1.json`, C-tranche h2 `base`, `base_tax`).
+These are backtest CAGRs (B over 2020-05..2026-09, C over 2024-08..2026-10), not forecasts. `resource/07-trend-rule-and-prop-trading-research.md` sets the forward expectation at Sharpe 0.3–0.8, about +4 % to +9 % a year before tax. Over 2025-01..2026-10 the weekly book on Delta, unrounded, made +0.1 % a year before tax (at $1,000 in whole contracts, resource/07's line, +4.5 % in 2025 and −0.6 % in 2026, about +2.1 % a year; `TIME-1.json` C-tranche `capital` `1000.0` `base`), and −0.2 % / −2.5 % / −13.7 % after the slab / per-segment / per-coin-day readings (`…/phase2/results/TIME-1.json`, C-tranche h2 `base`, `base_tax`).
 
 Under the per-coin-day reading, all 1,040 after-tax lines in the result files (520 `tax`, 520 `base_tax`) are negative. The least negative is −3.7 % (SIG-3b weekly on the nine, H1 2020–23, a book that is mostly flat); on B it is −4.1 % (SIG-3b weekly, POST). The spread between the slab and per-coin-day readings on the weekly baseline is about 18 points a year (+5.8 % vs −12.0 %), twice the baseline's pre-tax CAGR of 8.7 % [SYNTHETIC]. No tested change makes the per-coin-day reading positive. Gate 0, a written CA opinion on which reading applies, stays the first step before any money (`resource/07-trend-rule-and-prop-trading-research.md`, Gate 0).
 
@@ -352,7 +362,7 @@ Under the per-coin-day reading, all 1,040 after-tax lines in the result files (5
 | UNI-1 gate used $25 / first close as the contract value for coins outside the nine | Off by 7.65x for SOL, 7.1x AVAX, 6.7x 1000PEPE, 3.5x ZEC | Recorded; to be fixed before any UNI-1 book (`…/uni1_verify/synthesis.md` §4) |
 | Judge-time flags | Haircut multiplier 2.37 vs the formula's 2.49; sd = CI width / 3.92; COMBO-A's unrounded line used the buffer; UNI-2 neighbour (b) never ran; COST-2 windows missing; some report items saved nowhere | None changes a verdict (`…/phase2/verdicts.md`, data and implementation flags) |
 
-`resource/07-trend-rule-and-prop-trading-research.md` had already recorded five missing 2022 closes in XRP and LTC as immaterial on the nine (T7 #4). These are the same gaps (2022-02-26..28 and 2022-04-01..02), so panel A and the running rule's backtests carry them too. On the 24-coin panel, where 51 symbols share them, they decide UNI-1's drawdown clause.
+`resource/07-trend-rule-and-prop-trading-research.md` had already recorded five missing 2022 closes in XRP and LTC as immaterial on the nine (T7 #4). These are the same gaps (2022-02-26..28 and 2022-04-01..02), so panel A and the running rule's backtests carry them too. On the 24-coin panel they hit seven coins (XRP, LTC, TRX, XLM, ZEC, IOTA and VET; 51 symbols across the audited pool). They are not what flips UNI-1's daily drawdown clause. Patched alone, they leave static-24's max drawdown at −24.67 %. The missing DASHUSDT 2022-10 file, patched alone, takes it from −24.74 % to −24.08 %, past UNI-1's matched-vol −24.19 % (`…/uni1_verify/audit/patch_attr_out.txt`; `…/uni1_verify/audit/notes.md` §5).
 
 ## What would change the decision
 
@@ -363,19 +373,20 @@ Under the per-coin-day reading, all 1,040 after-tax lines in the result files (5
   - comparator: static-24, never the nine.
 
   A third book starts only if every clause passes on both books, and only with the user's go-ahead. Optionally, the 2027-01-01 reset can be computed and archived untraded, so the review has a truly ex-ante membership list.
-- **A bot book replacing the hand book.** Re-test TIME-1 on gap-patched data with the order count measured at the real capital. Tranching is the first change to adopt in that case.
-- **Capital of $5,000 or more.** Below that, UNI-1's universe cannot be held in whole contracts, and the weekly UNI-1 needs about $13.3k (synthesis §5).
+- **A bot book replacing the hand book.** Re-test TIME-1 on gap-patched data with the order count measured at the real capital, against resource/07's daily 10 %-band bot version. Tranching is the first change to re-test in that case.
+- **Capital of $5,000 or more.** That is the plan's live floor for UNI-1. The 2026 universe reaches two contracts per member at about $3.1k daily and $4.9k weekly. The expected 2027 entrant ZEC needs about $8.3k daily and $13.3k weekly, so the weekly UNI-1 is not recommended below about $13.3k (`…/uni1_verify/live/notes.md` §3; synthesis §5).
 - **A CA opinion.** It decides whether any version earns money after tax.
 - **The paper books' own gates continue unchanged.** The daily book's four-week paper test ends around 5 November (four weeks from 8 October, `cex-mm/artifacts/research/2026-10-08-trend-following-backtest.md`). The weekly book's Gate A falls around 16 November (four Mondays from 19 October, `cex-mm/artifacts/research/2026-10-13-prop-strategy-research.md`) [SYNTHETIC dates].
 
 ## Limits
 
 - **The literature is snippet-level.** Almost every paper and blog number above is a search summary. The proxy blocked the pages, and some angles ran with no web search at all. Only the pysystemtrade code, a few READMEs, the Sepp-Lucic documents, data.binance.vision and the Delta API were read first-hand. The literature shaped which cells were tested. It did not decide any verdict.
-- **Binance is a proxy for Delta.** Panels A and B use Binance USDT-M prices and funding. Delta's funding on the majors is higher (the A6 stress costs about 0.05 Sharpe on A POST). Panel C is only 794 days, and the slowest signals barely warm up on it.
+- **Binance is a proxy for Delta.** Panels A and B use Binance USDT-M prices and funding. Delta's funding on the majors is higher (the A6 stress costs 0.05 to 0.08 Sharpe on A POST, depending on the reading; see Funding). Panel C is only 794 days, and the slowest signals barely warm up on it.
 - **The sample is short.** POST is 1,734 days, in a market whose correlation regime changes every year. Most CIs in the table span zero by a wide margin. A 0.1 Sharpe effect needs years to confirm.
 - **Panels A and B in the table are unpatched.** Only UNI-1's numbers were recomputed on the patched archive. Every other verdict stands because each failing cell except OVL-2 also fails a condition that does not use panel B. OVL-2's three failures (B POST +0.138 vs hurdle 0.305, B H1 −0.125, B FULL CAGR −2.33 pp) all use panel B and were not recomputed; the patch moved static-24 by 0.009, against a 0.167 gap to the hurdle, so a flip is unlikely but unchecked. SIG-9's D-1 gate is also read on the 24 coins, but there Correction sits 1.2 and 0.8 percentage points of 7-day return below Bull, far beyond what the patch could move. The B levels will move by about 0.01.
 - **A5 was only partly reported.** The intraday-low equity line was not written to any result file. Only max gross and the share of days above 0.6x were. Under A5, UNI-2 is flagged: on the nine plus gold, daily, max gross is 1.15x against 0.87x, and gross is above 0.6x on 11.8 % of days against 4.6 % (`…/phase2/results/UNI-2.json`, A10-daily). No other variant crosses the 0.2x line.
-- **Three departures from the frozen plan, none of which changes a verdict:**
+- **Four departures from the frozen plan, none of which changes a verdict:**
+  - the A6 stress line floored the nine at their own Delta 2025–26 means and left other coins on Binance funding, instead of the plan's 0.01 %/8 h floor on BTC, ETH, BNB, LTC and BCH and the Delta/Binance ratio elsewhere; the review of this write-up found it, and the plan's version was then run and moves no verdict (Funding above; `…/phase2/a6_plan/notes.md`);
   - the T0/D-0 gate was missed (static-24 0.851 / 0.810 against 0.86 / 0.82) and waived by the judge as an engine difference; the UNI-1 check later traced it to the archive gaps (`…/uni1_verify/synthesis.md` §1);
   - A2 required the daily cost lines to be re-run with the D-3 drift, because sells drifted +3.79 bps; this was not done, and no gain was credited (`…/phase2/summary.md`, Diagnostic outcomes, D-3);
   - OVL-3 was opened on the unconditional Correction state, while on the signal-on reading of its cited source its gate was closed (+0.61 % / +0.09 %); the cell fails either way (`…/phase2/verdicts.md` OVL-3).
