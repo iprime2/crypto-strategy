@@ -6,7 +6,7 @@ Interpretation (fixed before running, recorded in notes.md):
   - majors: F' = max(F_binance, 0.0003 per day) on days with a close;
   - XRP, ADA, LINK, DOGE: r_c = Delta mean daily funding ('<c>USD|all' ann / 100 / 365) / Binance mean daily funding of the same coin
     over 2025-01-01..2026-09-30 (the panel's last date); F' = F_binance x r_c;
-  - coins with no Delta record (the 15 other ex-ante perps, GOLD): pooled r = sum of the four Delta means / sum of their Binance means;
+  - coins with no Delta record (the 16 other ex-ante perps, GOLD): pooled r = sum of the four Delta means / sum of their Binance means;
   - literal line as above; a stress-only reading clips every ratio at >= 1 (never milder than Binance), reported next to it.
 Reports, for the baseline and the three cells A6 gates (SIG-3a, SIG-10, UNI-2): POST Sharpe on Binance funding, on the as-run harness
 stress, on the plan-literal stress and on the stress-only reading; and the condition-2 check (stress A POST var - base >= -0.03).

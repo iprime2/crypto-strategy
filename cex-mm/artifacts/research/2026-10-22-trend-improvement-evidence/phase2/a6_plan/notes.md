@@ -5,7 +5,7 @@
 **Interpretation, fixed before the run.**
 - Majors (BTC, ETH, BNB, LTC, BCH): F' = max(F_binance, 0.0003 a day) on days with a close.
 - XRP, ADA, LINK, DOGE: r = Delta mean daily funding / Binance mean daily funding of the same coin over 2025-01-01..2026-09-30; F' = F_binance x r.
-- Coins with no Delta record (the 15 other ex-ante perps, GOLD): the pooled ratio of those four, sum of Delta means / sum of Binance means.
+- Coins with no Delta record (the 16 other ex-ante perps, GOLD): the pooled ratio of those four, sum of Delta means / sum of Binance means.
 - "plan" is that reading literally. "plan_clip1" clips every ratio at 1, so the line is never milder than Binance funding.
 - Everything else is the harness's `cell()` logic unchanged: same panels, windows (POST = 2022-01..2026-09), costs, base lines and `base_coins`.
 
@@ -19,7 +19,7 @@
 | DOGE | 3.77 | 4.44 | 1.179 |
 | pooled (the four) | | | 0.517 |
 
-Read literally, the negative ADA and LINK ratios flip the sign of their funding and the pooled 0.52 halves funding on the 15 other coins, so on panel B the plan's line is milder than Binance funding. That is why the clipped reading is reported too.
+Read literally, the negative ADA and LINK ratios flip the sign of their funding and the pooled 0.52 halves funding on the 16 other coins, so on panel B the plan's line is milder than Binance funding. That is why the clipped reading is reported too.
 
 **Baseline POST Sharpe** (`plan_a6.json`):
 
