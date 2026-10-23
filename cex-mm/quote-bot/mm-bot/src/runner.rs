@@ -8,7 +8,7 @@ use mm_bybit::{
 use mm_core::{
     BookTop,
     compute_quote_cex, economics::FillEconomics, hard_cap_reduce,
-    should_taker_flatten, horizon_vol_bps, side_order_qty, adds_to_position,
+    should_taker_flatten, horizon_vol_bps, side_order_qty, requote_qty, adds_to_position,
     ofi::{AlphaMuEstimator, OfiTracker, SnipeTracker},
     regime::{RegimeEngine, RegimeLevel, RegimeThresholds},
     KappaEstimator, MarkoutGuard, QuoteExtensions, StrategyConfig, VolTracker, MmMetrics,
@@ -1642,12 +1642,25 @@ async fn run_symbol_loop(
         }
 
         // Sides still to place: pulled because the old price crossed the book, a failed edit, or a cancel-all.
-        let bid_call = if need_bid && plan.place_bid && oms.live.bid.is_none() {
+        // A fill can land while the first calls are in flight (a failed edit is often that fill), so the size is
+        // clipped again by the position now: the fills feed has updated it by the time the fallbacks answer.
+        let inventory_now = economics_arc.lock().map(|e| e.position).unwrap_or(inventory);
+        let resize = |o: &SideOrder| {
+            let side_is_sell = o.side == QuoteSide::Ask;
+            let q = requote_qty(o.qty, inventory_now, side_is_sell, min_qty, clip_cap, step);
+            match last_venue_pos {
+                Some(v) => q.min(requote_qty(o.qty, v, side_is_sell, min_qty, clip_cap, step)),
+                None => q,
+            }
+        };
+        let bid = SideOrder { qty: resize(&bid), ..bid };
+        let ask = SideOrder { qty: resize(&ask), ..ask };
+        let bid_call = if need_bid && plan.place_bid && oms.live.bid.is_none() && bid.qty > 0.0 {
             bid_px.map_or(FirstCall::Nothing, FirstCall::Place)
         } else {
             FirstCall::Nothing
         };
-        let ask_call = if need_ask && plan.place_ask && oms.live.ask.is_none() {
+        let ask_call = if need_ask && plan.place_ask && oms.live.ask.is_none() && ask.qty > 0.0 {
             ask_px.map_or(FirstCall::Nothing, FirstCall::Place)
         } else {
             FirstCall::Nothing
