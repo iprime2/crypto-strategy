@@ -1,0 +1,500 @@
+{
+ "base": {
+  "label": "base 7.31 bps",
+  "n_trades": 155,
+  "trades_per_year": 24.15262372013652,
+  "sharpe": -0.9917289110523138,
+  "cagr": -0.05100199558188212,
+  "maxdd": -0.2910560994590492,
+  "sharpe_2020-05..2023-06": -1.0522228634588586,
+  "sharpe_2023-07..2026-09": -0.9955061981247638,
+  "sharpe_2020-05..2023-12": -1.3695071524308935,
+  "sharpe_2024-01..2026-09": -0.7519189627941278,
+  "share_days_in_position": 0.3485494880546075,
+  "mean_gross_exposure": 0.0739640105868323,
+  "final_equity": 0.7144957008109455,
+  "F5_P_sharpe_le0": 0.9985,
+  "mean_net_bps": -304.19146401391765,
+  "median_net_bps": -213.5003993246188,
+  "boot_P_mean_le0": 0.992,
+  "boot_ci95": [
+   -587.3453855716681,
+   -59.55437395322307
+  ],
+  "boot_nan_draws": 0,
+  "hit_rate": 0.4,
+  "mean_gross_bps": -271.12296834354987,
+  "median_gross_bps": -180.50915357038906,
+  "mean_fund_bps": -3.5176913208654987,
+  "mean_cost_bps": 29.550804349502293,
+  "mean_days_held": 7.019354838709678,
+  "exit_reasons": {
+   "retest": 27,
+   "time": 77,
+   "stop": 37,
+   "target": 14
+  },
+  "worst_trade_net_bps": -8033.159167302895,
+  "worst_trade_pct_equity": -0.04394681441842956,
+  "best_trade_pct_equity": 0.03480184543752436,
+  "mean_N_over_equity": 0.08837061733309313,
+  "fallback_fills": 0,
+  "H1_n": 73,
+  "H2_n": 82,
+  "H1_mean_net_bps": -403.0665487211447,
+  "H2_mean_net_bps": -216.16852275016674,
+  "per_coin": {
+   "BTC": {
+    "n": 26,
+    "mean_net_bps": -399.07018363215565
+   },
+   "ETH": {
+    "n": 32,
+    "mean_net_bps": -347.48343772078
+   },
+   "XRP": {
+    "n": 30,
+    "mean_net_bps": -38.58095557616655
+   },
+   "BNB": {
+    "n": 33,
+    "mean_net_bps": -731.3906435971113
+   },
+   "ADA": {
+    "n": 32,
+    "mean_net_bps": -314.9638599444675
+   },
+   "LTC": {
+    "n": 56,
+    "mean_net_bps": -346.04973007562745
+   },
+   "LINK": {
+    "n": 29,
+    "mean_net_bps": 154.842621256182
+   },
+   "DOGE": {
+    "n": 26,
+    "mean_net_bps": -297.01369802095326
+   },
+   "BCH": {
+    "n": 46,
+    "mean_net_bps": -322.1997961358735
+   }
+  },
+  "coins_positive": 1,
+  "by_year": {
+   "2020": {
+    "n": 16,
+    "mean_net_bps": -37.04679818816541,
+    "ret_sum_pct": -0.9928238536645716,
+    "sharpe": -0.45903237104326816
+   },
+   "2021": {
+    "n": 26,
+    "mean_net_bps": -768.3257963568218,
+    "ret_sum_pct": -8.133433630239184,
+    "sharpe": -1.6626696863356818
+   },
+   "2022": {
+    "n": 24,
+    "mean_net_bps": -240.6319039726811,
+    "ret_sum_pct": -4.266534385714031,
+    "sharpe": -1.1923821541919382
+   },
+   "2023": {
+    "n": 13,
+    "mean_net_bps": -646.1879932798149,
+    "ret_sum_pct": -5.954455404980229,
+    "sharpe": -1.8181917937041607
+   },
+   "2024": {
+    "n": 31,
+    "mean_net_bps": -329.4012601307728,
+    "ret_sum_pct": -7.7196300794333155,
+    "sharpe": -0.8325596431816078
+   },
+   "2025": {
+    "n": 25,
+    "mean_net_bps": 56.22872738378468,
+    "ret_sum_pct": -0.3739781794148567,
+    "sharpe": -0.09798820476521858
+   },
+   "2026": {
+    "n": 20,
+    "mean_net_bps": -179.95634792139714,
+    "ret_sum_pct": -5.313146403701215,
+    "sharpe": -1.5655780160768242
+   }
+  },
+  "top_pairs": [
+   [
+    "ADA-LTC",
+    11
+   ],
+   [
+    "XRP-LTC",
+    9
+   ],
+   [
+    "LTC-BCH",
+    8
+   ],
+   [
+    "BNB-BCH",
+    8
+   ],
+   [
+    "LTC-LINK",
+    8
+   ],
+   [
+    "BTC-LTC",
+    7
+   ],
+   [
+    "BTC-ETH",
+    6
+   ],
+   [
+    "ETH-LTC",
+    6
+   ]
+  ],
+  "by_reason": {
+   "retest": {
+    "n": 27,
+    "mean_net_bps": -386.7483481486032,
+    "mean_gross_bps": -353.0170252926055
+   },
+   "time": {
+    "n": 77,
+    "mean_net_bps": 130.28804528597686,
+    "mean_gross_bps": 168.72476776406657
+   },
+   "stop": {
+    "n": 37,
+    "mean_net_bps": -1911.3117770665924,
+    "mean_gross_bps": -1891.0578574380975
+   },
+   "target": {
+    "n": 14,
+    "mean_net_bps": 1712.777481592766,
+    "mean_gross_bps": 1748.909514073329
+   }
+  },
+  "screen_verdict": {
+   "test1": false,
+   "test2": false,
+   "test3": false,
+   "PASS": false
+  }
+ },
+ "stress": {
+  "label": "stress 15.31 bps",
+  "n_trades": 155,
+  "trades_per_year": 24.15262372013652,
+  "sharpe": -1.11264089202494,
+  "cagr": -0.057171010528944244,
+  "maxdd": -0.3184913449403074,
+  "sharpe_2020-05..2023-06": -1.1850082089099632,
+  "sharpe_2023-07..2026-09": -1.1148331834041028,
+  "sharpe_2020-05..2023-12": -1.4987288701105588,
+  "sharpe_2024-01..2026-09": -0.8746959899355782,
+  "share_days_in_position": 0.3485494880546075,
+  "mean_gross_exposure": 0.07398542684915899,
+  "final_equity": 0.6851889673390202,
+  "F5_P_sharpe_le0": 1.0,
+  "mean_net_bps": -336.5316055728805,
+  "median_net_bps": -242.91463768567309,
+  "boot_P_mean_le0": 0.996,
+  "boot_ci95": [
+   -620.2095293266781,
+   -91.80975652764809
+  ],
+  "boot_nan_draws": 0,
+  "hit_rate": 0.3935483870967742,
+  "mean_gross_bps": -271.1229683435499,
+  "median_gross_bps": -180.5091535703891,
+  "mean_fund_bps": -3.5176913208654987,
+  "mean_cost_bps": 61.89094590846512,
+  "mean_days_held": 7.019354838709678,
+  "exit_reasons": {
+   "retest": 27,
+   "time": 77,
+   "stop": 37,
+   "target": 14
+  },
+  "worst_trade_net_bps": -8072.093742044501,
+  "worst_trade_pct_equity": -0.04417588827315783,
+  "best_trade_pct_equity": 0.034495171917097674,
+  "mean_N_over_equity": 0.08837061733309313,
+  "fallback_fills": 0,
+  "H1_n": 73,
+  "H2_n": 82,
+  "H1_mean_net_bps": -435.3934636507442,
+  "H2_mean_net_bps": -248.52043923527026,
+  "per_coin": {
+   "BTC": {
+    "n": 26,
+    "mean_net_bps": -431.4541978901348
+   },
+   "ETH": {
+    "n": 32,
+    "mean_net_bps": -379.6906897491237
+   },
+   "XRP": {
+    "n": 30,
+    "mean_net_bps": -70.9389660264335
+   },
+   "BNB": {
+    "n": 33,
+    "mean_net_bps": -764.1601676395309
+   },
+   "ADA": {
+    "n": 32,
+    "mean_net_bps": -347.06970601197133
+   },
+   "LTC": {
+    "n": 56,
+    "mean_net_bps": -378.05652228918433
+   },
+   "LINK": {
+    "n": 29,
+    "mean_net_bps": 122.23710843695078
+   },
+   "DOGE": {
+    "n": 26,
+    "mean_net_bps": -329.40505392825366
+   },
+   "BCH": {
+    "n": 46,
+    "mean_net_bps": -354.6604543378164
+   }
+  },
+  "coins_positive": 1,
+  "by_year": {
+   "2020": {
+    "n": 16,
+    "mean_net_bps": -68.67924066407011,
+    "ret_sum_pct": -1.410958205691057,
+    "sharpe": -0.650685390423191
+   },
+   "2021": {
+    "n": 26,
+    "mean_net_bps": -801.1956617846597,
+    "ret_sum_pct": -8.533706475061841,
+    "sharpe": -1.7395293294447942
+   },
+   "2022": {
+    "n": 24,
+    "mean_net_bps": -272.8780589814935,
+    "ret_sum_pct": -4.927073971864737,
+    "sharpe": -1.3735162897124105
+   },
+   "2023": {
+    "n": 13,
+    "mean_net_bps": -678.1533167536097,
+    "ret_sum_pct": -6.375027366610425,
+    "sharpe": -1.9332939398960358
+   },
+   "2024": {
+    "n": 31,
+    "mean_net_bps": -362.11986978537624,
+    "ret_sum_pct": -8.647735664871835,
+    "sharpe": -0.9272584205313847
+   },
+   "2025": {
+    "n": 25,
+    "mean_net_bps": 24.070581311741286,
+    "ret_sum_pct": -0.9068424644497937,
+    "sharpe": -0.23707286827937174
+   },
+   "2026": {
+    "n": 20,
+    "mean_net_bps": -212.1712921432153,
+    "ret_sum_pct": -6.1313202855246525,
+    "sharpe": -1.7914680945091535
+   }
+  },
+  "top_pairs": [
+   [
+    "ADA-LTC",
+    11
+   ],
+   [
+    "XRP-LTC",
+    9
+   ],
+   [
+    "LTC-BCH",
+    8
+   ],
+   [
+    "BNB-BCH",
+    8
+   ],
+   [
+    "LTC-LINK",
+    8
+   ],
+   [
+    "BTC-LTC",
+    7
+   ],
+   [
+    "BTC-ETH",
+    6
+   ],
+   [
+    "ETH-LTC",
+    6
+   ]
+  ],
+  "by_reason": {
+   "retest": {
+    "n": 27,
+    "mean_net_bps": -418.924071188598,
+    "mean_gross_bps": -353.0170252926055
+   },
+   "time": {
+    "n": 77,
+    "mean_net_bps": 98.33986596721931,
+    "mean_gross_bps": 168.72476776406657
+   },
+   "stop": {
+    "n": 37,
+    "mean_net_bps": -1944.3248880038818,
+    "mean_gross_bps": -1891.0578574380975
+   },
+   "target": {
+    "n": 14,
+    "mean_net_bps": 1679.7430167831012,
+    "mean_gross_bps": 1748.909514073329
+   }
+  }
+ },
+ "F7": {
+  "corr": -0.11901012332930953,
+  "n_days": 2343,
+  "trend_weekly_sharpe": 1.1206412935088332
+ },
+ "formation": {
+  "mondays": 335,
+  "mondays_with_selection": 271,
+  "mean_selected": 2.023880597014925
+ },
+ "neighbours_never_selected": {
+  "window 120": {
+   "n_trades": 242,
+   "trades_per_year": 37.70925767918089,
+   "sharpe": -0.6286717921273821,
+   "mean_net_bps": -121.05848494441952,
+   "boot_P_mean_le0": 0.871,
+   "H1_mean_net_bps": -125.65596329906377,
+   "H2_mean_net_bps": -117.03123646321947,
+   "coins_positive": 1,
+   "maxdd": -0.27329631277827393,
+   "screen_verdict": {
+    "test1": false,
+    "test2": false,
+    "test3": false,
+    "PASS": false
+   }
+  },
+  "window 365": {
+   "n_trades": 50,
+   "trades_per_year": 7.791168941979523,
+   "sharpe": -0.18498961988588816,
+   "mean_net_bps": 74.38799442062768,
+   "boot_P_mean_le0": 0.41,
+   "H1_mean_net_bps": 217.98826665087853,
+   "H2_mean_net_bps": -29.598409608174546,
+   "coins_positive": 5,
+   "maxdd": -0.12926777074106233,
+   "screen_verdict": {
+    "test1": false,
+    "test2": false,
+    "test3": false,
+    "PASS": false
+   }
+  },
+  "entry 1.5": {
+   "n_trades": 243,
+   "trades_per_year": 37.86508105802048,
+   "sharpe": -1.2853039307947534,
+   "mean_net_bps": -281.3310712561376,
+   "boot_P_mean_le0": 0.9965,
+   "H1_mean_net_bps": -251.87838976575983,
+   "H2_mean_net_bps": -309.13440258305417,
+   "coins_positive": 1,
+   "maxdd": -0.4344518369635033,
+   "screen_verdict": {
+    "test1": false,
+    "test2": false,
+    "test3": false,
+    "PASS": false
+   }
+  },
+  "entry 2.5": {
+   "n_trades": 90,
+   "trades_per_year": 14.02410409556314,
+   "sharpe": -1.0377402703522223,
+   "mean_net_bps": -305.95963390210346,
+   "boot_P_mean_le0": 0.993,
+   "H1_mean_net_bps": -305.53530397578743,
+   "H2_mean_net_bps": -306.31468547310254,
+   "coins_positive": 1,
+   "maxdd": -0.20973587017284978,
+   "screen_verdict": {
+    "test1": false,
+    "test2": false,
+    "test3": false,
+    "PASS": false
+   }
+  },
+  "K 2": {
+   "n_trades": 118,
+   "trades_per_year": 18.387158703071673,
+   "sharpe": -1.2867004114057128,
+   "mean_net_bps": -413.4859582247781,
+   "boot_P_mean_le0": 0.999,
+   "H1_mean_net_bps": -522.7862254794428,
+   "H2_mean_net_bps": -307.82903321193567,
+   "coins_positive": 0,
+   "maxdd": -0.3798811062092544,
+   "screen_verdict": {
+    "test1": false,
+    "test2": false,
+    "test3": false,
+    "PASS": false
+   }
+  },
+  "K 6": {
+   "n_trades": 163,
+   "trades_per_year": 25.399210750853243,
+   "sharpe": -1.0588182796290317,
+   "mean_net_bps": -321.0749186674822,
+   "boot_P_mean_le0": 0.9935,
+   "H1_mean_net_bps": -417.5301300409951,
+   "H2_mean_net_bps": -236.8151937894709,
+   "coins_positive": 1,
+   "maxdd": -0.27222868493476116,
+   "screen_verdict": {
+    "test1": false,
+    "test2": false,
+    "test3": false,
+    "PASS": false
+   }
+  }
+ },
+ "frozen_criteria": {
+  "F1 sharpe>=0.50": false,
+  "F2 sharpe>0 both halves": false,
+  "F3 24-panel": "not run (gated on the screen's pass)",
+  "F4 mean net>=29.24": false,
+  "F5 P(sharpe<=0)<=0.10": false,
+  "F6 stress sharpe>0": false,
+  "F7 |corr|<=0.30": true
+ },
+ "runtime_s": 38.03254842758179
+}

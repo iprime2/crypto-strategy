@@ -1,0 +1,43 @@
+SCREEN RESID-1 -- BTC-hedged "co-movement break, follow it" (the Oil Money rule moved to alt vs BTC)
+Frozen 2026-10-24 AFTER one descriptive look on the nine (quick_check.py / quick_check_diag.py, repo parameters only,
+no tuning). Because the nine 2020-26 has been seen, the pass rules below use ONLY panels this review never loaded.
+Status: proposal for a later pre-registered test; nothing traded.
+
+Instruments
+  Driver X = BTC perp. Traded Y = each alt.
+  Pass panel (unseen here): the 16 ex-ante Binance USDT-M perps outside the nine that were listed by 2020-02-20
+  (ATOM BAT DASH EOS ETC IOST IOTA NEO ONT QTUM TRX VET XLM XMR XTZ ZEC), 2020-05..2026-09.
+  Reference only (seen): the 8 alts of the nine, Binance 2020-05..2026-09; Delta nine 2024-08..2026-10.
+Data
+  Binance USDT-M 1d klines (00:00 UTC close), 1 h klines for fills, 8 h funding. Delta candles + funding for the Delta line.
+Rule (verbatim logic of "Oil Money Trading backtest.py" signal_generation, in ln prices, per alt)
+  State: holding in {-1,0,+1}, trained flag, counter.
+  Each day t (decision at the 00:00 UTC close):
+    if holding != 0: if counter > 10 -> close (holding=0, trained=False, counter=0) and skip to t+1; else counter += 1.
+    else:
+      if not trained: OLS ln Y = a + b ln BTC on closes [t-50, t-1]; if R^2 > 0.70 -> trained, keep a, b and
+        sigma = sd of that window's residual (model frozen until the next trade closes).
+      if trained: f_t = a + b ln BTC_t;  ln Y_t > f_t + 2 sigma -> holding = +1;  ln Y_t < f_t - 2 sigma -> holding = -1.
+  No price stop (the author's heatmap shows the stop does not matter; README line 111).
+Position
+  holding = +1: long Y notional N, short b*N BTC.  holding = -1: short Y notional N, long b*N BTC (hedge fixed at entry).
+  N = equity / number of alts in the panel (equal notional per alt); Sharpe is reported scale-free.
+Fills and costs
+  Fill at the 01:00 UTC hourly close after the decision. Every leg fill 5.31 bps taker + 2 bps slippage (7.31 bps/side;
+  equal-legged round trip = 4 fills = 29.24 bps of alt notional). Funding on both legs at every stamp. Stress: 10 bps slippage.
+Report
+  Net Sharpe (365), CAGR, max DD, trades/yr, mean and median net bps per round trip, hit rate, split by long-alt and
+  short-alt trades, by calendar year, funding share, correlation of daily returns with the weekly TV 0.25 trend book.
+Pass (all required, on the 16 unseen perps)
+  1. Net Sharpe >= 0.50, 2020-05..2026-09.
+  2. Net Sharpe > 0 in both 2020-05..2023-12 and 2024-01..2026-09.
+  3. Mean net per round trip >= +29.24 bps of alt notional.
+  4. Week-cluster bootstrap (2,000 draws) P(Sharpe <= 0) <= 0.10.
+  5. Sharpe > 0 at 10 bps slippage.
+  6. |corr| with the weekly trend book (run on the same 16) <= 0.30.
+  Labelled neighbours, never selected: fill at the decision close; refit daily while flat; R^2 0.6 / 0.8; band 1.5 / 2.5 sigma;
+  hold 6 / 18 bars; unhedged single-leg (the repo's own form).
+Outcome handling
+  Fail -> one row in resource/07 "considered and rejected" next to cross-sectional alt momentum (line 179).
+  Pass -> paper candidate only: shorts and a second strategy are barred by resource/07 line 237, so the user decides; whole-
+  contract feasibility on Delta for the nine at $1,000 / $5,000 is a separate gate.

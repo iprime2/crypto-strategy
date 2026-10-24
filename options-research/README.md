@@ -17,4 +17,6 @@
 ## Not tested (possible next steps)
 Weekly/monthly expiries (where the volatility risk premium is usually documented), delta-hedged short straddles, entries closer to expiry, using real order-book bids instead of MARK.
 
+Update 2026-10-24: weekly expiries were tested. Selling the BTC and ETH ATM straddle 168 h before the Friday expiry at MARK × 0.95 lost −26.3 bps per week over 145 weeks (t −0.63); see `cex-mm/artifacts/research/2026-10-24-quant-trading-repo-review.md` (screen OPT-W1).
+
 Files: `fetch_products.py` (contract list), `backtest.py` (12-month grid), `oos.py` (pre-registered out-of-sample rule), `results-*.txt`.

@@ -1,0 +1,18 @@
+product_specs sample: {"backup_vol_expiry_time": 31536000, "isolated_liq_penalty_factor": 0.0005, "isolated_liq_premium_penalty_factor": 0.2, "max_deviation_from_external_vol": 0.75, "max_lower_deviation_from_external_vol": 0.75, "max_oi_usd": 30000000, "max_upper_deviation_from_external_vol": 1.2, "max_volatility": 3, "min_volatility": 0.1, "only_reduce_only_orders_allowed": false, "premium_commission_rate": 0.035, "synth_fut_symbol": "SYN-BTC-261026-1200", "vol_calculation_method": "orderbook", "vol_expiry_time": 31536000}
+ui_config sample: {"default_trading_view_candle": "60", "leverage_slider_values": [1, 2, 5, 10, 25, 50, 100], "price_clubbing_values": [0.1, 0.5, 1, 2.5, 5, 10], "show_bracket_orders": false, "sort_priority": 1, "tags": []}
+n indices 503 keys ['config', 'constituent_exchanges', 'constituent_indices', 'description', 'health_interval', 'id', 'impact_size', 'index_type', 'is_composite', 'price_method', 'quoting_asset_id', 'symbol', 'tick_size', 'underlying_asset_id']
+index_type counts Counter({'spot_pair': 503})
+n tickers 1074
+ticker contract types Counter({'call_options': 421, 'put_options': 401, 'perpetual_futures': 241, 'move_options': 7, 'spot': 4})
+OTHER: XRP_INR spot XRP INR spot
+OTHER: SOL_INR spot SOL INR spot
+OTHER: MV-BTC-81800-241026 move_options BTC Daily Straddle
+OTHER: MV-BTC-81600-241026 move_options BTC Daily Straddle
+OTHER: MV-BTC-81400-241026 move_options BTC Daily Straddle
+OTHER: MV-BTC-81200-241026 move_options BTC Daily Straddle
+OTHER: MV-BTC-81000-241026 move_options BTC Daily Straddle
+OTHER: MV-BTC-80800-241026 move_options BTC Daily Straddle
+OTHER: MV-BTC-80600-241026 move_options BTC Daily Straddle
+OTHER: MOVEUSD perpetual_futures Movement Perpetual
+OTHER: ETH_INR spot ETH INR spot
+OTHER: BTC_INR spot BTC INR spot

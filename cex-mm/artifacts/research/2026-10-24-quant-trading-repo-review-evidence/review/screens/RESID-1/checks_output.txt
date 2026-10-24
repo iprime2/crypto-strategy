@@ -1,0 +1,17 @@
+  BTC: bars 709920 2020-01-01..2026-09-30  funding stamps 7395
+  ETH: bars 709920 2020-01-01..2026-09-30  funding stamps 7395
+  XRP: bars 708380 2020-01-06..2026-09-30  funding stamps 7379
+  BNB: bars 698304 2020-02-10..2026-09-30  funding stamps 7274
+  ADA: bars 701184 2020-01-31..2026-09-30  funding stamps 7339
+  LTC: bars 707519 2020-01-09..2026-09-30  funding stamps 7370
+  LINK: bars 705216 2020-01-17..2026-09-30  funding stamps 7346
+  DOGE: bars 654804 2020-07-10..2026-09-30  funding stamps 6821
+  BCH: bars 709920 2020-01-01..2026-09-30  funding stamps 7395
+[1] daily close from 5m vs 1d kline close, nine 2020-05..2026-09: 21015 pairs, max rel diff 0.00e+00, 5m-missing 0
+[2] OLS vs lstsq on 200 random windows: max abs diff 3.62e-13
+[4] synthetic up: trade at the break day side +1 (want +1), held 12 d, net -57.8 bps (break was planted at the decision close; fill at the same day's 01:00 price -> ~0 unless the residual moves)
+[4] synthetic down: trade at the break day side -1 (want -1), held 12 d, net +57.8 bps (break was planted at the decision close; fill at the same day's 01:00 price -> ~0 unless the residual moves)
+[4] synthetic follow-through: trade [(1, np.float64(732.9))] (want side +1, about +800 bps from the residual 0.04 -> 0.12)
+[5] accounting: |sum trade net - sum daily pnl| = 0.00e+00 (equity units), trades 419
+[3] look-ahead: 199 trades closed before 2023-06-30 in the full run; truncated run matches 199, mismatches 0, extra 0
+    equity path before the cut day, max |diff| 0.00e+00

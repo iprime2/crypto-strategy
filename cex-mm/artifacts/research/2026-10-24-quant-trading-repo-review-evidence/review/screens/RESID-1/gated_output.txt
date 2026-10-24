@@ -1,0 +1,102 @@
+
+######## G0: 16 ex-ante perps outside the nine, 2020-05..2026-09 (1 h bars; BTC 5 m)
+  ATOM: bars 58260 2020-02-07..2026-09-30 funding stamps 7285
+  BAT: bars 58120 2020-02-13..2026-09-30 funding stamps 7265
+  DASH: bars 58336 2020-02-04..2026-09-30 funding stamps 7292
+  EOS: bars 47042 2020-01-08..2025-05-21 funding stamps 7373
+  ETC: bars 58792 2020-01-16..2026-09-30 funding stamps 7349
+  IOST: bars 57928 2020-02-21..2026-09-30 funding stamps 7407
+  IOTA: bars 58024 2020-02-12..2026-09-30 funding stamps 7268
+  NEO: bars 58024 2020-02-17..2026-09-30 funding stamps 7253
+  ONT: bars 58168 2020-02-11..2026-09-30 funding stamps 8574
+  QTUM: bars 57952 2020-02-20..2026-09-30 funding stamps 7215
+  TRX: bars 58696 2020-01-15..2026-09-30 funding stamps 7352
+  VET: bars 57976 2020-02-14..2026-09-30 funding stamps 7262
+  XLM: bars 58576 2020-01-20..2026-09-30 funding stamps 7339
+  XMR: bars 58360 2020-02-03..2026-09-30 funding stamps 7302
+  XTZ: bars 58288 2020-02-06..2026-09-30 funding stamps 8643
+  ZEC: bars 58192 2020-02-05..2026-09-30 funding stamps 7292
+  BTC: bars 709920 2020-01-01..2026-09-30 funding stamps 7395
+== G0 16 perps BASE 7.31 bps/leg fill
+  trades 667  per year 103.9  mean net +245.9 bps  median +80.5  hit 53.4%  (gross +292.1, cost -35.1, funding -11.2; mean |b| 1.38)
+  week-cluster bootstrap (2000, rng 11): one-sided P(mean<=0) = 0.0065; 95% CI +56.4..+448.5 bps
+  daily: Sharpe 0.896  CAGR +15.47%  maxDD -19.78%
+  halves: 2020-05-01..2023-06-30: n 350, mean +381.2; 2023-07-01..2026-09-30: n 317, mean +96.5
+  per alt: ATOM 37/+553, BAT 45/+188, DASH 37/+561, EOS 38/+73, ETC 54/+155, IOST 43/+269, IOTA 39/+611, NEO 51/+196, ONT 40/+94, QTUM 49/-143, TRX 25/+426, VET 49/+232, XLM 41/+423, XMR 34/+142, XTZ 47/+13, ZEC 38/+425  -> alts with mean > 0: 15
+  sides: long-alt n 275 mean +280.4, short-alt n 392 mean +221.6
+  years (book return, trades, mean net bps): 2020 +32.3% 66 +790; 2021 +13.8% 102 +209; 2022 +8.2% 134 +81; 2023 +29.2% 105 +351; 2024 +12.9% 119 +279; 2025 +7.2% 75 +149; 2026 -1.1% 66 -25
+  sums (equity units): gross +1.8453 funding -0.0642 cost -0.2635
+  counters: {'fallback_fills': 0, 'skipped_entries': 0, 'pending_exits': 3, 'forced_end': 6, 'forced_delist': 0, 'skipped_days': 22, 'fits': 18299, 'fits_ok': 671}
+SCREEN PASS RULE [G0 16 perps]: (1) mean > 0 & P <= 0.01: True  (2) both halves > 0: True  (3) >= 11 of 16 alts > 0: True  -> PASS
+  funding coin-months missing over held periods: 0 []
+  stress 10 bps slippage: trades 667 mean net +207.4 bps P 0.0160 Sharpe +0.757 halves +342.9/+57.8
+FROZEN-FILE PASS (all six required, on the 16):
+  F1 Sharpe 0.896 >= 0.50: True
+  F2 Sharpe 2020-05..2023-12 1.288, 2024-01..2026-09 0.437, both > 0: True
+  F3 mean net +245.9 >= +29.24 bps: True
+  F4 P(Sharpe <= 0) week-cluster bootstrap of daily returns = 0.0085 <= 0.10: True
+  F5 Sharpe at 10 bps slippage 0.757 > 0: True
+  F6 corr with the weekly TV 0.25 trend book on the same 16 = +0.303 (2343 days), |corr| <= 0.30: False
+  -> frozen-file verdict on the 16: FAIL
+
+######## HOLDOUT A: Binance spot 5 m, 2017-08..2020-04, BTC + 12 alts, no funding
+  first possible decision day 2017-10-07; halves 2017-08-01..2019-01-18 | 2019-01-19..2020-04-30
+  ETH: bars 283118 2017-08-17..2020-04-30 funding stamps 0
+  XRP: bars 208719 2018-05-04..2020-04-30 funding stamps 0
+  BNB: bars 259875 2017-11-06..2020-04-30 funding stamps 0
+  ADA: bars 213665 2018-04-17..2020-04-30 funding stamps 0
+  LTC: bars 249223 2017-12-13..2020-04-30 funding stamps 0
+  LINK: bars 135039 2019-01-16..2020-04-30 funding stamps 0
+  DOGE: bars 86259 2019-07-05..2020-04-30 funding stamps 0
+  EOS: bars 201845 2018-05-28..2020-04-30 funding stamps 0
+  ETC: bars 197675 2018-06-12..2020-04-30 funding stamps 0
+  NEO: bars 255845 2017-11-20..2020-04-30 funding stamps 0
+  TRX: bars 197735 2018-06-11..2020-04-30 funding stamps 0
+  XLM: bars 200927 2018-05-31..2020-04-30 funding stamps 0
+  BTC: bars 283118 2017-08-17..2020-04-30 funding stamps 0
+== HOLDOUT A spot BASE 7.31 bps/leg fill
+  trades 174  per year 63.3  mean net +8.7 bps  median +55.7  hit 51.1%  (gross +45.4, cost -36.7, funding +0.0; mean |b| 1.45)
+  week-cluster bootstrap (2000, rng 11): one-sided P(mean<=0) = 0.4295; 95% CI -739.1..+579.8 bps
+  daily: Sharpe -0.114  CAGR -5.38%  maxDD -48.82%
+  halves: 2017-08-01..2019-01-18: n 55, mean +665.1; 2019-01-19..2020-04-30: n 119, mean -294.7
+  per alt: ETH 16/+383, XRP 12/+1, BNB 15/+57, ADA 22/+58, LTC 25/-11, LINK 9/-429, DOGE 5/-645, EOS 13/+229, ETC 16/-432, NEO 18/+404, TRX 10/+315, XLM 13/-455  -> alts with mean > 0: 7
+  sides: long-alt n 80 mean -240.3, short-alt n 94 mean +220.5
+  years (book return, trades, mean net bps): 2017 -1.0% 4 +2297; 2018 +32.3% 46 +586; 2019 +17.0% 73 +248; 2020 -43.9% 51 -1034
+  sums (equity units): gross -0.0698 funding +0.0000 cost -0.0712
+  counters: {'fallback_fills': 0, 'skipped_entries': 0, 'pending_exits': 0, 'forced_end': 7, 'forced_delist': 0, 'skipped_days': 4, 'fits': 3218, 'fits_ok': 179}
+SCREEN PASS RULE [HOLDOUT A spot]: (1) mean > 0 & P <= 0.01: False  (2) both halves > 0: False  (3) >= 8 of 12 alts > 0: False  -> FAIL
+  stress 10 bps slippage: trades 174 mean net -31.5 bps P 0.4730 Sharpe -0.208 halves +624.6/-334.8
+
+######## HOLDOUT B: Binance perps 5 m, 15 coins chosen by 2021-Q4 volume, 2022-01..2026-09, funding from caches
+  first possible decision day 2022-01-21; halves 2022-01-01..2024-05-26 | 2024-05-27..2026-09-30
+  1000SHIB: bars 508320 2021-12-01..2026-09-30 funding stamps 5908
+  SOL: bars 508320 2021-12-01..2026-09-30 funding stamps 6700
+  SAND: bars 508320 2021-12-01..2026-09-30 funding stamps 6224
+  LUNA: bars 47026 2021-12-01..2022-05-13 funding stamps 1410
+  MANA: bars 508320 2021-12-01..2026-09-30 funding stamps 6077
+  DOT: bars 508320 2021-12-01..2026-09-30 funding stamps 6698
+  AVAX: bars 508320 2021-12-01..2026-09-30 funding stamps 6598
+  FTM: bars 333504 2021-12-01..2025-01-31 funding stamps 5190
+  MATIC: bars 292437 2021-12-01..2024-09-11 funding stamps 6509
+  GALA: bars 508320 2021-12-01..2026-09-30 funding stamps 5518
+  AXS: bars 508320 2021-12-01..2026-09-30 funding stamps 7346
+  DYDX: bars 508320 2021-12-01..2026-09-30 funding stamps 5542
+  FIL: bars 508320 2021-12-01..2026-09-30 funding stamps 6527
+  LRC: bars 455616 2021-12-01..2026-03-31 funding stamps 6662
+  CRV: bars 508320 2021-12-01..2026-09-30 funding stamps 6662
+  BTC: bars 709920 2020-01-01..2026-09-30 funding stamps 7395
+== HOLDOUT B 15 perps BASE 7.31 bps/leg fill
+  trades 466  per year 98.2  mean net +322.2 bps  median +195.6  hit 59.0%  (gross +391.0, cost -40.0, funding -28.9; mean |b| 1.74)
+  week-cluster bootstrap (2000, rng 11): one-sided P(mean<=0) = 0.0075; 95% CI +67.5..+595.7 bps
+  daily: Sharpe 1.102  CAGR +20.63%  maxDD -15.10%
+  halves: 2022-01-01..2024-05-26: n 293, mean +340.7; 2024-05-27..2026-09-30: n 173, mean +290.9
+  per alt: 1000SHIB 33/+162, SOL 40/+150, SAND 34/+79, LUNA 1/+9778, MANA 40/+336, DOT 33/+318, AVAX 42/+429, FTM 25/-107, MATIC 22/+800, GALA 39/+275, AXS 30/+357, DYDX 31/+279, FIL 32/+474, LRC 34/+387, CRV 30/+368  -> alts with mean > 0: 14
+  sides: long-alt n 149 mean +336.4, short-alt n 317 mean +315.5
+  years (book return, trades, mean net bps): 2022 +22.4% 136 +217; 2023 +32.5% 112 +406; 2024 +35.4% 90 +651; 2025 +10.6% 69 +215; 2026 +0.4% 59 +31
+  sums (equity units): gross +1.7875 funding -0.1490 cost -0.2019
+  counters: {'fallback_fills': 0, 'skipped_entries': 0, 'pending_exits': 0, 'forced_end': 4, 'forced_delist': 1, 'skipped_days': 0, 'fits': 10449, 'fits_ok': 468}
+SCREEN PASS RULE [HOLDOUT B 15 perps]: (1) mean > 0 & P <= 0.01: True  (2) both halves > 0: True  (3) >= 10 of 15 alts > 0: True  -> PASS
+  funding coin-months missing over held periods: 0 []
+  stress 10 bps slippage: trades 466 mean net +278.4 bps P 0.0145 Sharpe +0.950 halves +296.4/+248.0
+
+GATED RESULTS: G0 screen rule PASS, G0 frozen-file rule FAIL; holdout A FAIL; holdout B PASS
