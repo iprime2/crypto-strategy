@@ -632,6 +632,17 @@ pub fn side_order_qty(inventory: f64, side_is_sell: bool, shaped_qty: f64, min_q
     qty.min(room)
 }
 
+/// Size of a quote placed later in the loop than its plan (after a failed edit, a pulled crossing quote or a
+/// cancel-all): the planned size, clipped again by the position now. A fill can land while the first call is in
+/// flight; on 23 Oct 2026 a bid filled during its edit, the edit failed, and the replacement, sized from the
+/// position before that fill (long 354, so 200), took the position to 754 against a cap of 600.
+pub fn requote_qty(planned_qty: f64, inventory_now: f64, side_is_sell: bool, min_qty: f64, max_inv: f64, step: f64) -> f64 {
+    if !(planned_qty > 0.0) {
+        return 0.0;
+    }
+    side_order_qty(inventory_now, side_is_sell, planned_qty, min_qty, max_inv, step).min(planned_qty)
+}
+
 /// Pay the spread to flatten only when size is at least two orders past `max_inv`.
 /// A smaller excess is left for a resting quote.
 pub fn should_taker_flatten(inventory: f64, max_inv: f64, order_qty: f64) -> bool {
@@ -1148,6 +1159,20 @@ mod tests {
         assert_eq!(side_order_qty(-650.0, true, 200.0, 1.0, 600.0, 1.0), 0.0);
         assert_eq!(side_order_qty(590.0, false, 200.0, 50.0, 600.0, 1.0), 0.0);
         assert_eq!(side_order_qty(550.0, false, 200.0, 50.0, 600.0, 1.0), 50.0);
+    }
+
+    #[test]
+    fn requote_qty_clips_again_by_the_position_after_a_fill_in_flight() {
+        // 23 Oct 2026 22:53:50: the bid was planned at long 354 (200) and filled while its edit was in flight
+        // (long 554). The replacement may only take the last 46.
+        assert_eq!(requote_qty(200.0, 554.0, false, 1.0, 600.0, 1.0), 46.0);
+        // One loop later the 200 replacement had filled too (long 754): no room, no bid.
+        assert_eq!(requote_qty(46.0, 754.0, false, 1.0, 600.0, 1.0), 0.0);
+        // The reducing side keeps its planned size, and never grows past it.
+        assert_eq!(requote_qty(200.0, 754.0, true, 1.0, 600.0, 1.0), 200.0);
+        assert_eq!(requote_qty(150.0, 0.0, false, 1.0, 600.0, 1.0), 150.0);
+        // Nothing planned stays nothing.
+        assert_eq!(requote_qty(0.0, 0.0, false, 1.0, 600.0, 1.0), 0.0);
     }
 
     #[test]
