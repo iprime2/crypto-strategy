@@ -548,11 +548,58 @@ fn secs_knob(value: f64, default: f64, lo: f64, hi: f64) -> Duration {
     Duration::from_secs_f64(v.clamp(lo, hi))
 }
 
+/// One read of the venue position: when its request went out, and the size (None when the read failed).
+#[derive(Debug, Clone, Copy)]
+struct VenuePositionRead {
+    sent: Instant,
+    position: Option<f64>,
+}
+
+async fn read_venue_position(rest: &QuotingRest, symbol: &str) -> VenuePositionRead {
+    let sent = Instant::now();
+    let position = match rest.get_position(symbol).await {
+        Ok(p) => Some(p),
+        Err(e) => {
+            tracing::warn!(%symbol, ?e, "venue position fetch failed");
+            None
+        }
+    };
+    VenuePositionRead { sent, position }
+}
+
+/// The venue position, read every `every` off the quoting loop, which takes each new reading when it arrives.
+/// Awaited inside the loop, a read that timed out held the quotes still: 3.4 s in the 22 Oct 2026 08:21Z
+/// Delta outage. The task ends when the loop drops the receiver.
+fn spawn_venue_position_poller(rest: QuotingRest, symbol: String, every: Duration) -> watch::Receiver<Option<VenuePositionRead>> {
+    let (tx, rx) = watch::channel(None);
+    tokio::spawn(async move {
+        let mut tick = tokio::time::interval(every);
+        tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+        loop {
+            tick.tick().await;
+            let read = read_venue_position(&rest, &symbol).await;
+            if tx.send(Some(read)).is_err() {
+                break;
+            }
+        }
+    });
+    rx
+}
+
+/// The reading the poller sent since the last call, if any.
+fn take_venue_read(rx: &mut watch::Receiver<Option<VenuePositionRead>>) -> Option<VenuePositionRead> {
+    if rx.has_changed().unwrap_or(false) {
+        *rx.borrow_and_update()
+    } else {
+        None
+    }
+}
+
 /// The venue is the source of truth for the open size, but its REST position trails the fills feed, so a
-/// read taken right after one of our fills is not adopted at once (`VenueReconcile`). Returns the inventory to
-/// quote with and the venue's reading (None when it could not be read).
-async fn sync_inventory_from_venue(
-    rest: &QuotingRest,
+/// reading sent before or right after one of our fills is not adopted at once (`VenueReconcile`). Returns the
+/// inventory to quote with and the venue's reading (None when it could not be read).
+fn apply_venue_read(
+    read: VenuePositionRead,
     symbol: &str,
     economics_arc: &Arc<Mutex<FillEconomics>>,
     econ_path: &PathBuf,
@@ -560,16 +607,12 @@ async fn sync_inventory_from_venue(
     reconcile: &mut VenueReconcile,
     last_fill: Option<Instant>,
 ) -> (f64, Option<f64>) {
-    let venue_pos = match rest.get_position(symbol).await {
-        Ok(p) => p,
-        Err(e) => {
-            tracing::warn!(%symbol, ?e, "venue position fetch failed");
-            return (economics_arc.lock().map(|e| e.position).unwrap_or(0.0), None);
-        }
+    let Some(venue_pos) = read.position else {
+        return (economics_arc.lock().map(|e| e.position).unwrap_or(0.0), None);
     };
     let Ok(mut eco) = economics_arc.lock() else { return (venue_pos, Some(venue_pos)) };
     let bot_pos = eco.position;
-    match reconcile.check(bot_pos, venue_pos, tolerance, last_fill, Instant::now()) {
+    match reconcile.check_read(bot_pos, venue_pos, tolerance, last_fill, read.sent, Instant::now()) {
         VenueReading::Agrees => (bot_pos, Some(venue_pos)),
         VenueReading::Deferred => {
             tracing::debug!(%symbol, bot_pos, venue_pos, "venue position trails a fresh fill; kept the bot's count");
@@ -915,7 +958,6 @@ async fn run_symbol_loop(
     let reconcile_every = Duration::from_secs_f64(
         env_f64_for_symbol(&symbol, "MM_VENUE_RECONCILE_SEC", 5.0).max(0.5),
     );
-    let mut last_reconcile = Instant::now() - reconcile_every;
     let mut venue_reconcile = VenueReconcile::new(
         Duration::from_millis(env_f64_for_symbol(&symbol, "MM_RECONCILE_FILL_GRACE_MS", 3000.0).clamp(0.0, 60_000.0) as u64),
         secs_knob(env_f64_for_symbol(&symbol, "MM_RECONCILE_MAX_WAIT_SEC", 15.0), 15.0, 1.0, 600.0),
@@ -931,21 +973,17 @@ async fn run_symbol_loop(
     let mut l3_pause_until: Option<Instant> = None;
     let mut reject_over_since: Option<Instant> = None;
 
+    let mut venue_rx = None;
     if !dry_run {
         if let Some(r) = &rest {
             if use_venue_inventory {
-                let (inv, venue) = sync_inventory_from_venue(
-                    r,
-                    &symbol,
-                    &economics_arc,
-                    &economics_path,
-                    reconcile_tol,
-                    &mut venue_reconcile,
-                    None,
-                )
-                .await;
+                // Before the first quote, so the startup read is awaited; later reads come from the poller.
+                let read = read_venue_position(r, &symbol).await;
+                let (inv, venue) =
+                    apply_venue_read(read, &symbol, &economics_arc, &economics_path, reconcile_tol, &mut venue_reconcile, None);
                 last_venue_pos = Some(venue.unwrap_or(inv));
                 tracing::info!(%symbol, inventory = inv, "startup venue inventory");
+                venue_rx = Some(spawn_venue_position_poller(r.clone(), symbol.clone(), reconcile_every));
             }
         }
     }
@@ -1199,29 +1237,13 @@ async fn run_symbol_loop(
             regime.level.spread_multiplier()
         };
 
-        let inventory = if use_venue_inventory {
-            if let Some(r) = &rest {
-                if last_reconcile.elapsed() >= reconcile_every {
-                    last_reconcile = Instant::now();
-                    let last_fill = last_fill_at.lock().ok().and_then(|t| *t);
-                    let (inv, venue) = sync_inventory_from_venue(
-                        r,
-                        &symbol,
-                        &economics_arc,
-                        &economics_path,
-                        reconcile_tol,
-                        &mut venue_reconcile,
-                        last_fill,
-                    )
-                    .await;
-                    last_venue_pos = Some(venue.unwrap_or(inv));
-                    inv
-                } else {
-                    economics_arc
-                        .lock()
-                        .map(|e| e.position)
-                        .unwrap_or(0.0)
-                }
+        let inventory = if let Some(rx) = venue_rx.as_mut() {
+            if let Some(read) = take_venue_read(rx) {
+                let last_fill = last_fill_at.lock().ok().and_then(|t| *t);
+                let (inv, venue) =
+                    apply_venue_read(read, &symbol, &economics_arc, &economics_path, reconcile_tol, &mut venue_reconcile, last_fill);
+                last_venue_pos = Some(venue.unwrap_or(inv));
+                inv
             } else {
                 economics_arc
                     .lock()
@@ -1592,6 +1614,19 @@ async fn run_symbol_loop(
             continue;
         }
 
+        // An order the venue may hold under an id we do not know (a place with no answer) is cancelled at once,
+        // not when a quote next has to move: on 22 Oct 2026 one waited 9.6 s for that, and a cancel-all takes
+        // Delta about 17 ms. Forget nothing the venue may still hold: retry next loop if the cancel-all fails.
+        // After the clear, both sides need an update and are quoted again below.
+        let edits_by_id = r.cancel_before_requote();
+        if edits_by_id && oms.live.has_untracked() {
+            if let Err(e) = r.cancel_all(&symbol).await {
+                tracing::warn!(%symbol, error = %e, "cancel-all for an order without an id failed; retrying next loop");
+                continue;
+            }
+            oms.live.clear();
+        }
+
         let (need_bid, need_ask) = oms.needs_update_sides(plan.bid, plan.ask, plan.place_bid, plan.place_ask, tol_bps);
         if !need_bid && !need_ask {
             continue;
@@ -1602,17 +1637,6 @@ async fn run_symbol_loop(
 
         let mut need_bid = need_bid;
         let mut need_ask = need_ask;
-        let edits_by_id = r.cancel_before_requote();
-        if edits_by_id && oms.live.has_untracked() {
-            // Forget nothing the venue may still hold: retry next loop if the cancel-all fails.
-            if let Err(e) = r.cancel_all(&symbol).await {
-                tracing::warn!(%symbol, error = %e, "cancel-all for an order without an id failed; retrying next loop");
-                continue;
-            }
-            oms.live.clear();
-            need_bid = true;
-            need_ask = true;
-        }
 
         let ts = Utc::now().timestamp_millis();
         let queue_front_frac = env_f64_for_symbol(&symbol, "MM_QUEUE_MAX_FRONT_FRAC", 0.9);
