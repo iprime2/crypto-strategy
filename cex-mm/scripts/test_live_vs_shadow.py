@@ -6,12 +6,14 @@ locally:
 from __future__ import annotations
 
 import contextlib
+import gzip
 import io
 import json
 import os
 import re
 import sys
 import tempfile
+import tracemalloc
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -205,6 +207,21 @@ class QuoteStats(unittest.TestCase):
         with mock.patch.object(lvs, "TAIL_BYTES", 100):
             self.assertEqual(lvs.live_span([str(p)], "ADAUSDT"), (T0, T0 + 1000, 200.0))
         self.assertEqual(lvs.inventory_at([str(p)], "ADAUSDT", T0 + 500), 0.0)
+
+    def test_live_span_streams_a_gzipped_log(self):
+        # A finished run's log is gzipped and cannot seek: reading it whole hit MemoryError under the VM's cap.
+        d = Path(tempfile.mkdtemp())
+        p = d / "bot.log.gz"
+        with gzip.open(p, "wt") as f:
+            f.write(metrics_line(T0, inventory=200) + "WARN stale book\n" * 400_000 + metrics_line(T0 + 1000))
+        tracemalloc.start()
+        try:
+            span = lvs.live_span([str(p)], "ADAUSDT")
+            peak = tracemalloc.get_traced_memory()[1]
+        finally:
+            tracemalloc.stop()
+        self.assertEqual(span, (T0, T0 + 1000, 200.0))
+        self.assertLess(peak, 2_000_000)  # the decompressed log is 6.4 MB
 
 
 def write_runs(base: Path) -> tuple[Path, Path]:

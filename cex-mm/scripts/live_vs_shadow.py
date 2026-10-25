@@ -274,15 +274,17 @@ def live_span(paths: list[str], symbol: str) -> tuple[float, float, float] | Non
         if first:
             break
     for path in reversed(paths):
-        with sim.open_text(path) as f:
-            if not path.endswith(".gz"):
+        if not path.endswith(".gz"):
+            with sim.open_text(path) as f:
                 f.seek(max(0, os.path.getsize(path) - TAIL_BYTES))
-            tail = f.read().splitlines()
-        for line in reversed(tail):
-            if needle in line and "MM_METRICS" in line and (m := metrics_json(line)) and m.get("ts_ms"):
-                last = m
-                break
-        if not last:  # e.g. hours of stale-book warnings at the end: scan the whole file
+                tail = f.read().splitlines()
+            for line in reversed(tail):
+                if needle in line and "MM_METRICS" in line and (m := metrics_json(line)) and m.get("ts_ms"):
+                    last = m
+                    break
+        # A gzip cannot seek (read whole, a finished run's log hit MemoryError under the VM's cap on 24 Oct 2026),
+        # or e.g. hours of stale-book warnings at the end: scan the whole file
+        if not last:
             for line in sim.iter_lines(path):
                 if needle in line and "MM_METRICS" in line and (m := metrics_json(line)) and m.get("ts_ms"):
                     last = m
