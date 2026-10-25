@@ -192,7 +192,7 @@ pub fn place_price(
 
 impl LiveQuotes {
     /// A place that got no answer (`mm_delta::outcome_unknown`): the order may rest, under an id we do not know.
-    /// The side is tracked without one, so the next loop cancels all before it quotes again (`has_untracked`).
+    /// The side is tracked without one, so the next loop cancels all at once (`has_untracked`).
     pub fn track_without_id(&mut self, side: QuoteSide, price: f64) {
         match side {
             QuoteSide::Bid => {

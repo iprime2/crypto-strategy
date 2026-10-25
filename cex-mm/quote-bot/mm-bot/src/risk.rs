@@ -247,13 +247,23 @@ impl VenueReconcile {
         Self { grace, max_wait, differs_since: None }
     }
 
-    pub fn check(&mut self, bot: f64, venue: f64, tolerance: f64, last_fill: Option<Instant>, now: Instant) -> VenueReading {
+    /// A reading whose request went out at `sent`, applied at `now`. A fill after `sent` cannot be in it,
+    /// however long the answer took, so it counts as fresh too (the read runs off the quoting loop).
+    pub fn check_read(
+        &mut self,
+        bot: f64,
+        venue: f64,
+        tolerance: f64,
+        last_fill: Option<Instant>,
+        sent: Instant,
+        now: Instant,
+    ) -> VenueReading {
         if (bot - venue).abs() <= tolerance {
             self.differs_since = None;
             return VenueReading::Agrees;
         }
         let since = *self.differs_since.get_or_insert(now);
-        let fresh_fill = last_fill.is_some_and(|t| now.saturating_duration_since(t) < self.grace);
+        let fresh_fill = last_fill.is_some_and(|t| t >= sent || now.saturating_duration_since(t) < self.grace);
         if fresh_fill && now.saturating_duration_since(since) < self.max_wait {
             return VenueReading::Deferred;
         }
@@ -373,9 +383,9 @@ mod tests {
         // 20 Oct 2026, 14:07:28: a 27-contract sell took the bot to -187; the venue read 5 ms later said -160.
         let t0 = Instant::now();
         let mut r = VenueReconcile::new(ms(3000), ms(15_000));
-        assert_eq!(r.check(-187.0, -160.0, 1e-6, Some(t0), t0 + ms(5)), VenueReading::Deferred);
+        assert_eq!(r.check_read(-187.0, -160.0, 1e-6, Some(t0), t0 + ms(5), t0 + ms(5)), VenueReading::Deferred);
         // The next read, 5 s on, has caught up.
-        assert_eq!(r.check(-187.0, -187.0, 1e-6, Some(t0), t0 + ms(5005)), VenueReading::Agrees);
+        assert_eq!(r.check_read(-187.0, -187.0, 1e-6, Some(t0), t0 + ms(5005), t0 + ms(5005)), VenueReading::Agrees);
     }
 
     #[test]
@@ -383,34 +393,54 @@ mod tests {
         let t0 = Instant::now();
         let mut r = VenueReconcile::new(ms(3000), ms(15_000));
         // No fill for a minute: the venue's figure is taken at once.
-        assert_eq!(r.check(-160.0, -187.0, 1e-6, Some(t0), t0 + ms(60_000)), VenueReading::Adopt);
+        assert_eq!(r.check_read(-160.0, -187.0, 1e-6, Some(t0), t0 + ms(60_000), t0 + ms(60_000)), VenueReading::Adopt);
         // Never any fill: the same.
         let mut r = VenueReconcile::new(ms(3000), ms(15_000));
-        assert_eq!(r.check(0.0, 100.0, 1e-6, None, t0), VenueReading::Adopt);
+        assert_eq!(r.check_read(0.0, 100.0, 1e-6, None, t0, t0), VenueReading::Adopt);
         // Fills keep landing right before every read: the difference is adopted once it has lasted 15 s.
         let mut r = VenueReconcile::new(ms(3000), ms(15_000));
         for s in [0u64, 5, 10] {
             let now = t0 + ms(s * 1000);
-            assert_eq!(r.check(-160.0, -187.0, 1e-6, Some(now - ms(100)), now), VenueReading::Deferred, "{s} s");
+            assert_eq!(r.check_read(-160.0, -187.0, 1e-6, Some(now - ms(100)), now, now), VenueReading::Deferred, "{s} s");
         }
         let now = t0 + ms(15_000);
-        assert_eq!(r.check(-160.0, -187.0, 1e-6, Some(now - ms(100)), now), VenueReading::Adopt);
+        assert_eq!(r.check_read(-160.0, -187.0, 1e-6, Some(now - ms(100)), now, now), VenueReading::Adopt);
         // Adopting starts the clock again for the next difference.
         let now = t0 + ms(20_000);
-        assert_eq!(r.check(-187.0, -200.0, 1e-6, Some(now - ms(100)), now), VenueReading::Deferred);
+        assert_eq!(r.check_read(-187.0, -200.0, 1e-6, Some(now - ms(100)), now, now), VenueReading::Deferred);
+    }
+
+    #[test]
+    fn a_read_sent_before_a_fill_is_not_adopted_however_late_it_answers() {
+        // The read is sent, a fill lands 100 ms later, and the answer (without the fill) is applied 3.5 s
+        // after it: past the grace, but that reading cannot contain the fill.
+        let t0 = Instant::now();
+        let mut r = VenueReconcile::new(ms(3000), ms(15_000));
+        assert_eq!(r.check_read(-187.0, -160.0, 1e-6, Some(t0 + ms(100)), t0, t0 + ms(3600)), VenueReading::Deferred);
+        // A read sent after the fill, applied past the grace, is adopted as before.
+        let mut r = VenueReconcile::new(ms(3000), ms(15_000));
+        assert_eq!(r.check_read(-187.0, -160.0, 1e-6, Some(t0), t0 + ms(3500), t0 + ms(3600)), VenueReading::Adopt);
+        // A difference that lasts is still adopted after max_wait, even with fills landing during each read.
+        let mut r = VenueReconcile::new(ms(3000), ms(15_000));
+        for s in [0u64, 5, 10] {
+            let sent = t0 + ms(s * 1000);
+            assert_eq!(r.check_read(-160.0, -187.0, 1e-6, Some(sent + ms(50)), sent, sent + ms(400)), VenueReading::Deferred);
+        }
+        let sent = t0 + ms(15_000);
+        assert_eq!(r.check_read(-160.0, -187.0, 1e-6, Some(sent + ms(50)), sent, sent + ms(400)), VenueReading::Adopt);
     }
 
     #[test]
     fn agreement_resets_the_wait() {
         let t0 = Instant::now();
         let mut r = VenueReconcile::new(ms(3000), ms(15_000));
-        assert_eq!(r.check(-100.0, -90.0, 1e-6, Some(t0), t0), VenueReading::Deferred);
-        assert_eq!(r.check(-100.0, -100.0, 1e-6, Some(t0), t0 + ms(5000)), VenueReading::Agrees);
+        assert_eq!(r.check_read(-100.0, -90.0, 1e-6, Some(t0), t0, t0), VenueReading::Deferred);
+        assert_eq!(r.check_read(-100.0, -100.0, 1e-6, Some(t0), t0 + ms(5000), t0 + ms(5000)), VenueReading::Agrees);
         // A new difference 12 s later waits its own 15 s, not the remainder of the old one.
         let now = t0 + ms(17_000);
-        assert_eq!(r.check(-120.0, -100.0, 1e-6, Some(now - ms(50)), now), VenueReading::Deferred);
+        assert_eq!(r.check_read(-120.0, -100.0, 1e-6, Some(now - ms(50)), now, now), VenueReading::Deferred);
         // Within tolerance counts as agreement.
-        assert_eq!(r.check(-100.0, -100.0000001, 1e-6, Some(now), now + ms(10)), VenueReading::Agrees);
+        assert_eq!(r.check_read(-100.0, -100.0000001, 1e-6, Some(now), now + ms(10), now + ms(10)), VenueReading::Agrees);
     }
 
     #[test]
