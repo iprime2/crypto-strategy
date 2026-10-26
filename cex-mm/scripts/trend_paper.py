@@ -4,9 +4,11 @@
 Once per UTC day, after the 00:00 close (or once per ISO week with --weekly, on the first run after the
 Monday 00:00 UTC close): compute the backtest's long-only target weights from Delta daily closes, size them
 off paper equity in whole contracts, and fill the difference as taker orders walked through Delta's live L2
-book, so slippage is measured rather than assumed. Funding is charged from Delta's FUNDING:<sym> rates. A
-"model" equity holds the rule's unrounded weights between the same rebalances (mid to mid) with the
-backtest's modelled costs, so the two can be compared. Public data only: no API keys, no orders. Safe to
+book, so slippage is measured rather than assumed. Funding is charged at every 8-hourly exchange the
+position was held through, at Delta's FUNDING:<sym> rate for that exchange, and each journal row records the
+window, the exchanges and the rates it charged (funding_window, funding_exchanges, funding_rates). A "model"
+equity holds the rule's unrounded weights between the same rebalances (mid to mid) with the backtest's modelled
+costs, so the two can be compared. Public data only: no API keys, no orders. Safe to
 run hourly; it rebalances at most once per day (or week) and exits non-zero when data is missing, so the
 next run retries. A state directory remembers its settings and refuses a run with different ones.
 
@@ -31,6 +33,8 @@ import trend_backtest as tb
 STATE_DIR = Path(__file__).resolve().parent.parent / "artifacts" / "trend" / "paper"
 MODEL_COST = (tb.TAKER_BPS + tb.SLIPPAGE_BPS) / 1e4  # the backtest's cost per unit of turnover
 DEFAULT_CONFIG = {"weekly": False, "target_vol": tb.TARGET_VOL, "band": 0.0}  # the daily book, as before
+FUNDING_EVERY = 8 * 3600  # Delta India exchanges funding at 00:00, 08:00 and 16:00 UTC
+FUNDING_TRIES = 5
 
 
 def due(state: dict, today: dt.date, weekly: bool) -> bool:
@@ -83,15 +87,45 @@ def fetch_book(coin: str) -> tuple[list, list]:
     return side(r["buy"]), side(r["sell"])
 
 
-def fetch_funding(since: int, until: int) -> dict[str, float]:
-    """Funding per unit of notional paid by a long over [since, until): hourly rates in % per 8 h."""
-    out = {}
+def funding_exchanges(since: int, until: int) -> list[int]:
+    """The funding exchanges a position held from `since` to `until` (unix seconds) takes part in: every 8-hour
+    stamp after `since`, up to and including `until` (a run at 00:05 has been through the 00:00 exchange)."""
+    return list(range((since // FUNDING_EVERY + 1) * FUNDING_EVERY, until + 1, FUNDING_EVERY))
+
+
+def fetch_funding(since: int, until: int) -> dict:
+    """The rate (% per 8 h) of each funding exchange in (since, until], per coin: the FUNDING:<sym> hourly candle
+    stamped at the exchange, which is the rate Delta's ledger charges there (checked against the live ADA book's
+    funding entries, 22-26 Oct 2026). Two quirks of the candles endpoint, measured 26 Oct 2026: a FUNDING series
+    starts at the first 8-hour stamp at or after `start`, not at the first hour, and about one answer in ten is an
+    empty list. Until 2026-10-26 this function summed hourly candles from `since` / 8, so a daily window charged the
+    08:00 and 16:00 exchanges, 1/8 of the 00:00 one, and zero for a coin that answered empty. Now a coin missing a
+    stamp is asked again, and if it is still missing the run fails and the next hourly run retries.
+    Returns {"since", "until", "exchanges": [unix s], "rates": {coin: [% per 8 h, one per exchange]}}."""
+    exchanges = funding_exchanges(since, until)
+    rates = {}
     for c in tb.COINS:
-        rates = []
-        for s in range(since, until, 1999 * 3600):
-            rates += fetch(f"{tb.DELTA}/v2/history/candles?resolution=1h&symbol=FUNDING:{c}USD&start={s}&end={min(s + 1999 * 3600, until)}")
-        out[c] = sum(float(r["close"]) for r in rates if since <= r["time"] < until) / 100 / 8
-    return out
+        got = {}
+        for attempt in range(FUNDING_TRIES):
+            if attempt:
+                time.sleep(2 * attempt)
+            for s in range(since + 1, until + 1, 1999 * 3600):  # pages under the per-request candle cap
+                for r in fetch(f"{tb.DELTA}/v2/history/candles?resolution=1h&symbol=FUNDING:{c}USD"
+                               f"&start={s}&end={min(s + 1999 * 3600, until)}"):
+                    got[r["time"]] = float(r["close"])
+            if all(e in got for e in exchanges):
+                break
+        missing = [e for e in exchanges if e not in got]
+        if missing:
+            when = ", ".join(f"{dt.datetime.fromtimestamp(e, dt.timezone.utc):%Y-%m-%d %H:%M}" for e in missing)
+            raise RuntimeError(f"no FUNDING:{c}USD rate for the exchange at {when} UTC after {FUNDING_TRIES} tries")
+        rates[c] = [got[e] for e in exchanges]
+    return {"since": since, "until": until, "exchanges": exchanges, "rates": rates}
+
+
+def funding_owed(detail: dict | None) -> dict[str, float]:
+    """Funding per unit of notional paid by a long over the window: the exchanges' rates summed, % -> fraction."""
+    return {c: sum(r) / 100 for c, r in detail["rates"].items()} if detail else {}
 
 
 # ---------------------------------------------------------------- paper book
@@ -161,8 +195,9 @@ def order_list(state: dict, closes: dict, books: dict, funding: dict, cvals: dic
 
 
 def step(state: dict, closes: dict, books: dict, funding: dict, cvals: dict, now: dt.datetime, *,
-         target_vol: float = tb.TARGET_VOL, band: float = 0.0) -> dict:
-    """One rebalance on fetched data (no I/O). Mutates `state`, returns the journal record."""
+         target_vol: float = tb.TARGET_VOL, band: float = 0.0, funding_detail: dict | None = None) -> dict:
+    """One rebalance on fetched data (no I/O). Mutates `state`, returns the journal record. `funding` is
+    funding_owed(funding_detail); the detail (window, exchanges, rates) is written to the record for audit."""
     m = mark(state, closes, books, funding, cvals, now, target_vol)
     signal_day, mids, fund_paid, eq_before, w = m["signal_day"], m["mids"], m["funding"], m["equity"], m["weights"]
     pos = state["positions"]
@@ -199,6 +234,9 @@ def step(state: dict, closes: dict, books: dict, funding: dict, cvals: dict, now
                  last_rebalance=now.date().isoformat(), last_rebalance_ts=int(now.timestamp()))
     return {"time": now.isoformat(), "signal_day": signal_day.isoformat(), "equity_before": eq_before,
             "equity": eq_after, "model_equity": state["model_equity"], "cash": state["cash"], "funding": fund_paid,
+            "funding_window": [funding_detail["since"], funding_detail["until"]] if funding_detail else None,
+            "funding_exchanges": funding_detail["exchanges"] if funding_detail else [],
+            "funding_rates": funding_detail["rates"] if funding_detail else {},
             "fees": fees, "orders": orders, "skipped": skipped, "weights": w, "positions": dict(pos), "mids": mids,
             "values": {c: q * cvals[c] * mids[c] for c, q in pos.items()},
             "gross": sum(abs(q) * cvals[c] * mids[c] for c, q in pos.items()) / eq_after}
@@ -284,11 +322,12 @@ def main() -> None:
     closes = fetch_closes(now.date())
     books = {c: fetch_book(c) for c in tb.COINS}
     since = state["last_rebalance_ts"]
-    funding = fetch_funding(since, int(now.timestamp())) if since else {}
+    detail = fetch_funding(since, int(now.timestamp())) if since else None
+    funding = funding_owed(detail)
     if args.orders_only:
         print_order_list(order_list(state, closes, books, funding, cvals, now, target_vol=args.target_vol, band=args.band), config, now)
         return
-    rec = step(state, closes, books, funding, cvals, now, target_vol=args.target_vol, band=args.band)
+    rec = step(state, closes, books, funding, cvals, now, target_vol=args.target_vol, band=args.band, funding_detail=detail)
     args.state_dir.mkdir(parents=True, exist_ok=True)
     with open(args.state_dir / "journal.jsonl", "a") as f:
         f.write(json.dumps(rec) + "\n")

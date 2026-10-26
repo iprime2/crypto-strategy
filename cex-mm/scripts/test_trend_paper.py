@@ -6,6 +6,8 @@ import datetime as dt
 import os
 import sys
 import unittest
+from unittest import mock
+from urllib.parse import parse_qs, urlparse
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import trend_backtest as tb  # noqa: E402
@@ -21,6 +23,110 @@ def synthetic(now: dt.datetime, up: float = 1.01):
     last = closes["BTC"][days[-1]]
     books = {c: ([(last * 0.9999, 1e9)], [(last * 1.0001, 1e9)]) for c in tb.COINS}
     return closes, books, {c: 0.01 for c in tb.COINS}
+
+
+H, X = 3600, 8 * 3600  # an hour; Delta's funding interval (exchanges at 00:00, 08:00 and 16:00 UTC)
+T = lambda *a: int(dt.datetime(*a, tzinfo=dt.timezone.utc).timestamp())  # noqa: E731
+
+
+class FakeFunding:
+    """Delta's /v2/history/candles for FUNDING:<sym>USD at resolution 1h, as measured on 26 Oct 2026: hourly candles,
+    the value constant for the eight hours after each exchange stamp, newest first. The series starts at the first
+    8-hour stamp at or after `start` (not at the first hour), ends at the last candle at or before `end`, and the
+    endpoint sometimes answers an empty list. `rate(coin, stamp)` gives each exchange's rate in % per 8 h."""
+
+    def __init__(self, rate, empty=()):
+        self.rate, self.empty, self.calls = rate, list(empty), []
+
+    def __call__(self, url: str):
+        q = parse_qs(urlparse(url).query)
+        coin = q["symbol"][0].removeprefix("FUNDING:").removesuffix("USD")
+        start, end = int(q["start"][0]), int(q["end"][0])
+        self.calls.append((coin, start, end))
+        if coin in self.empty:
+            self.empty.remove(coin)  # one empty answer per listed occurrence
+            return []
+        first = -(-start // X) * X  # the first exchange stamp at or after start
+        hours = range(first, end // H * H + 1, H)
+        return [{"time": t, "open": self.rate(coin, t // X * X), "close": self.rate(coin, t // X * X)} for t in reversed(hours)]
+
+
+def block_rate(coin: str, stamp: int) -> float:
+    """A distinct rate for every coin and exchange, so a dropped or double-counted hour cannot cancel out."""
+    return 0.001 * (1 + tb.COINS.index(coin)) + 0.0001 * ((stamp // X) % 97)
+
+
+class Funding(unittest.TestCase):
+    def test_exchanges_held_through(self):
+        # The daily run: 25 Oct 00:05 -> 26 Oct 00:05 holds through 08:00, 16:00 and the 00:00 just before the run.
+        self.assertEqual(tp.funding_exchanges(T(2026, 10, 25, 0, 5, 14), T(2026, 10, 26, 0, 5, 13)),
+                         [T(2026, 10, 25, 8), T(2026, 10, 25, 16), T(2026, 10, 26)])
+        # A stamp at the window start was settled before the position existed; one at the end was held through.
+        self.assertEqual(tp.funding_exchanges(T(2026, 10, 25), T(2026, 10, 26)),
+                         [T(2026, 10, 25, 8), T(2026, 10, 25, 16), T(2026, 10, 26)])
+        # The first daily window (16:37 -> 00:05) and a weekly window (Monday 00:05 -> Monday 00:05).
+        self.assertEqual(tp.funding_exchanges(T(2026, 10, 8, 16, 37), T(2026, 10, 9, 0, 5)), [T(2026, 10, 9)])
+        self.assertEqual(len(tp.funding_exchanges(T(2026, 10, 19, 0, 5), T(2026, 10, 26, 0, 5))), 21)
+
+    def fetched(self, fake, since, until):
+        with mock.patch.object(tp, "fetch", fake), mock.patch.object(tp.time, "sleep"):
+            return tp.fetch_funding(since, until)
+
+    def test_each_exchange_charged_once_at_its_own_rate(self):
+        # The bug of 8-26 Oct 2026: asking from 00:05 returns nothing before 08:00, so the old sum of hourly candles
+        # / 8 charged the 08:00 and 16:00 exchanges and 1/8 of the 00:00 one.
+        since, until = T(2026, 10, 25, 0, 5, 14), T(2026, 10, 26, 0, 5, 13)
+        got = self.fetched(FakeFunding(block_rate), since, until)
+        stamps = [T(2026, 10, 25, 8), T(2026, 10, 25, 16), T(2026, 10, 26)]
+        self.assertEqual(got["exchanges"], stamps)
+        self.assertEqual((got["since"], got["until"]), (since, until))
+        for c in tb.COINS:
+            self.assertEqual(got["rates"][c], [block_rate(c, s) for s in stamps], c)
+        owed = tp.funding_owed(got)
+        for c in tb.COINS:
+            self.assertAlmostEqual(owed[c], sum(block_rate(c, s) for s in stamps) / 100, places=15, msg=c)
+        self.assertEqual(tp.funding_owed(None), {})
+
+    def test_long_window_spans_pages_without_gaps_or_doubles(self):
+        # A catch-up after an outage longer than one 1999-hour page: each page start falls inside an 8-hour block.
+        since, until = T(2026, 6, 1, 0, 5), T(2026, 10, 1, 0, 5)
+        got = self.fetched(FakeFunding(block_rate), since, until)
+        stamps = list(range(T(2026, 6, 1, 8), until + 1, X))
+        self.assertEqual(got["exchanges"], stamps)
+        self.assertEqual(got["rates"]["BTC"], [block_rate("BTC", s) for s in stamps])
+
+    def test_empty_answer_is_asked_again_not_booked_as_zero(self):
+        since, until = T(2026, 10, 25, 0, 5), T(2026, 10, 26, 0, 5)
+        fake = FakeFunding(block_rate, empty=["LTC", "LTC", "DOGE"])
+        got = self.fetched(fake, since, until)
+        self.assertEqual(got["rates"]["LTC"], [block_rate("LTC", s) for s in got["exchanges"]])
+        self.assertEqual(got["rates"]["DOGE"], [block_rate("DOGE", s) for s in got["exchanges"]])
+        self.assertEqual(sum(1 for c, *_ in fake.calls if c == "LTC"), 3)
+
+    def test_a_rate_still_missing_fails_the_run(self):
+        # Exit non-zero (the hourly timer retries) rather than journal a funding line that is silently short.
+        fake = FakeFunding(block_rate, empty=["BNB"] * 50)
+        with self.assertRaisesRegex(RuntimeError, "FUNDING:BNBUSD"):
+            self.fetched(fake, T(2026, 10, 25, 0, 5), T(2026, 10, 26, 0, 5))
+
+    def test_journal_row_carries_what_it_charged_and_recomputes(self):
+        closes, books, cvals = synthetic(NOW)
+        s = tp.init_state(5000.0, NOW)
+        rec0 = tp.step(s, closes, books, {}, cvals, NOW)
+        self.assertEqual((rec0["funding_window"], rec0["funding_exchanges"], rec0["funding_rates"]), (None, [], {}))
+        nxt = NOW + dt.timedelta(1)
+        for c in tb.COINS:
+            closes[c][nxt.date() - dt.timedelta(1)] = closes[c][NOW.date() - dt.timedelta(1)]
+        detail = self.fetched(FakeFunding(block_rate), s["last_rebalance_ts"], int(nxt.timestamp()))
+        held = dict(s["positions"])
+        rec = tp.step(s, closes, books, tp.funding_owed(detail), cvals, nxt, funding_detail=detail)
+        self.assertEqual(rec["funding_window"], [detail["since"], detail["until"]])
+        self.assertEqual(rec["funding_exchanges"], detail["exchanges"])
+        self.assertEqual(rec["funding_rates"], detail["rates"])
+        # An auditor needs only the row (and the previous row's positions) to redo the line.
+        redo = sum(q * cvals[c] * rec["mids"][c] * sum(rec["funding_rates"][c]) / 100 for c, q in held.items())
+        self.assertGreater(rec["funding"], 0)
+        self.assertAlmostEqual(rec["funding"], redo, places=12)
 
 
 class Due(unittest.TestCase):
