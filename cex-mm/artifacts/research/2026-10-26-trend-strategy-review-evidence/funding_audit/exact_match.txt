@@ -1,0 +1,20 @@
+daily_ 2026-10-09T00:05  journal -0.006923439964  old rule -0.006923439964  rel diff 0.0e+00
+daily_ 2026-10-10T00:05  journal +0.038505497866  old rule +0.038505497866  rel diff 0.0e+00
+daily_ 2026-10-11T00:05  journal +0.000588689151  old rule +0.000588689151  rel diff 0.0e+00
+daily_ 2026-10-12T00:05  journal +0.027514904616  old rule +0.027514904616  rel diff 0.0e+00
+daily_ 2026-10-13T00:05  journal +0.038613972823  old rule +0.038613972823  rel diff 0.0e+00
+daily_ 2026-10-14T00:05  journal +0.017978207851  old rule +0.017978207851  rel diff 0.0e+00
+daily_ 2026-10-15T00:05  journal +0.019463426597  old rule +0.019463426597  rel diff 0.0e+00
+daily_ 2026-10-16T00:05  journal +0.002191610894  old rule +0.002191610894  rel diff 0.0e+00
+daily_ 2026-10-17T00:05  journal +0.020366021051  old rule +0.020366021051  rel diff 0.0e+00
+daily_ 2026-10-18T00:05  journal +0.024093050390  old rule +0.024093050390  rel diff 0.0e+00
+daily_ 2026-10-19T00:05  journal +0.030563786042  old rule +0.030563786042  rel diff 0.0e+00
+daily_ 2026-10-20T00:05  journal +0.034720202158  old rule +0.034720202158  rel diff 0.0e+00
+daily_ 2026-10-21T00:05  journal +0.040767277601  old rule +0.040767277601  rel diff 0.0e+00
+daily_ 2026-10-22T00:05  journal +0.024831661937  old rule +0.024831661937  rel diff 0.0e+00
+daily_ 2026-10-23T00:05  journal -0.020576875008  old rule -0.020576875008  rel diff 0.0e+00
+daily_ 2026-10-24T00:05  journal +0.049993156255  old rule +0.049993156255  rel diff 0.0e+00
+daily_ 2026-10-25T00:05  journal -0.025781741463  old rule -0.025781741463  rel diff 0.0e+00
+daily_ 2026-10-26T00:05  journal +0.036342703506  old rule +0.036342703506  rel diff 0.0e+00
+weekly 2026-10-26T00:05  journal +0.089928872869  old rule +0.089928872869  rel diff 0.0e+00
+worst relative difference 0.0e+00 over 19 rows: the trader saw today's published values, with no hours missing beyond the rule and no empty answers
