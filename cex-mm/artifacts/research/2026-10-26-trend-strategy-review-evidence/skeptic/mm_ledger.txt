@@ -1,0 +1,12 @@
+totals since 20 Oct 11:06Z: {'commission': -12.72, 'cashflow': 46.05, 'funding': -0.05} net 33.29
+first balance 292.16204975 last balance 325.44784051
+2026-10-20 {'cashflow': 2.26, 'commission': -0.95, 'funding': 0.01} net 1.32
+2026-10-21 {'cashflow': 10.5, 'commission': -2.18, 'funding': 0.0} net 8.32
+2026-10-22 {'cashflow': 6.44, 'commission': -1.89, 'funding': -0.01} net 4.54
+2026-10-23 {'cashflow': 4.7, 'commission': -1.82, 'funding': -0.01} net 2.87
+2026-10-24 {'cashflow': 8.89, 'commission': -2.04, 'funding': -0.05} net 6.79
+2026-10-25 {'cashflow': 7.71, 'commission': -1.98, 'funding': -0.02} net 5.7
+2026-10-26 {'cashflow': 5.55, 'commission': -1.85, 'funding': 0.03} net 3.74
+full days 5 mean 5.65 sd 2.08 daily Sharpe 2.71 annualised 51.8
+on $292: mean %/day 1.933 -> %/yr simple 705.6
+equity samples 23275 {'t': 1792661189754.5718, 'equity': 304.50000925} {'t': 1793036013589.5913, 'equity': 325.32765892} max DD on samples -0.93 %

@@ -1,0 +1,34 @@
+DAILY BOOK (TV 0.40, band 0), journal /tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/reports/run-2026-10-26-pm/daily_journal.jsonl
+rebalances: 19  first 2026-10-08T16:37  last 2026-10-26T00:05
+equity at last rebalance 992.94 -> -0.706% since start; model 993.63 -> -0.637%
+paper minus model, pct, min -0.149 max 0.257 (last -0.069)
+orders 47  traded notional $1625.81  fees $0.863 (journal fee field 0.863) = 5.31 bps per $  slippage notional-wtd 1.02 bps  total 6.33 bps (model 7.31, gate 14.62)
+funding received, sum of journal field: $0.353 (positive = received)
+gross exposure min 0.111x max 0.644x mean 0.237x last 0.195x
+rebalance-to-rebalance returns n=18 mean -0.0321% sd 0.5593% -> annualised vol 10.7%/yr (x sqrt 365); using eq/eq 10.7%
+max drawdown on rebalance marks -2.52% (peak 1018.61)
+buy-and-hold 9 coins equal weight, 2026-10-08 -> 2026-10-26 mids: -5.36%  (BTC -1.56%)
+per coin: BTC -1.6%, ETH -4.3%, XRP -4.3%, BNB +0.9%, ADA -12.0%, LTC -9.4%, LINK -8.3%, DOGE -7.5%, BCH -1.7%
+realised -0.71% over 19 days at Sharpe 0.5, vol 12.0%: expected 0.31% sd 2.74% z -0.37 -> percentile 36
+realised -0.71% over 19 days at Sharpe 0.5, vol 10.7%: expected 0.28% sd 2.44% z -0.40 -> percentile 34
+realised -0.71% over elapsed 17.3 days at Sharpe 0.5, vol 12.0%: expected 0.28% sd 2.61% z -0.38 -> percentile 35
+realised -0.71% over elapsed 17.3 days at Sharpe 0.5, vol 10.7%: expected 0.25% sd 2.33% z -0.41 -> percentile 34
+
+WEEKLY BOOK (TV 0.25, band 10%), journal /tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/reports/run-2026-10-26-pm/weekly_journal.jsonl
+rebalances 2: 2026-10-19 eq 999.94 model 999.91 gross 0.079x orders 6 fees 0.042 funding 0.000; 2026-10-26 eq 997.00 model 996.87 gross 0.028x orders 6 fees 0.035 funding 0.090
+weekly orders 12 traded $144.52 fee 5.31 bps slippage 1.60 bps total 6.91 bps
+
+SHARPE STANDARD ERROR / TIME TO KNOW (SE ~ 1/sqrt(T years); Lo 2002 adds (1+S^2/2) factor)
+  month 3  T=0.25 yr  SE 2.00 (plain)  2.12 (S=0.5 Lo)
+  month 6  T=0.50 yr  SE 1.41 (plain)  1.50 (S=0.5 Lo)
+  month 12 T=1.00 yr  SE 1.00 (plain)  1.06 (S=0.5 Lo)
+  year 2   T=2.00 yr  SE 0.71 (plain)  0.75 (S=0.5 Lo)
+  year 5   T=5.00 yr  SE 0.45 (plain)  0.47 (S=0.5 Lo)
+  true Sharpe 0.3: years to reject 0 at 95% one-sided with 50% power 30.1, with 80% power 68.7
+  true Sharpe 0.5: years to reject 0 at 95% one-sided with 50% power 10.8, with 80% power 24.7
+  true Sharpe 0.8: years to reject 0 at 95% one-sided with 50% power 4.2, with 80% power 9.7
+
+ADA MM COMPARATOR (DATA.txt section A, venue ledger): +33.29 over 20 Oct 11:06Z -> 26 Oct 17:30Z
+  elapsed 6.27 days -> $5.31/day -> $161/month (30.4 d) -> $1939/yr if the rate holds; capital 292.16 -> 325.45
+  bot turnover ~$15-17k/day = 2.5-3% of ADAUSD 24h turnover $595,184 (DATA.txt): already at the stated capacity; net60 +3.44 bps per $ (markout_since20.txt)
+  if the Scalper Offer (maker 1.25 bps) is revoked and the fee returns to 2.12 bps: net60 ~ 2.57 bps per $ -> ~$121/month
