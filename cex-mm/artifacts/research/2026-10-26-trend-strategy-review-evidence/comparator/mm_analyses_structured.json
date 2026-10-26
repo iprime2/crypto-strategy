@@ -1,0 +1,399 @@
+[
+ {
+  "lens": "PnL attribution of the live ADAUSD market maker on Delta India mainnet, 2026-10-20 11:06Z to 2026-10-26 17:30Z (the Binance-anchored runs): spread capture vs adverse selection vs fees vs funding vs inventory, by day / hour / run / side / fill size / regime, inventory path and drawdown, cluster-bootstrap strength of net60, the STRATEGY.md 11.3 live gate, and the money at today's size.",
+  "headline_numbers": [
+   {
+    "name": "Total PnL and reconciliation",
+    "value": "+33.29 $ ledger (cashflow +46.05, commission -12.72, funding -0.05); equity 292.16 -> 325.10 = +32.94; fills-based MTM +32.94 (venue end mark) / +33.02 (last fill price)",
+    "how": "Sum of dash_state/tx.json rows since 20 Oct 11:06Z; fills cash flow + open position x end mark - fees from fills_all.json (6,281 maker fills, 0 taker, $102,653 traded, position 0 -> +578; venue new_position chain verified unbroken). t1_pnl_by_source.txt"
+   },
+   {
+    "name": "PnL by source (exact decomposition)",
+    "value": "spread +45.67 $ (+4.45 bps per $ traded) | inventory +0.03 $ (anchored fair) or -2.93 $ (Delta mark as fair) | fees -12.72 $ (1.24 bps per $) | funding -0.05 $",
+    "how": "fair = Binance 1 s close x (1 + rolling-60-min median side-adjusted fill basis), basis median -5.91 bps; capture = side x (fair - price) x size; inventory = position x fair change between fills + open position re-marked. 26 Oct (1,123 fills, no Binance dump yet) uses Delta mark x 1.000147. t1_pnl_by_source.txt sections A-C"
+   },
+   {
+    "name": "net60 per $ (capture + 60 s Binance markout - fee)",
+    "value": "+3.09 bps; day-cluster 95% CI [+2.52, +3.64] (k=6), hour-cluster [+2.59, +3.62] (k=133); with the full 2.12 bps fee (no Scalper Offer) +2.22 [+1.64, +2.76]; +3.44 if Delta mark is the fair",
+    "how": "5,148 Binance-enriched fills 20-25 Oct, $86,989, notional-weighted; 10,000 cluster bootstraps. Markouts: 1 s -0.07, 5 s -0.20, 10 s -0.07, 30 s -0.05, 60 s -0.08, 300 s -0.41 bps; capture 4.42. t4_statistics.txt, t1 section D"
+   },
+   {
+    "name": "Consistency across days and hours",
+    "value": "net60 > 0 on 6 of 6 enriched days (also with 2.12 bps fee); ledger positive 7 of 7 days; 92% of the 124 calendar hours with >= 10 fills (85% at the full fee); exact hourly PnL mean +0.224 $, sd 0.541, 68% of 150 hours positive, t = 4.77",
+    "how": "Per-day and per-calendar-hour net60 and spread+inventory-fee PnL. t4_statistics.txt, t4_hourly.csv"
+   },
+   {
+    "name": "Toxicity at 10 s",
+    "value": "0.375 = sum of adverse 10 s markouts / sum of capture (gate asks < 0.7); 6.8% of fills (6.7% of $) adverse by more than the 5 bps half-spread; per day 0.68 (20 Oct, stage 1), 0.34, 0.45, 0.37, 0.42, 0.21",
+    "how": "Binance 10 s markout per fill, notional-weighted; three definitions in t5_gate.txt"
+   },
+   {
+    "name": "Inventory",
+    "value": "time-weighted mean position -14 contracts, mean |q| 315 (~$65, 20% of equity); 15.7% of time at the cap (24.4% stage 1, 9.3% current run), max +754 / -687; drift component of inventory PnL +0.14 $ while ADA fell 468 bps; equity max drawdown 2.88 $ (0.93%), 23 Oct 18:18Z -> 22:56Z, 10.3 h under water",
+    "how": "Position path from venue new_position.size sampled every 10 s; equity.jsonl (22-26 Oct, 23,275 samples); fill-based MTM path from 20 Oct gives the same 2.90 $ drawdown. t3_inventory.txt"
+   },
+   {
+    "name": "Money at today's size",
+    "value": "+5.31 $/day (7-day bootstrap of the mean [+3.72, +6.54]) = +37 $/week = +1,867 $/yr [1,357, 2,388] at x365; +11.4% on the $292.16 deployed in 6.3 days; without the Scalper Offer +3.86 $/day (+24.22 total); after a 30% VDA tax on gross gains with no loss set-off the +33.29 becomes +9.93",
+    "how": "Ledger by day scaled to 24 h; extra fee = (2.12 - paid bps) x notional = 9.07 $; tax readings from the realised cashflow rows (+77.85 gross wins, -31.80 gross losses). t6_money.txt"
+   },
+   {
+    "name": "Capacity",
+    "value": "$16,379 traded per day = 2.8% of Delta ADAUSD 24 h turnover ($595k)",
+    "how": "fills notional / 6.27 days vs the ticker turnover in DATA.txt. t6_money.txt"
+   }
+  ],
+  "findings": [
+   {
+    "rank": 1,
+    "finding": "The +33 is spread capture, not an inventory bet. The bot earned 4.45 bps per $ against the Binance-anchored fair and paid 1.24 bps in fees; inventory contributed between +0.03 $ (anchored fair) and -2.93 $ (Delta mark) while ADA fell 468 bps, because the time-weighted position was only -14 contracts and showed no directional information (corr with the next 5-min return +0.016). Net-of-fee markout PnL is positive on every day and the 300 s markout costs only 0.41 bps per $.",
+    "numbers": "spread +45.67, inventory +0.03 / -2.93, fees -12.72, funding -0.05 = +32.94; net60 +3.09 [2.52, 3.64] day-cluster; net300 +2.76 [2.12, 3.30]; 6/6 days > 0; drift component +0.14 $",
+    "evidence": "t1_pnl_by_source.txt (A, C, D), t3_inventory.txt, t4_statistics.txt",
+    "money_at_stake": "All of it: +33.29 $ over 6.27 days, +5.31 $/day"
+   },
+   {
+    "rank": 2,
+    "finding": "The tax reading is the largest single term in money. A market maker's realised ledger is thousands of small wins and losses: gross winning fills +77.85 against a net +46.05, so the 30% VDA no-set-off reading taxes 1.7x the net gain and leaves 9.93 of the 33.29; the slab-on-net reading leaves 23.30. This hits the MM harder than the trend book and is unresolved (resource/07 Gate 0).",
+    "numbers": "after tax: slab 30% on net +23.30; VDA 30% on net gains (no expense deduction) +19.47; VDA 30% on gross gains, no set-off +9.93 (tax 23.36)",
+    "evidence": "t6_money.txt; readings per resource/07-trend-rule-and-prop-trading-research.md and cex-mm/artifacts/research/2026-10-22-trend-improvement.md (models, not advice)",
+    "money_at_stake": "10 to 23 $ of the 33 $ per 6 days, i.e. ~560 to 1,300 $/yr at today's size"
+   },
+   {
+    "rank": 3,
+    "finding": "The Scalper Offer is 27% of the PnL and its terms are not in the repo (DATA.txt: treat as revocable). Fees paid were 1.24 bps instead of 2.12; without it the ledger would read +24.22 and the edge +2.22 bps per $, still positive with the day-cluster CI above zero.",
+    "numbers": "extra fee 9.07 $ = 1.45 $/day; net60 at 2.12 bps +2.22 [1.64, 2.76] day-cluster, [1.72, 2.74] hour-cluster; 6/6 days still > 0, 85% of hours",
+    "evidence": "t4_statistics.txt, t6_money.txt; fills meta_data.scalper_offer_applied (6,260 of 6,281 fills; first 21 fills before 11:30Z on 20 Oct at 2.12 bps)",
+    "money_at_stake": "1.45 $/day (~530 $/yr) if the offer ends"
+   },
+   {
+    "rank": 4,
+    "finding": "Pick-off fills are the largest controllable leak. 29% of the $ traded came within 5 s of a >= 3 bps Binance move into our resting quote; those fills captured 2.61 bps instead of 5.08 and netted 1.83 bps at 60 s against 3.53 for fills with no pre-move; their toxicity ratio is 0.75. This is the latency finding of the 21 Oct memo (0.55 s mainnet writes, 400 ms timer loop); pulls on imbalance and leans were already tested and failed their pre-registered tests, so the remaining lever is reacting faster, not quoting differently.",
+    "numbers": "pre5 <= -3 bucket: 1,397 fills, $25,166, capture 2.61, mo60 +0.45, net60 1.83, tox10 0.75; pre5 in [-1,1): 3,066 fills, $50,859, capture 5.08, net60 3.53; pre5 >= 3: 685 fills, net300 1.30 (mo300 -3.16)",
+    "evidence": "t2_by_premove5s.txt; cex-mm/artifacts/research/2026-10-21-live-stage1-2-tick-pickoff-latency.md findings 1 and 4; 2026-10-21-binance-imbalance-pull-replay.md (pull/away fail OOS); 2026-10-25-inventory-lean-replay.md (lean fails prereg)",
+    "money_at_stake": "4.27 $ over the window (~0.68 $/day, 13% of PnL) if those fills earned what the calm fills earn"
+   },
+   {
+    "rank": 5,
+    "finding": "High-volatility minutes carry half the volume and earn the least. In the top tercile of Binance 1-min realised vol (> 10.7 bps/min) the bot traded 51% of its $ at capture 3.84 and net60 2.78 with toxicity 0.62, against capture 5.20, net60 3.89, toxicity 0.12 in the calm tercile; by the hour's ADA range the top tercile made 1.45 bps per $ (exact PnL incl. inventory) against 5.2 in the other two. The same pattern holds on trailing 5-min vol. Fast markets are where the 4.5 bps Binance tick runs over a 5 bps quote.",
+    "numbers": "vol T1/T2/T3: $18.5k/24.3k/44.2k, net60 3.89/3.05/2.78, tox10 0.12/0.24/0.62, exact pnl bps 3.94/6.41/1.56; range T1/T2/T3 exact pnl bps 5.20/5.17/1.45, net300 4.30/4.01/1.25",
+    "evidence": "t2_by_vol1m.txt, t2_by_vol5m.txt, t2_by_hour_range.txt",
+    "money_at_stake": "4.89 $ at net60 (~0.78 $/day) if T3 fills earned T1's net60; up to ~16 $ on the exact (inventory-inclusive, noisy) numbers"
+   },
+   {
+    "rank": 6,
+    "finding": "Hour of day: the US morning (13-16Z = 18:30-21:30 IST) brings the most fills (2,000, 31% of $) at the lowest capture (3.26-4.35) and highest toxicity (0.54-0.78); 22-23Z and 1Z are the weakest hours (hour-23 net60 +0.24, hour-22 toxicity 1.54, hour-1 total -0.21 $). But the hourly exact PnL has sd 0.54 $, so a 6-sample hour-of-day mean has SE 0.22 $ and no hour is reliably negative; the daily shape (IST 0-5h thin and noisy, IST 19-22h busy) is not a scheduling edge yet.",
+    "numbers": "UTC 14: 557 fills, $8,233, capture 3.70, net300 -1.56, tox 0.78; UTC 15: 533 fills, capture 3.26, tox 0.76; UTC 0: +2.33 $ (inventory +1.64); UTC 8: +3.35 $; UTC 13: +3.38 $",
+    "evidence": "t2_by_hour_utc.txt, t2_by_hour_ist.txt, t2_hour_x_day_pnl_usd.csv, t4_hourly.csv",
+    "money_at_stake": "Small and not significant; no hour-of-day lever supported by 6 days"
+   },
+   {
+    "rank": 7,
+    "finding": "Inventory is a risk, not a return, and it is within the design. The bot sat at the 600 cap 15.7% of the time (one side off), at >= half the cap 53%; mean |q| 315 contracts (~$65, 20% of equity); the worst equity drawdown was 2.88 $ (0.93%) and the longest under-water spell 10.3 h; the cap was overshot once to 754 on the 42b5eef run. Sells' 300 s markout (-1.61) vs buys' (+0.80) in a -560 bps window is a trend artefact. The lean replay found no PnL in leaning, so there is nothing to change at this size.",
+    "numbers": "time at cap by run: 24.4% (stage 1, cap 300), 13.4%, 14.6%, 15.9%, 19.5%, 9.3% (current); long 44.9% / short 49.8% / flat 5.3%; MDD 2.88 $ (venue) / 2.90 $ (fill MTM)",
+    "evidence": "t3_inventory.txt, inventory_path_1min.csv, equity_venue.csv; 2026-10-25-inventory-lean-replay.md",
+    "money_at_stake": "~0 $ in PnL (+0.03 to -2.93); 2.9 $ of drawdown risk realised"
+   },
+   {
+    "rank": 8,
+    "finding": "The 13 Oct 'whole-order fills are the informed ones' pattern is gone under the anchored fair: whole-quote fills (48% of $) have a +0.05 bps 60 s markout and net60 3.03, partial fills 3.40, completing fills 2.99; 200-contract fills net60 3.01. Fill size no longer predicts adverse selection.",
+    "numbers": "whole: 1,711 fills, $49,063, capture 4.25, mo60 +0.05, net60 3.03; partial: 3,305, $22,251, net60 3.40; last: 1,265, $31,339, net60 2.99",
+    "evidence": "t2_by_fillkind.txt, t2_by_fillsize.txt; compare 2026-10-13-live-run-pickoff.md finding 1",
+    "money_at_stake": "None to recover here"
+   },
+   {
+    "rank": 9,
+    "finding": "By run and build nothing separates the builds; the one weak run is stage 1 (100 contracts, cap 300, 4.9 h: net60 1.00, toxicity 1.13, +0.34 $) which contained the 14-15Z rally of 20 Oct. The 60.9 h 42b5eef run made +12.43 $ (3.41 bps per $), e8256a7 +8.75 $ (3.08), the current 2711fca run +4.75 $ in 22.9 h (2.80 bps per $, net60 2.24 but net300 3.98).",
+    "numbers": "run pnl $ / bps per $ / net60: stage1 +0.34 / 0.84 / 1.00; stage2 +6.87 / 4.78 / 2.33; c1a8080 (2.5 h) -0.10 / -0.40 / 1.50; 42b5eef +12.43 / 3.41 / 3.61; e8256a7 +8.75 / 3.08 / 3.29; 2711fca +4.75 / 2.80 / 2.24",
+    "evidence": "t2_by_run.txt, live/*/config.txt (all runs: fixed half-spread 5 bps, requote tol 3 bps, anchor depth, 200/600 from stage 2)",
+    "money_at_stake": "No build change is supported; a run-level difference of 1 bps per $ is ~1.6 $/day"
+   },
+   {
+    "rank": 10,
+    "finding": "Capacity, not edge, bounds the money. At 2.8% of ADAUSD's turnover and with fills coming from queue position at the touch (lean memo finding 3), a bigger quote competes with the same taker flow; the plan's stage 3 is a second market. The AVAX shadow is not there yet (138 fills, net60 1.43, -0.37 at 1000 ms latency), and the market scan's wide-spread candidates are low-turnover meme perps.",
+    "numbers": "$16.4k/day of $595k turnover; ADA shadow at 5 bps PASS (net60 3.35, 595 fills/day); AVAX CONTINUE; 6 bps on ADA shadow: 476 fills, net60 4.70, PnL 6.98 vs 6.06 at 5 bps on one day (simulator never charges pick-off)",
+    "evidence": "t6_money.txt; shadow_report.txt; market_scan.txt; plans/live-basis.plan.md size ladder",
+    "money_at_stake": "The annualised ~1,900 $ cannot be scaled by quoting bigger on ADA alone"
+   }
+  ],
+  "recommendations": [
+   {
+    "action": "Keep the live ADA bot running unchanged (5 bps fixed, 200/600) through the rest of the 11.3 gate and re-run this attribution (attrib.py on a fresh fills export + Binance dumps) weekly; keep the stop rule (PnL per $ < 0 after 1,000 fills) and the $15 daily stop.",
+    "term_it_moves": "None; it accumulates gate evidence for net per maker fill = capture + markout - fee, which is +3.09 bps now",
+    "expected_effect": "+3.9 to +5.3 $/day at today's size (bootstrap [3.72, 6.54] with the offer); 3.1 more weeks of data on a single regime so far (down-trend, no stress day)",
+    "test_or_gate": "STRATEGY.md 11.3: >= 4 weeks positive net-of-fee markout PnL (0.9 weeks done, 6/6 days positive), toxicity at 10 s < 0.7 (0.375 now), no unresolved reconciliation events; owner decides any restart"
+   },
+   {
+    "action": "Commission the written CA opinion on INR-funded, cash-settled Delta perp PnL now (resource/07 Gate 0), with the market maker's ledger as the worked example: 3,067 realised cashflow rows, +77.85 gross wins against +46.05 net.",
+    "term_it_moves": "After-tax money: 33.29 $ becomes 23.30 (slab on net), 19.47 (VDA on net gains), or 9.93 (VDA on gross gains, no set-off)",
+    "expected_effect": "Decides whether the MM keeps 70% or 30% of what it earns; under the no-set-off reading the strategy keeps less than the Scalper Offer discount is worth",
+    "test_or_gate": "Written opinion in hand before adding capital; if VDA-no-set-off applies, re-evaluate the MM at the full 30%-of-gross cost before stage 3"
+   },
+   {
+    "action": "Get the Scalper Offer's terms and expiry from Delta (owner, not code) and re-base the live stop rule and the ladder's gate on the full 2.12 bps fee, so a revocation does not look like a strategy failure.",
+    "term_it_moves": "maker_fee: 1.24 -> 2.12 bps per $ (0.87 bps on ~$16.4k/day)",
+    "expected_effect": "-1.45 $/day if revoked; the edge stays positive at +2.22 bps [1.64, 2.76] and 6/6 days",
+    "test_or_gate": "net60 at 2.12 bps > 0 on the day-cluster CI (holds today); re-check weekly"
+   },
+   {
+    "action": "Build the event-driven wake on the Binance book update (21 Oct memo step 3) as a default-off knob, demo-QA it, then run it live and judge it only on the pick-off bucket: fills within 5 s of a >= 3 bps Binance move into the quote.",
+    "term_it_moves": "capture on pick-off fills (2.61 bps now vs 5.08 on calm fills; 29% of $)",
+    "expected_effect": "Up to +0.68 $/day (+4.27 $ per 6 days, 13% of PnL) if those fills priced like calm fills; realistically a fraction, since the taker reaches the quote about when the bot first sees the tick",
+    "test_or_gate": "Pre-registered: bucket net60 >= +2.5 bps over >= 300 bucket fills and total net60 not below the previous run's; bucket share of $ falling below 25%; fall back if fills/day drop > 20%"
+   },
+   {
+    "action": "Run a pre-registered shadow sweep of a volatility-conditional half-spread: 5 vs 6 bps only in minutes whose trailing Binance 1-min realised vol is in the top tercile (> 10.7 bps/min), on recorded tape, under the strict rule and at 1000 ms latency. Only if it passes, propose MM_MAX_HALF_SPREAD_BPS = 6 with the vol gate as a one-knob live trial (needs the owner's explicit approval: the plan's rule is not to widen to compensate).",
+    "term_it_moves": "capture (+~1 bps on T3 fills, 51% of $) against fill count (the 25-26 Oct shadow lost 20% of fills at 6 bps)",
+    "expected_effect": "Bounded by +0.8 $/day (T3 net60 2.78 -> 3.89); the one-day shadow sweep showed 6 bps at +6.98 $ vs +6.06 $ at 5 bps, but the simulator never charges pick-off",
+    "test_or_gate": "Shadow: T3-subset net60 at 6 bps >= 5 bps + 0.5 over >= 300 fills, verdict holding at 1000 ms and under --rule touch; live: alternate-hour A/B for >= 300 fills per arm, net60 and $/day both not worse"
+   },
+   {
+    "action": "Do not raise the ADA quote size or cap; take stage 3 as a second market only after its shadow passes.",
+    "term_it_moves": "$ traded (capacity), without lowering capture per $",
+    "expected_effect": "A second market of ADA's quality would roughly double the money (~+5 $/day); AVAX today would add about zero (net60 1.43 at 5 bps, -0.37 at 1000 ms)",
+    "test_or_gate": "shadow.sh report: >= 300 fills, net60 >= +0.5 bps at 300 ms and 1000 ms latency and under --rule touch, then MAINNET_GATE.md"
+   },
+   {
+    "action": "Do not schedule by hour of day or session.",
+    "term_it_moves": "None supported: hourly exact PnL sd 0.54 $ gives SE 0.22 $ on a 6-sample hour-of-day mean",
+    "expected_effect": "Avoids fitting 6 days of noise; the busy US-morning hours have the lowest capture but still positive net60 (2.53-3.13)",
+    "test_or_gate": "Revisit when >= 4 weeks give >= 28 samples per hour of day; a hour is a candidate only if its net60 CI excludes zero on the low side"
+   }
+  ],
+  "limits": [
+   "Six days, one regime: ADA fell 468 bps with hourly ranges mostly 40-150 bps and no stress day; the gate asks for four weeks for a reason. The 7-day bootstrap CI on $/day covers sampling noise only, not offer revocation, venue risk, regime change or capacity.",
+   "26 Oct (1,123 fills, 18% of the volume) has no Binance 1 s dump yet and the Binance REST mirrors are blocked by the sandbox proxy, so its fills have capture (via Delta mark x 1.000147) but no markouts, vol or range regime; it is in the day/hour/run exact-PnL tables and in the ledger, not in the net60 statistics.",
+   "The split between spread and inventory depends on the fair: with the Binance-anchored fair (basis = rolling median of the bot's own side-adjusted fill prices, so capture is ~5 bps by construction) inventory is +0.03 $; with Delta's mark it is -2.93 $. net60 moves 0.34 bps between the two (3.09 vs 3.44) because the anchored fair sits 1.85 bps above mark on sells but 1.16 on buys. Totals are invariant.",
+   "Delta's spot index equals the Binance close (median 0.00 bps), so 'Binance-anchored' and 'venue index' are the same reference here; mark is index-plus-funding-basis and sits 7.2 bps below Binance.",
+   "Markouts use the 1 s kline close of the fill's second (up to 1 s after the fill) and Binance spot moves in 4.5 bps ticks; mo1/mo5 are coarse. Inventory PnL in the day/hour/run/regime tables is accrued by time (position x fair change in the group's window), not caused by the group's fills; the side/fill-kind/size tables therefore show spread - fee only.",
+   "Regime terciles use the contemporaneous minute's realised vol (not strictly causal); the trailing-5-min version gives the same ordering. Day-cluster CIs rest on 6 clusters.",
+   "The venue equity series starts 22 Oct 09:26Z; the drawdown before that comes from the fill-based MTM path, which agrees (2.90 vs 2.88 $) where both exist.",
+   "Reconciliation events are taken from the memos; no reconcile-log scan of the 24-26 Oct runs was done here [UNVERIFIED]. The fills export ends 17:29:21Z at +578 while the venue showed +496 at 17:31Z; an 82-contract sell after the cut-off is inferred, not seen [UNVERIFIED].",
+   "Tax figures are models of three readings (slab on net, VDA on net gains, VDA on gross gains with no set-off) applied to Delta's per-fill realised cashflow rows; which applies is the CA's question, not established here.",
+   "Annualised figures are x365 of 6.27 days and are not forecasts; the Scalper Offer (27% of PnL) has unknown terms; the bot already trades 2.8% of the venue's ADA turnover."
+  ],
+  "files": [
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-attribution/attrib.py",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-attribution/summary.txt",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-attribution/t1_pnl_by_source.txt",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-attribution/t2_by_day.txt",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-attribution/t2_by_hour_utc.txt",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-attribution/t2_by_hour_ist.txt",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-attribution/t2_hour_x_day_pnl_usd.csv",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-attribution/t2_by_run.txt",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-attribution/t2_by_side.txt",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-attribution/t2_by_fillkind.txt",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-attribution/t2_by_fillsize.txt",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-attribution/t2_by_premove5s.txt",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-attribution/t2_by_vol1m.txt",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-attribution/t2_by_vol5m.txt",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-attribution/t2_by_hour_range.txt",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-attribution/t3_inventory.txt",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-attribution/inventory_path_1min.csv",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-attribution/equity_venue.csv",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-attribution/t4_statistics.txt",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-attribution/t4_hourly.csv",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-attribution/t5_gate.txt",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-attribution/t6_money.txt",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-attribution/fills_enriched.csv",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-attribution/run.log"
+  ]
+ },
+ {
+  "lens": "Capacity and scaling of the ADAUSD market maker on Delta India: what it would take to earn $500-$2,000 a month with it. Read-only review of 6,281 live maker fills (20-26 Oct 2026), the venue cash ledger, Delta public candles/book/tape, Binance 1 s klines and the repo memos. Model and scripts in OUT (/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-capacity/).",
+  "headline_numbers": [
+   {
+    "name": "Net PnL, live ADA since the anchored start (20 Oct 11:06Z to 26 Oct 17:30Z, 6.26 days)",
+    "value": "+$33.29 (cashflow +46.05, commission -12.72, funding -0.05); equity $292.16 -> $325.45 (+11.4%); full days 21-25 Oct: mean +$5.65/day, SD $1.86 (n=5); max drawdown $2.88",
+    "how": "ledger_daily.py over dash_state/tx.json and equity.jsonl"
+   },
+   {
+    "name": "Net edge per $ traded",
+    "value": "3.55 bps (ledger, incl. inventory) / 3.44 bps net60 (capture 4.76 + markout60 -0.08 - fee 1.25, 5,148 scored fills)",
+    "how": "ledger $5.65/day over $15,900/day; markout_since20.txt (markout_report.py)"
+   },
+   {
+    "name": "Share of Delta ADAUSD turnover",
+    "value": "2.31% of $4.45M over the window; 1.5-4.1% per day; by hour: 8.1% in the quietest venue-volume quartile, 4.9%, 3.1%, 1.3% in the busiest; bot$/h = 496 + 0.62% x venue$/h, log-log elasticity 0.41",
+    "how": "share_hourly.py: bot hourly notional joined with Delta /v2/history/candles 1h volume x mid price"
+   },
+   {
+    "name": "Venue ADA turnover per day, 20-26 Oct",
+    "value": "$782k, 756k, 694k, 418k, 908k, 794k, 377k (to 17Z); ticker 24 h turnover $595k at 17:37Z; Binance ADAUSDT 25 Oct: spot $8.5M, USDS-M perp $80.1M",
+    "how": "Delta hourly candles summed per UTC day; /v2/tickers/ADAUSD; data.binance.vision 1d klines"
+   },
+   {
+    "name": "Fill size per hit on a 200-contract quote",
+    "value": "4,051 hits: mean 94 contracts (47% of the quote), median 72 (36%); first hit on a fresh quote (n=2,061): mean 112 (56%), 44.5% take the whole 200 and those carry 79.9% of the dollars; on stage 1's 100-contract quotes 62.1% of first hits took the whole 100",
+    "how": "hits.py: fills grouped by order_id within 1 s; meta_data.order_size and order_unfilled_size"
+   },
+   {
+    "name": "Taker sweep tail (public tape, 26 Oct 17:09-17:40Z, 50 prints)",
+    "value": "median 30, mean 368 contracts; P(size>=200) 20%, P(>=1000) 12%; prints >=1000 carry 78.5% of notional; shadow tape 23.8 h: 2,620 trades for $592k = mean $226 (~1,090 contracts)",
+    "how": "/v2/trades/ADAUSD (50-print cap, small sample); shadow_report.txt header"
+   },
+   {
+    "name": "Markout by hit size (net60 bps, notional-weighted, Binance 1 s)",
+    "value": "[1,10) 3.71; [10,50) 3.08; [50,100) 3.15; [100,200) 3.75; whole 200 3.53; all 3.55. net300: 3.89 / 2.65 / 3.26 / 3.43 / 3.09. Hits preceded by a >=3 bps Binance move toward us (15.6% of hits) now net +5.3 to +5.6; the no-pick-off hits net +3.1 to +3.2",
+    "how": "markout_by_size.py on hits.json with bn/ADAUSDT-1s-2026-10-2{0..5}.zip (5,010 of 6,068 hits scored)"
+   },
+   {
+    "name": "Scalper Offer share of the edge",
+    "value": "fee paid 1.25 bps vs 2.12 list = 0.87 bps saved per $ = 25% of the 3.5 bps net edge = $41/month at today's volume; 6,260 of 6,281 fills flagged scalper_offer_applied",
+    "how": "fills_all.json commission/notional per day (1.19-1.27 bps); effective_commission_rate 0.00018 on every fill; API product record maker 0.0002 / taker 0.0005 before GST"
+   },
+   {
+    "name": "Tax exposure of a market maker (two readings)",
+    "value": "gross gains $77.85 vs gross losses $31.80 on net $33.34: slab 30% on net keeps 70%; VDA 30% per realised gain with no loss set-off keeps 30% ($23.36 tax on $33.34)",
+    "how": "ledger cashflow rows split by sign (3,067 rows, 2,207 winning); readings per resource/07 lines 113-125 and cex-mm/artifacts/research/2026-10-22-trend-improvement.md finding 1"
+   },
+   {
+    "name": "Size-ladder model (base scenario)",
+    "value": "2x (Q 400, cap 1,200, $248 notional): $22.6k/day, +$7.3/day, $219/mo, capital ~$225. 5x (Q 1,000, cap 3,000, $621): $39k/day, +$8.9/day, $265/mo (range $167-832), capital ~$485. 10x (Q 2,000, cap 6,000, $1,242): $52k/day, +$7.4/day, $222/mo (range $166-1,102), capital ~$920. Blended edge falls 3.5 -> 3.2 -> 2.3 -> 1.4 bps",
+    "how": "ladder_model.py: fills = partial hits unchanged + whole hits x E[min(S,Q)]/200 from the tape tail (1.87/4.0/5.65), marginal edge decays 0.9 bps per doubling (optimistic flat, pessimistic 1.5 bps per doubling), optimistic bounded at 15% of venue volume"
+   },
+   {
+    "name": "What $500 and $2,000 a month need at today's edge",
+    "value": "$500/mo = $16.7/day = $47.6k traded/day = 3.0x today = 5-13% of ADA venue volume; $2,000/mo = $190k/day = 12x today = 21-50% of all ADA turnover on Delta: not available on ADA alone",
+    "how": "ladder_model.py arithmetic at 3.5 bps per $"
+   },
+   {
+    "name": "Rate-limit use per symbol",
+    "value": "~1,150 edits/h x weight 5 = 480 of 20,000 per 5 min = 2.4% at any quote size; place/edit ~0.6 s on mainnet, cancel-all ~17 ms",
+    "how": "edit counts from cex-mm/artifacts/research/2026-10-21-live-stage1-2-tick-pickoff-latency.md finding 4 and the 21 Oct imbalance memo finding 4; limits from .claude/rules/cex-mm.md"
+   }
+  ],
+  "findings": [
+   {
+    "rank": 1,
+    "finding": "The ADA book is capacity-bound, not capital-bound or edge-bound. The edge per $ is real and stable (3.4-3.6 bps over 6,281 fills, positive every day) and the return on the $325 account is +11% in six days, but the dollars are capped by how much taker flow reaches one 200-contract quote at the touch: our fills barely grow when the venue gets busy (share 8.1% in quiet hours, 1.3% in the busiest; elasticity 0.41). Doubling the quote from 100 to 200 contracts raised the share in the same 11-16Z hours from 1.28% (20 Oct, one day) to 1.99% (pooled 21-26 Oct), about 1.55x for 2x size, and the whole-quote first-hit rate fell from 62% to 44.5%. Fills scale sub-linearly with size.",
+    "numbers": "share 2.31% of $4.45M; hourly quartiles 8.06/4.90/3.05/1.34%; bot$/h = 496 + 0.62% venue$/h; 100c -> 200c share x1.55 in matched hours; whole-first-hit 62.1% -> 44.5%",
+    "evidence": "share_hourly.py, hits.py (OUT); delta_hourly_candles.json; fills_all.json",
+    "money_at_stake": "Today's book earns $166/month before tax ($5.55/day). At 2x the base model gives $219/mo (+$53), at 5x $265/mo, at 10x $222/mo because the marginal edge decays; optimistic ceilings $333 / $832 / $1,102 if fills scaled linearly and the edge held."
+   },
+   {
+    "rank": 2,
+    "finding": "The whole-quote sweeps are where the size upside is, and they are not (yet) more toxic. 44.5% of first hits on a fresh 200-contract quote take all 200 and carry 80% of the dollars; the tape shows 12% of prints at >=1,000 contracts carrying 79% of notional, so a 400-1,000 quote would be filled by sweeps that today pass through to the 47k-100k-contract ladder one tick behind us. Within 200 contracts the markout does not degrade with hit size (net60 3.1-3.8 bps in every bucket; whole-200 hits 3.53), and the stage-1 tick pick-off bucket (Binance moved >=3 bps toward us in the 2 s before) is now profitable at +5.3 bps net60 after the concurrent-edit fix and the anchored fair. What the 1,000+ contract sweeps do to a bigger quote beyond 200 is unmeasured: that is the whole uncertainty of the 5x and 10x rows.",
+    "numbers": "first-hit whole-200 44.5% (920 of 2,061), 79.9% of $; tape P(>=200) 20%, P(>=1000) 12%; E[min(S,Q)]/200 for Q=400/1000/2000: 1.87/4.0/5.65 (10 prints, small sample); net60 by bucket 3.71/3.08/3.15/3.75/3.53; pick-off hits 15.6%, net60 +5.28 whole / +5.59 partial; no-pick-off whole-200 net300 +2.04",
+    "evidence": "markout_by_size.py, hits.py, ada_recent_trades.json (OUT); 2026-10-21 pick-off memo finding 1 for the stage-1 baseline (net60 -3.76 on 36% of volume)",
+    "money_at_stake": "At 2x the marginal $6.8k/day is worth +$1.8/day at 2.6 bps or +$2.4/day if the edge holds; at 5x the marginal $23k/day is worth +$3.3/day at 1.4 bps, +$8/day if it holds, about $0 if the big sweeps are informed."
+   },
+   {
+    "rank": 3,
+    "finding": "The venue cannot carry $2,000 a month from this rule on ADA, and the whole addressable set of Delta perps is thin. $2,000/mo needs 12x today's dollars = 21-50% of all ADA turnover. Ranking every Delta perp by (median touch spread - 4.25 bps fees) x turnover gives an upper bound of about $11.2k/day for DOOD, $5.2k AIN, $3.8k ARIA, $2.4k IRYS, $1.9k BEAT, $1.9k ORDER, $1.0k LIGHT, $0.6k DOT, $0.4k BMT, $0.4k ADA, $0.2k AVAX if one captured ALL turnover at the full spread; at ADA's realistic 2.3% share and 3.5 bps the ~13 perps with edge > 0 and turnover > $1M ($62M/day together) would yield at most ~$500/day, and most of them have 1-3 ticks per spread (queue position, not inside quoting) and no Binance spot pair.",
+    "numbers": "DOOD 9.88 bps = 2 ticks, $19.9M, funding -0.31%, Binance perp $16M, no spot; AIN 9.97 = 5 ticks, $9.1M, BN perp $1.8M; ARIA 6.62 = 5.8 ticks, $16.1M, BN perp $31M; IRYS 11.1 = 3 ticks, $3.5M, BN perp $341M; ORDER 10.3 = 4.2 ticks, $3.1M, BN perp $238M; LIGHT 12.2 = 3.5 ticks, $1.2M, BN perp $73M; DOT 9.88 = 1 tick, $1.0M, BN spot $4.2M; BMT 7.1 = 2 ticks, $1.5M, BN spot $16M; ADA 10.3-10.6 = 22 ticks, $0.6M, BN spot $8.5M; AVAX 6.7 = 60 ticks, $0.9M, BN spot $7.1M. Delta total perp turnover $2.69B/day of which BTC/ETH/XAUT/SOL/PAXG $2.47B (spreads 0.05-1.08 bps, below fees)",
+    "evidence": "rank_markets.py -> market_rank.json; market_scan.txt medians; delta_tickers_all.json; binance_listing_check.json (data.binance.vision 1d klines 25 Oct). Shadow: ADA PASS net60 +3.35 (595 fills/23.8 h, $17.8k/day), AVAX CONTINUE +1.43 at 300 ms, -0.37 at 1,000 ms, 138 fills, PnL -$0.92 (shadow_report.txt); earlier shadows: BERA/KITE inconclusive and now $7.5k/$8.5k turnover, DUSK/MUBARAK/RED fail (2026-10-05, 2026-10-18 memos)",
+    "money_at_stake": "Second markets are the only route past ~$300/mo. DOOD at ADA-like share and edge would be ~$16/day ($480/mo) but is untested; AVAX at today's shadow numbers is under $1/day. The perp-only candidates need a Binance futures reference: the bot's default host fstream.binance.com is the code default (mm-binance/src/lib.rs line 10) but the live config uses the spot mirror; reachability from the VM [UNVERIFIED]."
+   },
+   {
+    "rank": 4,
+    "finding": "Tax decides whether scaling is worth anything. A market maker realises thousands of small gains and losses: gross gains were 2.3x the net. Under the VDA-per-realised-gain reading with no loss set-off the bot keeps 30% of its net ($10 of $33); under slab-on-net it keeps 70%. Every row of the ladder shrinks accordingly ($265/mo base at 5x becomes $80 or $186). The CA opinion gated in resource/07 is a harder gate for the MM than for the trend book because of this gross/net ratio.",
+    "numbers": "gross gains $77.85, gross losses $31.80, fees $12.72, net $33.34; VDA tax $23.36 (keep 30%); slab tax $10.00 (keep 70%); daily gains/net ratio 1.3x-2.4x",
+    "evidence": "ledger split in ledger_daily.py / summary_numbers.json; readings: resource/07-trend-rule-and-prop-trading-research.md lines 113-125 (s.115BBH vs s.43(5)/s.73, both [UNVERIFIED] there), 2026-10-22-trend-improvement.md finding 1",
+    "money_at_stake": "At the best feasible configuration ($250-600/mo before tax) the after-tax range is $75-180 (VDA reading) or $175-420 (slab)."
+   },
+   {
+    "rank": 5,
+    "finding": "A quarter of the edge is a revocable promotion and the fee tier schedule could not be verified. The Scalper Offer cuts the maker fee from 2.12 to 1.25 bps on these fills (closing legs free); without it net per $ falls from ~3.5 to ~2.6 bps (-25%) and the 5x base row from $265 to about $195/mo. The API product record confirms the base rates (maker 0.0002, taker 0.0005 before 18% GST; 10% referral gives 2.12/5.31 incl. GST) but Delta's fee pages and docs were unreachable from here (ENOTFOUND), so any volume/VIP tier or maker rebate is [UNVERIFIED]; web search found only the base 0.02%/0.05% and no tier table. The offer's terms exclude 'MM users' and it cannot be deactivated (2026-10-09 memo).",
+    "numbers": "fee paid 1.19-1.27 bps/day vs 2.12 list; saving 0.87 bps = $1.38/day = $41/mo today; effective_commission_rate 0.00018 on all 6,281 fills; 6,260 flagged scalper_offer_applied",
+    "evidence": "fills_all.json; delta_products_perps.json; cex-mm/artifacts/research/2026-10-09-scalper-offer.md; WebSearch results (no tier schedule found)",
+    "money_at_stake": "$41/mo today, $100-200/mo at 5x; a fee tier that returned to 2.12 bps or a rebate would move the per-$ edge by +/-0.9 bps, the same size as the whole 2x step."
+   },
+   {
+    "rank": 6,
+    "finding": "What breaks first when scaling is the risk envelope, then the single VM, not the API. (a) Capital and the cap: cap notional at 5x is $621 = 1.9x the account; at 2x leverage that is $310 of margin plus a jump buffer (ADA daily range median 5.6%, max 8.3% in the window; 1-h range p95 2.2%, max 5.4%); the known gap 'no notional-vs-equity cap and no liquidation-distance stop' (skill) becomes binding. (b) The $15 daily stop trips on normal variance at 5x (daily SD scales to $4.6-9.3). (c) Inventory PnL at the cap scales linearly: one hour at a 6,000-contract cap against a 2.3% move is -$29 versus the current run's -$0.87 inventory term over 22.9 h. (d) The 0.6 s edit latency is unchanged; the pick-off bucket is profitable today but the exposure per stale quote grows with Q (a 2,000-contract quote hit after a 4.5 bps tick is $0.19 per event, ~150 events/day). (e) Rate limits: 2.4% of the 5-min weight budget per symbol, so ~20 symbols before the 70% rule; the 2 vCPU / 1.8 GB VM already cannot run the fill simulator beside the shadow and the shadow writes ~1.15 GB/day for 4 symbols (18 Oct memo), so disk and RAM bind at 4-6 symbols. (f) The 47k-100k-contract ladder maker one tick behind us absorbs everything beyond our quote today; at 5-10x we take its flow and it can tighten (the pessimistic scenario).",
+    "numbers": "cap notional 1x/2x/5x/10x: $124/$248/$621/$1,242; margin at 2x: $62/$124/$310/$621; capital incl. 20% buffer: ~$137/$224/$485/$919; suggested daily stop $15/$15/$28/$56; ADA 1h sd 0.70%; edits 480 weight per 5 min per symbol",
+    "evidence": "ladder_model.py, share_hourly.py (vol stats), ada_l2_snapshot.json (ladder 47,670 at 6.3 bps, 53,955 at 16 bps, 60,558 at 8.2 bps ask); .claude/rules/cex-mm.md; 2026-10-18-shadow-3day-review.md run health",
+    "money_at_stake": "A single uncapped day at the 10x cap can lose a month of base PnL ($29/h at the cap vs $7.4/day expected); the stop and cap logic must be re-sized before any step above 2x."
+   },
+   {
+    "rank": 7,
+    "finding": "Realistic monthly dollars at the best feasible Delta configuration: ADA at 2x-5x plus one or two second markets that pass their own shadow gate gives $250-600 a month before tax on $800-1,500 of capital, with $300-350 the central estimate within 1-2 months; $500/mo is reachable only if a second market like DOOD/IRYS/ORDER behaves like ADA, and $2,000/mo is not reachable on Delta with this rule at current venue volumes (it needs ~8 ADA-equivalents or a far larger venue).",
+    "numbers": "ADA 2x base $219/mo (range $191-333), 5x $265 ($167-832); each extra ADA-like market +$150-250/mo at a 2-3% share; after-tax 30% or 70% of these",
+    "evidence": "ladder_model_out.json; market_rank.json; shadow_report.txt",
+    "money_at_stake": "The gap between the owner's target ($500-2,000) and the venue's capacity for this rule ($250-600) is the decision: keep ADA as a small compounding book and spend the research time on market count, or accept that this venue tops out near $500/mo."
+   }
+  ],
+  "recommendations": [
+   {
+    "action": "Step ADA to Q = 400 contracts, cap 1,200 (2x), with the daily stop raised to $25 and nothing else changed; the owner starts it, not the bot operator.",
+    "term_it_moves": "Fills ($ traded per day): +43% base (range +26% to +100%); capture, markout and fee per $ assumed unchanged on the first 200 and 2.0-3.5 bps on the marginal $.",
+    "expected_effect": "+$1.7 to +$5.5 per day (+$53 to +$167/mo); $ traded $19.9k-31.7k/day = 2.2-8.4% of venue ADA volume; cap notional $248 = 0.76x the account, margin at 2x $124.",
+    "test_or_gate": "After 1,000 fills at 400: PnL per $ >= +2.0 bps (live.sh report), whole-400 first-hit share >= 30% (hits.py re-run), markout300 on whole-quote hits >= -2 bps (markout_by_size.py re-run). Stop if PnL per $ < 0 at 1,000 fills or the $25 daily stop trips twice in a week. Do not step to 5x until this read exists."
+   },
+   {
+    "action": "Add IRYS, ORDER and DOOD (Binance-perp-referenced) plus DOT and BMT (spot-referenced) to the shadow recorder, after a read-only probe that the VM can reach fstream.binance.com (or a futures mirror); keep AVAX only until its 300-fill verdict.",
+    "term_it_moves": "Number of books (capacity), the only term that can reach $500/mo; the per-$ edge of each market is measured by the shadow before any order.",
+    "expected_effect": "Each market that passes at ADA-like share and edge adds $150-250/mo; DOOD alone has $19.9M/day turnover (~33x ADA) so even a 0.5% share at 3 bps is $10/day. Each market adds ~2.4% of the rate budget and ~0.3 GB/day of shadow logs.",
+    "test_or_gate": "Skill rule: net60 >= +0.5 bps over >= 300 simulated fills, holding at 1,000 ms latency and under --rule touch, judged by day; reject any market whose touch is 1 tick (BEAT, DOT at 1.0 tick) unless the touch rule shows fills. Disk: confirm the VM has 2 GB/day headroom before adding more than two symbols."
+   },
+   {
+    "action": "Commission the written CA opinion on perp PnL taxation before any step beyond 2x, and model the MM explicitly as thousands of realised segments (gross gains 2.3x net).",
+    "term_it_moves": "After-tax PnL: keep 70% (slab on net) versus 30% (VDA per realised gain, no set-off).",
+    "expected_effect": "Decides whether the 5x row is worth $186/mo or $80/mo; under the VDA reading the strategy's whole after-tax yield is ~1 bp per $ traded.",
+    "test_or_gate": "Written opinion in hand (resource/07 Gate 0). If VDA-no-set-off applies, cap the MM at its current size as a learning book and stop the scaling plan."
+   },
+   {
+    "action": "Ask Delta support in writing for (a) the volume/VIP fee tier table and any maker rebate or MM programme, and (b) whether an API post-only account counts as an 'MM user' under the Scalper Offer; re-run ladder_model.py with the answers.",
+    "term_it_moves": "Maker fee per $: 1.25 today; 2.12 if the offer is withdrawn (-0.87 bps, -25% of net); a rebate tier would add the same magnitude.",
+    "expected_effect": "Removes the largest single unverified input of the plan; a confirmed tier at, say, 1.5 bps at $1M/month volume would make the 5x row +0.6 bps per $ (~+$70/mo).",
+    "test_or_gate": "Written reply; until then treat the offer as revocable and gate every size step on PnL per $ computed at the 2.12 bps list fee as well (today: 3.55 - 0.87 = 2.7 bps, still positive)."
+   },
+   {
+    "action": "Before any step above 2x, add the two missing risk controls as default-on knobs: a notional-vs-equity cap (cap notional <= 2x equity) and a daily stop that scales with the quote size (3 x the measured daily PnL SD x size multiple), plus a liquidation-distance check.",
+    "term_it_moves": "Inventory PnL tail (the only term that scales faster than the edge).",
+    "expected_effect": "Bounds a one-hour-at-cap loss at 5x to about -$15 on a 2.3% move instead of an unbounded drawdown; prevents the $15 stop from tripping on normal variance (daily SD $4.6-9.3 at 5x).",
+    "test_or_gate": "Unit tests in mm-core/mm-bot per the lead-engineer skill; demo QA run; then the owner approves the live restart. Verify on the first 24 h that the stop did not trip on a day with |PnL| < 2 SD."
+   },
+   {
+    "action": "Record the public trade tape at 1-minute resolution for 48 h on the VM (the REST endpoint caps at 50 prints) and re-estimate the sweep-size tail E[min(S,Q)] before choosing between 5x and a second market.",
+    "term_it_moves": "The fill multiplier at 5x/10x (today based on 10 prints >= 200).",
+    "expected_effect": "Replaces the weakest model input; if P(S >= 1,000 | S >= 200) is below 0.4 the 5x row falls to about 2x's dollars and the second market wins the research budget.",
+    "test_or_gate": ">= 2,000 prints; the shadow recorder already captures trades (delta_mainnet_public_*.jsonl), so this is an offline analysis of existing files, no new process."
+   }
+  ],
+  "limits": [
+   "The sweep tail beyond 200 contracts comes from 50 public prints (10 of them >= 200) over 31 minutes on 26 Oct plus the shadow tape's mean; the 5x and 10x fill multipliers (4.0 / 5.65 on whole hits) could be off by a factor of two either way. The 100 -> 200 matched-hours comparison rests on one stage-1 day (20 Oct, a rally day).",
+   "The marginal-edge decay (0.9 bps per doubling base, 1.5 pessimistic, 0 optimistic) is an assumption, not a measurement: within 200 contracts the markout showed no decay, and nothing in the data says what >= 1,000-contract sweeps do to a bigger resting quote. The model also ignores the ladder maker's response and queue position lost on edits.",
+   "The ledger window is 6.26 days (5 full days) in one regime: ADA fell 2.5% over the window with a median daily range of 5.6%; the daily PnL SD ($1.86) is from n=5. STRATEGY.md 11.3 asks for >= 4 weeks live before scaling; this run has 6 days.",
+   "26 Oct fills are not markout-scored (Binance publishes the 1 s dump the next day); the net60 split by size covers 5,010 of 6,068 hits (20-25 Oct).",
+   "Capture is measured against Delta's mark (buys 2.75 bps, sells 6.92 on whole-200 hits), which embeds the Delta-below-Binance basis; the sum is right, the per-side split is not a side asymmetry.",
+   "Delta's fee tier / VIP / maker-rebate schedule and the Scalper Offer terms are [UNVERIFIED]: www.delta.exchange, india.delta.exchange and docs.delta.exchange did not resolve from this sandbox; base rates (maker 0.0002, taker 0.0005) come from the API product record and the 18% GST / 10% referral from the repo skill.",
+   "Rate-limit figures (20,000 weight / 5 min, place/edit 5) and the ~0.6 s mainnet edit latency are taken from .claude/rules/cex-mm.md and the 21 Oct memos, not re-measured here. Whether the Tokyo VM can reach fstream.binance.com for a futures reference is [UNVERIFIED].",
+   "Tax readings are models from resource/07 and the 2026-10-22 memo (themselves marked [UNVERIFIED]); the per-fill split uses the ledger's cashflow rows as realised segments, which may not be the basis a tax authority applies.",
+   "Second-market scores use market_scan.txt medians (8 samples, 15 s gaps) where available and a single ticker snapshot otherwise; funding, listing age and token quality (DOOD funding -0.31%/8h) were not analysed. Binance volumes are from Saturday 25 Oct daily klines.",
+   "The shadow report (ADA PASS, AVAX CONTINUE at 138 fills) was read as delivered in /tmp/.../quant/shadow_report.txt; no VM access was used."
+  ],
+  "files": [
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-capacity/ladder_model.py",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-capacity/ladder_model_out.json",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-capacity/summary_numbers.json",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-capacity/hits.py",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-capacity/hits.json",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-capacity/markout_by_size.py",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-capacity/hits_scored.json",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-capacity/share_hourly.py",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-capacity/share_daily.json",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-capacity/fetch_hourly.py",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-capacity/delta_hourly_candles.json",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-capacity/bot_hourly_notional.json",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-capacity/ledger_daily.py",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-capacity/rank_markets.py",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-capacity/market_rank.json",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-capacity/binance_listing_check.json",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-capacity/delta_tickers_all.json",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-capacity/delta_products_perps.json",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-capacity/ada_l2_snapshot.json",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/mm-capacity/ada_recent_trades.json",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/DATA.txt",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/markout_since20.txt",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/shadow_report.txt",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/market_scan.txt",
+   "/home/user/crypto-strategy/cex-mm/artifacts/research/2026-10-21-live-stage1-2-tick-pickoff-latency.md",
+   "/home/user/crypto-strategy/cex-mm/artifacts/research/2026-10-09-scalper-offer.md",
+   "/home/user/crypto-strategy/cex-mm/artifacts/research/2026-10-18-shadow-3day-review.md",
+   "/home/user/crypto-strategy/resource/07-trend-rule-and-prop-trading-research.md",
+   "/home/user/crypto-strategy/.claude/skills/quant-researcher/SKILL.md",
+   "/home/user/crypto-strategy/.claude/rules/cex-mm.md"
+  ]
+ }
+]

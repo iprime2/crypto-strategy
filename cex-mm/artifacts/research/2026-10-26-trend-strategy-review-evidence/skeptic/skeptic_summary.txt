@@ -1,0 +1,40 @@
+TREND STRATEGY: ADVERSARIAL CHECK OF THE TWO ANALYSTS (fidelity, money) -- 2026-10-26, read-only, own code only
+Scripts: skeptic_journal.py (journal identities, costs, vol, DD, B&H), skeptic_fetch.py/skeptic_fetch2.py (Delta candles, FUNDING 1h, contract values, fetched 18:0x UTC),
+skeptic_signal.py (own target_weights, own close-to-close backtest, funding recompute, rounding, ex-ante vol), skeptic_stats.py (percentile, years-to-reject, MC t(4) 20k paths,
+slab tax with carry-forward, per-segment fit, owner time, FD-incremental), mm_ledger.py (MM venue ledger by day).
+
+A. REPRODUCED EXACTLY (both analysts and the lead): daily $992.94 (-0.706%), model $993.63 (-0.637%), 47 orders on $1,625.81, fee 5.31 + slippage 1.022 = 6.332 bps/$,
+   max DD -2.52% from $1,018.61, B&H 9 coins -5.356% (BTC -1.557%), price P&L -5.67 (LTC -3.54 LINK -3.10 BCH -2.12 ... BNB +3.00), equity identities to 1e-13,
+   weekly $997.00 / model $996.87 / 12 orders on $144.52 at 6.909 bps (5.31 + 1.60), gross 0.028x. Journal weights == own implementation on 19x9 + 2x9 coin-days (max diff 0).
+   Own backtest on fetched Delta closes 9-25 Oct: rounded $1k -1.101%, unrounded -0.964%; paper 9 Oct 00:05 -> 26 Oct 00:05 -1.215%, model -1.124%; corr 0.9962 (17 pairs).
+   Funding: journal $0.3533 vs recompute from today's candles $0.5632 (journal lower on 17 of 18 intervals, fidelity said 15); 0.74% vs 1.19%/yr of equity. Cause [UNVERIFIED].
+   Rounding: weekly paper/model gross 0.638 (19 Oct) and 0.368 (26 Oct) at $1k; 1.13/1.14 at $2.5k; 0.985/1.125 at $5k. BTC/BNB targets 0.28-0.34 contracts.
+   Daily gross ratio range $1k 0.60-1.60, $2.5k 0.83-0.99, $5k 0.95-1.10. Ex-ante vol all-full-signal TV0.40 = 34.0%, mean pairwise corr 0.687.
+   Runs: 18 of 19 at 00:05:13-29 UTC, first 16:37 on 8 Oct.
+B. REFUTED: "funding +$0.35 received" (lead, money analyst). The field is fund_paid; cash is debited; 15/18 intervals positive. Funding was PAID. Fidelity analyst is right.
+C. WEAKENED:
+   1. Realised vol "10.1%" (lead): 10.69% (sample sd x sqrt365), 11.06% day-normalised, 10.4% excluding the 7.5-hour first period. Immaterial.
+   2. "Costs 6.33 bps pass the 14.62 gate" (both): the 5.31 is the model's constant by construction (fee = notional x 5.31e-4), not a measurement; only the 1.02 bps slippage is
+      measured, on a paper walk of a 50-level L2 snapshot at 00:05 UTC, not a hand fill at 05:35-07:00 IST. Per $ traded hides the rate: turnover 34.3x/yr (model 29.5x) vs the
+      backtest's implied ~15x (fees 1.1%/yr / 7.31 bps); trading cost 2.17%/yr of equity + funding 0.74-1.19%/yr = 2.9-3.4%/yr against ~10%/yr expected gross at S0.5/19% vol.
+   3. Money analyst's "$6/$29/$143/$573 per month at S0.5" and "+3.8/+6.9/+12.2% expected": 5-year compounded mean gain / 5 overstates the 1-year expectation by ~15% (S0.5)
+      to ~24% (S0.8: 12.2 vs 9.8). Closed form $5/$25/$125/$500; own MC 1-year means 3.63/6.18/9.83%.
+   4. "Sharpe 0.5 central" (both take it as given): it IS the in-sample 2022-26 Sharpe of the weekly book on the ex-ante 24-perp panel (B POST 0.492; 0.471 under the Delta-funding
+      stress; resource/08 line 320, phase2/reference.md), with Lo SE ~0.5 -> 95% CI about -0.5..+1.5. The rule minus the vol-matched basket is Sharpe 0.11 since 2022 (av_sub);
+      the rule's rolling 24m Sharpe sits below the basket's on 59% of days since 2022-04 (T6a). Excess over 4.5% USD cash ~0.2 (resource/07). The 0.5 is a bet on crypto beta.
+      At S0.3 the years-to-reject-zero is 30 (50% power), 69 (80%); S0.2: 68 / 155. With Lo-SE inflation 1.27x: S0.5 17.5 years at 50% power.
+   5. "FD gives the same dollars with no drawdown": FD rate [UNVERIFIED]; the design keeps 70% in an FD anyway, so the incremental over 100% FD = trend P&L - FD interest on the 30%
+      sleeve: +$16/+$40/+$76 per year at $1k (S0.3/0.5/0.8), +$79/+$199/+$379 at $5k. Currency mismatch (USD-quoted P&L vs INR FD) not addressed [UNVERIFIED Delta INR settlement].
+   6. "Slab tax x0.61": own 5-year carry-forward MC keep ratio 0.56/0.65/0.68 (S0.3/0.5/0.8); 30% slab and no cess are assumptions about the owner's bracket [UNVERIFIED].
+D. HOLDS: percentile of -0.71% at S0.5/12%/19d = 35.5 (34-40 across the S/vol grid; 38-40 under zero edge: the result is equally consistent with no edge);
+   years to reject zero 30.1/10.8/4.2 at S 0.3/0.5/0.8 (24.7 at 80% power for 0.5); P(losing year) 40/33/23 weekly, 42/34/24 daily; -20% pause within 3y 35/26/15 weekly,
+   75/67/53 daily, daily at -30% 36/26/15; 1y p10 at $5k S0.5 weekly -$478; per-segment fit 12.73 + 1.314 x net, rmse 3.27, after-tax at net 6.9 = +0.4% (their -0.2%: ~0);
+   capital for $500/month pre-tax $100k/$167k/$62.5k, after slab $142k/$296k/$77k; Gate A human items not evidenced in repo or copied data; weekly slot worst of 7 weekdays
+   (B POST 0.492 vs mean 0.635). MM ledger: +33.29 since 20 Oct 11:06Z; 5 full days mean $5.65/day sd $2.08, all positive; equity 304.50 -> 325.33 on samples, max DD -0.93%.
+E. MISSED BY BOTH: owner's time ($1.4-3.7/hour at $1k weekly, $0.6-1.7/hour daily; <$12/hour below $5k); the CA fee [UNVERIFIED INR 5-30k = $57-341] equals 1-6 years of the
+   $1k book's expected pre-tax profit; the apparatus manages ~$120 (weekly) / ~$200 (daily) of average crypto notional at $1,000; turnover/cost rate 2x the backtest in this chop
+   regime; the forward prior is in-sample beta; rounding at $1k is not noise (contradicts resource/07 'from $1,000 rounding is noise'); venue risk unpriced (30% of trend capital and
+   100% of MM capital on Delta India); MM's $/month would need $24-32k of trend capital at S0.5 ($40-53k at S0.3) to match; no analyst asked which decision any paper result changes.
+F. DECISION (see StructuredOutput): keep the paper books (free) to their gates; do NOT fund the trend rule with real money at <= $5k and do not pay Gate 0 for it alone; the only
+   capital at which it is 'real money' (>= $100k at the in-sample S0.5, never under per-segment VDA at S <= 0.5) makes it an asset-allocation question about crypto beta, not a trading
+   edge; spend the owner's time on MM capacity (more ADA-sized markets through the shadow test and MAINNET_GATE), where edge is measured per fill rather than per decade.

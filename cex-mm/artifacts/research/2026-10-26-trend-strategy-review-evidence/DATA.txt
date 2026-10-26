@@ -1,0 +1,59 @@
+DATA FOR THE 2026-10-26 STRATEGY REVIEW (all read-only copies taken from the VM dism-tokyo on 26 Oct 2026, ~17:30 UTC)
+Scratch root: /tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/
+Repo (local checkout, branch claude/upbeat-euler-4cha7s; origin/main is 2711fca and holds newer memos): /home/user/crypto-strategy
+
+A. LIVE ADA MARKET MAKER (Delta India mainnet, real money, symbol ADAUSD, 1 contract = 1 ADA, tick 0.00001 ~0.49 bps)
+  fills_all.json           6,370 venue fills (GET /v2/fills export), deduplicated by id, 2026-10-13..2026-10-26T17:29Z.
+                           89 are from the 13 Oct run (old fair, before the Binance anchor); 6,281 since 20 Oct 11:06Z (the anchored runs).
+                           Fields: id, created_at, side, size (contracts), price, notional, commission (USD, GST incl.), role (maker/taker),
+                           order_id, meta_data.mark, meta_data.spot, meta_data.order_size, meta_data.order_unfilled_size,
+                           meta_data.scalper_offer_applied, meta_data.effective_commission_rate.
+  live/<run>/fills.json    the per-run exports (overlapping), live/<run>/config.txt = every MM_* env of that run + git sha + stop time.
+                           Runs since the anchor: 20261020T110544Z (stage 1: 100 contracts/quote, cap 300, 4.9 h), 20261020T155754Z
+                           (stage 2: 200/600), 20261021T143121Z (c1a8080, concurrent order calls), 20261021T170240Z (42b5eef, 60.9 h),
+                           20261024T055444Z (e8256a7 requote-size fix), 20261025T183625Z (2711fca, current, still running).
+                           Half-spread 5 bps fixed mode (MM_HALF_SPREAD_BPS=4 + buffer? read config.txt), quotes 200 contracts a side, cap 600.
+  dash_state/tx.json       Delta wallet transactions (the venue cash ledger): 6,923 rows {id, t (ms), type in commission|cashflow|funding,
+                           amount USD, balance after}. Sum 20 Oct 11:06Z -> 26 Oct 17:30Z: cashflow +46.05, commission -12.72, funding -0.05
+                           = +33.29. Balance 292.16 -> 325.45 (equity incl. unrealised: 325.10 at 17:31Z with position +496 @ 0.20697).
+  dash_state/equity.jsonl  23,275 equity samples {t ms, equity} from ~22 Oct 09:26Z (304.50) to 26 Oct 17:33Z (325.33); nothing before 22 Oct.
+  dash_state/candles.json  Delta ADAUSD candles the dashboard polled (check its shape).
+  bn/                      Binance spot ADAUSDT 1 s klines (data.binance.vision daily zips) for 2026-10-20..25, as cached by markout_report.py.
+  markout_since20.txt      Output of .claude/skills/quant-researcher/scripts/markout_report.py on fills_all.json --since 2026-10-20:
+                           net cash-flow +33.02, maker fee 1.25 bps (Scalper Offer), capture 4.76 bps, markout 60 s -0.08, net60 +3.44 bps per $,
+                           by day and by pre-move bucket. 5,148 of 6,281 fills enriched (26 Oct klines not published yet).
+  live_report_current_run.txt  scripts/live.sh report --all for the current run (22.9 h): 1,249 fills, PnL +4.71 $, +2.78 bps per $, stop rule OK.
+  market_scan.txt          scan_delta_markets.py --samples 8 --gap 15: every Delta perp's median spread, tick, 24 h turnover, OI, funding.
+                           ADAUSD is NOT in its top 40 by turnover: Delta ADAUSD 24 h turnover was $595,184 at 17:33Z (api /v2/tickers/ADAUSD),
+                           OI $539k. The bot trades about $15,000-17,000 a day = roughly 2.5-3% of all ADAUSD turnover on the venue.
+  Venue fees: maker 2.12 bps incl. GST at the referral tier; the Scalper Offer (joined 20 Oct 11:30Z) cuts it to about 1.25 bps on these fills
+             (meta_data.scalper_offer_applied). Taker 5.31 bps. The offer's terms and duration are NOT in the repo: treat it as revocable.
+  Memos to read first (repo): cex-mm/artifacts/research/2026-10-21-live-stage1-2-tick-pickoff-latency.md (pick-off = Binance 4.5 bps tick;
+             order path latency), and on origin/main: 2026-10-21-binance-imbalance-pull-replay.md (pull on imbalance: fails OOS),
+             2026-10-25-inventory-lean-replay.md (lean: no PnL, less drawdown; fails prereg). Older: 2026-10-13-live-run-pickoff.md,
+             2026-10-12-live-stop-rule.md, 2026-10-18-shadow-3day-review.md, 2026-10-05-dism-gate-six-coins.md.
+  Rules: .claude/rules/cex-mm.md (code gaps), cex-mm/docs/MAINNET_GATE.md, STRATEGY.md section 11.3 (gate: >= 4 weeks live positive net-of-fee
+             markout PnL, toxicity ratio < 0.7 at 10 s, no unresolved reconciliation), plans/live-basis.plan.md (size ladder).
+  Shadow test (ADA + AVAX since 25 Oct, dry-run + recorder on the VM): report requested, lands in the VM's /tmp/qr/shadow_report.txt (fetch via
+             ssh if needed; see the ssh recipe below). Earlier shadow memos cover ADA/NEAR/BERA/KITE.
+
+B. TREND PAPER BOOKS (long/flat time-series momentum on 9 Delta perps; paper fills, no keys)
+  ../reports/run-2026-10-26-pm/   daily_journal.jsonl (19 daily rebalances 8..26 Oct, $1,000), daily_state.json, weekly_journal.jsonl
+                                  (2 Monday rebalances 19 and 26 Oct, $1,000), daily_mark.txt / weekly_mark.txt (live marks at 13:46Z:
+                                  daily $992.66, weekly $996.83), report.json, payload.json (the Telegram update as sent).
+  Journal row fields: time, signal_day, equity_before, equity, model_equity (the backtest model's equity on the same path), cash, funding,
+                      fees, orders [{coin, contracts, mid, price, notional, fee, slippage_bps}], skipped, weights, positions, mids, values, gross.
+  Backtest + design: cex-mm/scripts/trend_backtest.py, trend_paper.py; resource/07-trend-rule-and-prop-trading-research.md (forward
+                      expectation Sharpe 0.3-0.8, +4..9%/yr at ~12% vol, max DD 15-25%, "pocket money"; capital rules; kill criteria; tax),
+                      resource/08-trend-rule-improvement-research.md and cex-mm/artifacts/research/2026-10-22-trend-improvement.md
+                      (26 pre-registered variants, none adopted; weekday-luck finding; tax readings), 2026-10-13-prop-strategy-research.md,
+                      2026-10-08-trend-following-backtest.md (the daily book's 4-week paper gate ends ~5 Nov; weekly Gate A ~16 Nov).
+  Buy-and-hold of the 9 coins over 8..26 Oct: about -5.4% (BTC -1.6%); the books are 19-22% invested (daily) / 3% (weekly), so mostly cash.
+
+C. ENVIRONMENT
+  Python 3.13 stdlib + numpy? (check), PIL; no pandas/matplotlib unless present. Node 22 + playwright Chromium available for charts.
+  Delta public API reachable: https://api.india.delta.exchange/v2/... (tickers, products, candles). data.binance.vision reachable.
+  VM read-only ssh (only if you truly need something not copied here; never start/stop/restart anything, never read .env):
+    B=/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/tailscale-dl/tailscale_1.104.1_amd64
+    $B/tailscale --socket=/tmp/tsr/ts.sock ssh ubuntu@dism-tokyo '<command>' </dev/null
+  Never print TS_AUTHKEY, TREND_STRATEGY_TEST, DELTA_* or any key. Never place orders. Never touch the repo under /home/user/crypto-strategy.
