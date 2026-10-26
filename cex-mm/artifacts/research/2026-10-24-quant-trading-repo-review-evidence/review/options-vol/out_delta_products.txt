@@ -1,0 +1,28 @@
+n products 822 meta {'after': None, 'limit': 1000, 'before': None, 'total_count': 822}
+keys ['annualized_funding', 'auction_finish_time', 'auction_start_time', 'barrier_price', 'basis_factor_max_limit', 'contract_type', 'contract_unit_currency', 'contract_value', 'default_leverage', 'description', 'disruption_reason', 'funding_method', 'id', 'impact_notional', 'impact_size', 'initial_margin', 'initial_margin_scaling_factor', 'insurance_fund_margin_contribution', 'is_quanto', 'launch_time', 'liquidation_penalty_factor', 'maintenance_margin', 'maintenance_margin_scaling_factor', 'maker_commission_rate', 'max_leverage_notional', 'notional_type', 'position_notional_limit', 'position_size_limit', 'price_band', 'product_specs', 'quoting_asset', 'settlement_price', 'settlement_time', 'settling_asset', 'short_description', 'spot_index', 'state', 'strike_price', 'symbol', 'taker_commission_rate', 'tick_size', 'trading_status', 'ui_config', 'underlying_asset']
+Counter({('BTC', 'call_options'): 256, ('BTC', 'put_options'): 241, ('ETH', 'call_options'): 139, ('ETH', 'put_options'): 134, ('XAUT', 'call_options'): 26, ('XAUT', 'put_options'): 26})
+Counter({'live': 822})
+BTC 8 expiries: ['2026-10-24T12:00:00Z', '2026-10-25T12:00:00Z', '2026-10-26T12:00:00Z', '2026-10-30T12:00:00Z', '2026-11-06T12:00:00Z', '2026-11-13T12:00:00Z', '2026-11-27T12:00:00Z', '2026-12-25T12:00:00Z'] ... ['2026-10-30T12:00:00Z', '2026-11-06T12:00:00Z', '2026-11-13T12:00:00Z', '2026-11-27T12:00:00Z', '2026-12-25T12:00:00Z']
+ETH 8 expiries: ['2026-10-24T12:00:00Z', '2026-10-25T12:00:00Z', '2026-10-26T12:00:00Z', '2026-10-30T12:00:00Z', '2026-11-06T12:00:00Z', '2026-11-13T12:00:00Z', '2026-11-27T12:00:00Z', '2026-12-25T12:00:00Z'] ... ['2026-10-30T12:00:00Z', '2026-11-06T12:00:00Z', '2026-11-13T12:00:00Z', '2026-11-27T12:00:00Z', '2026-12-25T12:00:00Z']
+XAUT 2 expiries: ['2026-10-24T16:00:00Z', '2026-10-30T16:00:00Z'] ... ['2026-10-24T16:00:00Z', '2026-10-30T16:00:00Z']
+symbol = "P-BTC-78800-261026"
+contract_value = "0.001"
+contract_unit_currency = "BTC"
+settling_asset = {"id": 14, "name": "US Dollar", "networks": [{"network": "INR_BANKING", "allowed_deposit_groups": null, "base_withdrawal_fee": "0", "deposit_status": "enabled", "memo_required": false, "min_deposit_amount": "0.000000000000000000", "min_withdrawal_amount": "0.000000000000000000", "minimum_deposit_con
+quoting_asset = {"id": 14, "name": "US Dollar", "networks": [{"network": "INR_BANKING", "allowed_deposit_groups": null, "base_withdrawal_fee": "0", "deposit_status": "enabled", "memo_required": false, "min_deposit_amount": "0.000000000000000000", "min_withdrawal_amount": "0.000000000000000000", "minimum_deposit_con
+tick_size = "0.1"
+maker_commission_rate = "0.0001"
+taker_commission_rate = "0.0001"
+strike_price = "78800"
+settlement_time = "2026-10-26T12:00:00Z"
+launch_time = "2026-10-24T00:40:13Z"
+product_specs = {"backup_vol_expiry_time": 31536000, "isolated_liq_penalty_factor": 0.0005, "isolated_liq_premium_penalty_factor": 0.2, "max_deviation_from_external_vol": 0.75, "max_lower_deviation_from_external_vol": 0.75, "max_oi_usd": 30000000, "max_upper_deviation_from_external_vol": 1.2, "max_volatility": 3, "
+spot_index = {"id": 14, "config": {"price_alert_enabled": true, "price_alert_group": "low_vol_coin", "price_alert_shard": 1, "quoting_asset": "USD", "service_id": 1, "underlying_asset": "BTC"}, "description": "Bitcoin spot price index quoted in US Dollar", "symbol": ".DEXBTUSD", "constituent_exchanges": [], "con
+state = "live"
+trading_status = "operational"
+description = "BTC put option expiring on 26-10-2026"
+annualized_funding = "10.95"
+default_leverage = "100.000000000000000000"
+initial_margin = "1"
+maintenance_margin = "0.5"
+position_size_limit = 50000

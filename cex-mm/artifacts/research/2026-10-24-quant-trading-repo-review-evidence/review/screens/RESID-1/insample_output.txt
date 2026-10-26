@@ -1,0 +1,45 @@
+== BASE nine (8 alts vs BTC), 7.31 bps/leg fill, fill at 01:00 UTC
+  trades 419  per year 65.3  mean net +223.4 bps  median +48.4  hit 52.5%  (gross +257.8, cost -34.2, funding -0.2; mean |b| 1.30)
+  week-cluster bootstrap (2000, rng 11): one-sided P(mean<=0) = 0.0100; 95% CI +29.7..+436.6 bps
+  daily: Sharpe 0.946  CAGR +17.27%  maxDD -25.13%
+  halves: 2020-05-01..2023-06-30: n 201, mean +423.5; 2023-07-01..2026-09-30: n 218, mean +38.9
+  per alt: ETH 69/+27, XRP 45/+735, BNB 50/+393, ADA 46/+428, LTC 59/-126, LINK 43/+132, DOGE 51/+507, BCH 56/-85  -> alts with mean > 0: 6
+  sides: long-alt n 186 mean +351.4, short-alt n 233 mean +121.2
+  years (book return, trades, mean net bps): 2020 +45.6% 40 +699; 2021 +28.7% 65 +488; 2022 +18.8% 74 +174; 2023 +30.7% 57 +404; 2024 -9.6% 80 -86; 2025 +25.9% 44 +413; 2026 -16.1% 59 -224
+  sums (equity units): gross +2.1904 funding +0.0056 cost -0.4159
+  counters: {'fallback_fills': 0, 'skipped_entries': 0, 'pending_exits': 0, 'forced_end': 5, 'forced_delist': 0, 'skipped_days': 0, 'fits': 7632, 'fits_ok': 421}
+
+SCREEN PASS RULE: (1) mean > 0 & P <= 0.01: True  (2) both halves > 0: True  (3) >= 6 of 8 alts > 0: True  -> PASS
+funding coin-months missing over held periods: 0 []
+
+== STRESS 15.31 bps/leg fill (10 bps slippage)
+  trades 419  per year 65.3  mean net +186.0 bps  median +16.7  hit 51.3%  (gross +257.8, cost -71.5, funding -0.2; mean |b| 1.30)
+  week-cluster bootstrap (2000, rng 11): one-sided P(mean<=0) = 0.0285; 95% CI -7.4..+398.3 bps
+  daily: Sharpe 0.784  CAGR +13.78%  maxDD -27.03%
+  halves: 2020-05-01..2023-06-30: n 201, mean +387.2; 2023-07-01..2026-09-30: n 218, mean +0.5
+  per alt: ETH 69/-10, XRP 45/+696, BNB 50/+362, ADA 46/+387, LTC 59/-160, LINK 43/+93, DOGE 51/+467, BCH 56/-124  -> alts with mean > 0: 5
+  sides: long-alt n 186 mean +313.7, short-alt n 233 mean +84.1
+  years (book return, trades, mean net bps): 2020 +43.2% 40 +661; 2021 +24.8% 65 +451; 2022 +14.9% 74 +138; 2023 +27.5% 57 +369; 2024 -13.0% 80 -124; 2025 +23.0% 44 +370; 2026 -18.4% 59 -261
+  sums (equity units): gross +2.0659 funding +0.0044 cost -0.7809
+  counters: {'fallback_fills': 0, 'skipped_entries': 0, 'pending_exits': 0, 'forced_end': 5, 'forced_delist': 0, 'skipped_days': 0, 'fits': 7632, 'fits_ok': 421}
+
+FROZEN-FILE CRITERIA on the nine (descriptive; the frozen file scores them on the 16 unseen perps):
+  F1 Sharpe 0.946 >= 0.50: True
+  F2 Sharpe 2020-05..2023-12 1.546, 2024-01..2026-09 -0.019 both > 0: False
+  F3 mean net +223.4 >= +29.24 bps: True
+  F4 week-cluster bootstrap of daily returns P(Sharpe <= 0) = 0.0035 <= 0.10: True
+  F5 Sharpe at 10 bps slippage 0.784 > 0: True
+  F6 corr with weekly TV 0.25 trend book on the nine = +0.138 over 2343 days, |corr| <= 0.30: True
+
+LABELLED NEIGHBOURS (nine, base costs; never selected):
+  fill at the decision close   trades  419 mean net  +229.5 bps P 0.0090 halves  +445.8/  +30.0 alts>0 6/8 Sharpe +0.940 CAGR +17.6% maxDD -27.2% -> screen PASS
+  refit daily while flat       trades  367 mean net  +130.9 bps P 0.0730 halves  +293.0/  -16.8 alts>0 5/8 Sharpe +0.550 CAGR +8.0% maxDD -28.1% -> screen FAIL
+  R^2 > 0.6                    trades  458 mean net  +303.7 bps P 0.0005 halves  +463.7/ +145.0 alts>0 6/8 Sharpe +1.147 CAGR +27.1% maxDD -25.0% -> screen PASS
+  R^2 > 0.8                    trades  312 mean net  +158.0 bps P 0.0485 halves  +302.6/  +17.1 alts>0 6/8 Sharpe +0.647 CAGR +8.7% maxDD -20.7% -> screen FAIL
+  band 1.5 sigma               trades  504 mean net  +158.6 bps P 0.0090 halves  +244.5/  +75.4 alts>0 6/8 Sharpe +0.795 CAGR +14.6% maxDD -22.5% -> screen PASS
+  band 2.5 sigma               trades  332 mean net  +256.2 bps P 0.0055 halves  +447.0/  +70.0 alts>0 6/8 Sharpe +0.955 CAGR +16.3% maxDD -18.2% -> screen PASS
+  hold 6 d (counter > 5)       trades  494 mean net  +108.3 bps P 0.0290 halves  +275.8/  -52.5 alts>0 6/8 Sharpe +0.703 CAGR +9.8% maxDD -31.4% -> screen FAIL
+  hold 18 d (counter > 16)     trades  368 mean net  +224.3 bps P 0.0240 halves  +317.2/ +131.4 alts>0 7/8 Sharpe +0.695 CAGR +14.6% maxDD -40.8% -> screen FAIL
+  unhedged single leg          trades  419 mean net  +125.8 bps P 0.1520 halves  +107.1/ +143.1 alts>0 5/8 Sharpe +0.423 CAGR +7.2% maxDD -47.4% -> screen FAIL
+
+IN-SAMPLE VERDICT: PASS

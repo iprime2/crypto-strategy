@@ -1,0 +1,1 @@
+n 400  max|dp| 2.968e-13  mean|dp| 1.771e-14  agree on p<0.05: 1.0000  agree on p<=0.20: 1.0000

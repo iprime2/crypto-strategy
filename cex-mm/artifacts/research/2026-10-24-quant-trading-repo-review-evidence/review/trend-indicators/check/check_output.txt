@@ -1,0 +1,6 @@
+pandas 3.0.5 numpy 2.5.3
+A chained assignment: positions sum after df['positions'][3:]=1 -> 0 (expect 7 if it worked); error=None; warnings=['ChainedAssignmentError']
+B AO: 30000 synthetic bars, saucer patterns fired 2108 times; bars where output differs with vs without saucer: 0; bars where output differs from a plain SMA5/SMA34(HL2) long/flat crossover: 0
+C SAR: 40000 synthetic bars (daily vol 3.5%); reversals script=5437 wilder=4025; long/flat position differs on 4276 of 39000 bars (11.0%); median |SAR/close-1| on day after reversal: script=7.86% wilder=11.04%
+D weekdays 2015-04-01..2018-02-15 (Heikin-Ashi NVDA): 751
+D weekdays 2016-01-01..2018-01-01 (SAR EA): 521

@@ -1,0 +1,27 @@
+data: {'BTC': ('2020-01-01', '2026-09-30', 2465), 'ETH': ('2020-01-01', '2026-09-30', 2465), 'XRP': ('2020-01-06', '2026-09-30', 2455), 'BNB': ('2020-02-10', '2026-09-30', 2425), 'ADA': ('2020-01-31', '2026-09-30', 2435), 'LTC': ('2020-01-09', '2026-09-30', 2452), 'LINK': ('2020-01-17', '2026-09-30', 2449), 'DOGE': ('2020-07-10', '2026-09-30', 2274), 'BCH': ('2020-01-01', '2026-09-30', 2465)}
+
+Equal-weight nine-coin book, unit notional per coin, daily, costs 7.31 bps/side, no funding
+rule                                          window     gross ann  net ann  net Sh exposure sides/coin/yr
+RSI14 30/70 long/short (repo rule, lagged)    FULL          -14.6%   -16.1%   -0.72                   20.5
+RSI14 30/70 long/short (repo rule, lagged)    2020-21       -34.2%   -36.0%   -1.23                   24.6
+RSI14 30/70 long/short (repo rule, lagged)    2022-26        -7.7%    -9.1%   -0.47                   19.1
+RSI14 <30 long only                           FULL            9.3%     8.8%    0.69                    7.2
+RSI14 <30 long only                           2020-21        17.6%    17.4%    2.01                    3.8
+RSI14 <30 long only                           2022-26         6.4%     5.8%    0.42                    8.4
+BB20/2 revert-to-mid long/short               FULL          -19.9%   -21.8%   -0.44                   25.3
+BB20/2 revert-to-mid long/short               2020-21       -57.6%   -59.3%   -0.84                   23.9
+BB20/2 revert-to-mid long/short               2022-26        -6.7%    -8.6%   -0.21                   25.8
+BB20/2 revert-to-mid long only                FULL           18.9%    18.0%    0.48                   11.5
+BB20/2 revert-to-mid long only                2020-21        48.6%    47.9%    0.95                    9.1
+BB20/2 revert-to-mid long only                2022-26         8.4%     7.5%    0.24                   12.4
+reference: always long, equal weight          FULL           75.9%             1.01
+reference: always long, equal weight          2020-21       224.0%             2.22
+reference: always long, equal weight          2022-26        23.8%             0.38
+
+Shooting star short, exit at |close/entry-1|>5% or 7 bars, one trade at a time per coin, 14.62 bps round trip
+  causal (conditions 1-6 only)                                           FULL: no trades
+  causal (conditions 1-6 only)                                           2020-21: no trades
+  causal (conditions 1-6 only)                                           2022-26: no trades
+  WITH next-bar look-ahead (conditions 7-8, entry at the star's close)   FULL: no trades
+  WITH next-bar look-ahead (conditions 7-8, entry at the star's close)   2020-21: no trades
+  WITH next-bar look-ahead (conditions 7-8, entry at the star's close)   2022-26: no trades

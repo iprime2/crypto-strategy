@@ -1,0 +1,6 @@
+aug rows 130 dates 2019-02-18 -> 2019-08-16 strikes with C and P: ['3350', '3375', '3400', '3450']
+merged dates 2019-02-18 -> 2019-08-16 n 128
+K=3350 entry 2019-04-03 C=111.80 P=112.60 prem=224.40 pts | exit 2019-08-16 spot=3329.08 | script P&L=-15.2 | consistent P&L=-203.48 pts = -2034.8 EUR/contract | first-signal day count=2
+K=3375 entry 2019-06-10 C=79.50 P=78.80 prem=158.30 pts | exit 2019-08-16 spot=3329.08 | script P&L=300.9 | consistent P&L=-112.38 pts = -1123.8 EUR/contract | first-signal day count=2
+3400 no trade
+K=3450 entry 2019-06-21 C=67.00 P=66.70 prem=133.70 pts | exit 2019-08-16 spot=3329.08 | script P&L=1075.5 | consistent P&L=-12.78 pts = -127.8 EUR/contract | first-signal day count=1

@@ -1,0 +1,24 @@
+{
+ "BTC": {
+  "friday_12utc_expiries_listed": 148,
+  "with_contract_live_168h_before": 145,
+  "first": "2024-01-19",
+  "last": "2026-10-23"
+ },
+ "ETH": {
+  "friday_12utc_expiries_listed": 142,
+  "with_contract_live_168h_before": 141,
+  "first": "2024-02-16",
+  "last": "2026-10-23"
+ },
+ "fridays_without_168h_contract": {
+  "BTC": [
+   "2023-12-29",
+   "2024-01-05",
+   "2024-01-12"
+  ],
+  "ETH": [
+   "2024-02-09"
+  ]
+ }
+}

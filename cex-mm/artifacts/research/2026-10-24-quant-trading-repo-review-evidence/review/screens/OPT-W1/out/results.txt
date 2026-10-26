@@ -1,0 +1,100 @@
+OPT-W1 weekly short ATM straddle, Delta India BTC/ETH. Spec sha256: d696c61aa2b7bc6183ea64cec45ca17eb89b4ed3a6ad9d67bbce01460bc628f7
+
+== Step 0 (Friday 12:00 UTC expiries 2023-12-01..2026-10-23)
+  BTC: {'friday_12utc_expiries_listed': 148, 'with_contract_live_168h_before': 145, 'first': '2024-01-19', 'last': '2026-10-23'}
+  ETH: {'friday_12utc_expiries_listed': 142, 'with_contract_live_168h_before': 141, 'first': '2024-02-16', 'last': '2026-10-23'}
+  Fridays listed but with no contract live 168 h before: {'BTC': 3, 'ETH': 1} {'BTC': ['2023-12-29', '2024-01-05', '2024-01-12'], 'ETH': ['2024-02-09']}
+
+== Coin-weeks: total 286 valid 286 skipped 0
+  BTC: |K/S0-1| bps mean 23.3 max 691.1; weeks where nearest strike lacked marks (fallback) 0
+  ETH: |K/S0-1| bps mean 43.0 max 142.3; weeks where nearest strike lacked marks (fallback) 0
+
+== Weekly P&L, bps of underlying notional per straddle
+-- haircut 0.00  (no haircut, reference only)
+  BTC    n=145 mean    +3.8 sd  458.6 t +0.10 win  61% median +127.2 worst   -1938 best   +746 total    +556 maxDD   -3089
+  ETH    n=141 mean    +5.2 sd  649.6 t +0.10 win  63% median +248.3 worst   -2348 best  +1004 total    +739 maxDD   -4808
+  POOLED n=145 mean    +2.1 sd  505.9 t +0.05 win  66% median +206.2 worst   -2046 best   +875 total    +300 maxDD   -3321
+-- haircut 0.02  (sensitivity, not selectable)
+  BTC    n=145 mean    -5.8 sd  457.9 t -0.15 win  61% median +120.1 worst   -1943 best   +730 total    -837 maxDD   -3579
+  ETH    n=141 mean    -8.0 sd  648.9 t -0.15 win  62% median +235.0 worst   -2361 best   +983 total   -1122 maxDD   -5376
+  POOLED n=145 mean    -9.3 sd  505.1 t -0.22 win  66% median +197.6 worst   -2052 best   +856 total   -1343 maxDD   -3909
+-- haircut 0.05  (PRIMARY)
+  BTC    n=145 mean   -20.2 sd  456.7 t -0.53 win  59% median +106.0 worst   -1951 best   +705 total   -2925 maxDD   -4314
+  ETH    n=141 mean   -27.7 sd  647.9 t -0.51 win  61% median +215.1 worst   -2380 best   +952 total   -3912 maxDD   -7518
+  POOLED n=145 mean   -26.3 sd  504.0 t -0.63 win  64% median +175.2 worst   -2062 best   +828 total   -3809 maxDD   -5809
+-- haircut 0.10  (sensitivity, not selectable)
+  BTC    n=145 mean   -44.2 sd  454.9 t -1.17 win  57% median  +81.7 worst   -1965 best   +664 total   -6406 maxDD   -6890
+  ETH    n=141 mean   -60.7 sd  646.2 t -1.12 win  59% median +181.9 worst   -2411 best   +900 total   -8564 maxDD  -11089
+  POOLED n=145 mean   -54.6 sd  502.1 t -1.31 win  61% median +154.8 worst   -2078 best   +782 total   -7917 maxDD   -8975
+
+== Calendar years (haircut 0.05), by expiry year
+  2023: BTC n=0 mean +nan t +nan total +0; ETH n=0 mean +nan t +nan total +0; POOLED n=0 mean +nan t +nan total +0 worst +nan
+  2024: BTC n=50 mean -62.6 t -0.97 total -3128; ETH n=46 mean -74.8 t -0.88 total -3442; POOLED n=50 mean -73.5 t -1.16 total -3675 worst -1318
+  2025: BTC n=52 mean +31.0 t +0.52 total +1611; ETH n=52 mean -24.2 t -0.25 total -1261; POOLED n=52 mean +3.4 t +0.05 total +175 worst -1668
+  2026: BTC n=43 mean -32.7 t -0.43 total -1408; ETH n=43 mean +18.4 t +0.18 total +791; POOLED n=43 mean -7.2 t -0.08 total -309 worst -2062
+
+== Mean ATM credit vs mean realised |S_T/S0 - 1| (bps), A = 2023-12..2025-09-28, B = 2025-09-29..2026-10-23
+  BTC A   n= 89 credit@0  503.0 credit@0.05  477.9 realised|move|  482.1 mean payout |S_T-K|  481.4 fees@0.05  3.6  credit@0.05 - move   -4.2
+  BTC B   n= 56 credit@0  443.8 credit@0.05  421.6 realised|move|  470.6 mean payout |S_T-K|  459.1 fees@0.05  3.5  credit@0.05 - move  -49.0
+  BTC ALL n=145 credit@0  480.1 credit@0.05  456.1 realised|move|  477.6 mean payout |S_T-K|  472.8 fees@0.05  3.5  credit@0.05 - move  -21.5
+  ETH A   n= 85 credit@0  690.9 credit@0.05  656.3 realised|move|  696.7 mean payout |S_T-K|  697.1 fees@0.05  3.6  credit@0.05 - move  -40.4
+  ETH B   n= 56 credit@0  612.5 credit@0.05  581.9 realised|move|  575.9 mean payout |S_T-K|  580.9 fees@0.05  3.5  credit@0.05 - move   +6.0
+  ETH ALL n=141 credit@0  659.7 credit@0.05  626.8 realised|move|  648.7 mean payout |S_T-K|  651.0 fees@0.05  3.5  credit@0.05 - move  -21.9
+  BOTH A (pooled coin-weeks, info) n=174 credit@0.05  565.0 realised  586.9
+  BOTH B (pooled coin-weeks, info) n=112 credit@0.05  501.7 realised  523.3
+
+== Sub-periods (haircut 0.05)
+  A per-trade n=174 mean   -25.3 sd  554.3 t -0.60 win  60% median +130.8 worst   -2100 best   +745 total   -4399 maxDD   -5430
+  A pooled    n= 89 mean   -29.1 sd  475.0 t -0.58 win  64% median +172.3 worst   -1668 best   +648 total   -2589 maxDD   -3816
+  A BTC       n= 89 mean    -7.0 sd  431.7 t -0.15 win  60% median +118.7 worst   -1643 best   +677 total    -627 maxDD   -4314
+  A ETH       n= 85 mean   -44.4 sd  660.9 t -0.62 win  61% median +161.9 worst   -2100 best   +745 total   -3772 maxDD   -4802
+  B per-trade n=112 mean   -21.8 sd  566.8 t -0.41 win  59% median +152.8 worst   -2380 best   +952 total   -2438 maxDD   -6044
+  B pooled    n= 56 mean   -21.8 sd  551.3 t -0.30 win  64% median +179.9 worst   -2062 best   +828 total   -1219 maxDD   -3219
+  B BTC       n= 56 mean   -41.0 sd  497.2 t -0.62 win  57% median  +85.1 worst   -1951 best   +705 total   -2298 maxDD   -2847
+  B ETH       n= 56 mean    -2.5 sd  632.7 t -0.03 win  61% median +245.7 worst   -2380 best   +952 total    -140 maxDD   -3746
+
+== 2025-10-10 weeks on their own (haircut 0.05)
+  expiry 2025-10-10 BTC: entry 2025-10-03 S0 120344.80 K 120500 S_T 121536.85 move +99 bps credit 313.4 payout 86.2 fees 3.6 pnl +223.7
+  expiry 2025-10-10 ETH: entry 2025-10-03 S0 4478.72 K 4500 S_T 4340.46 move -309 bps credit 505.4 payout 356.2 fees 3.5 pnl +145.6
+  expiry 2025-10-10 POOLED pnl +184.7
+  expiry 2025-10-17 BTC: entry 2025-10-10 S0 121553.90 K 121500 S_T 105892.38 move -1288 bps credit 365.9 payout 1284.0 fees 3.4 pnl -921.5
+  expiry 2025-10-17 ETH: entry 2025-10-10 S0 4343.43 K 4350 S_T 3784.54 move -1287 bps credit 544.3 payout 1301.9 fees 3.4 pnl -761.0
+  expiry 2025-10-17 POOLED pnl -841.2
+
+== Five worst pooled weeks (haircut 0.05)
+  2026-08-21 -2062.0
+  2026-02-06 -1961.2
+  2025-02-28 -1667.6
+  2024-03-01 -1318.5
+  2026-06-05 -1210.8
+
+== Template metrics (haircut 0.05)
+  per-trade mean -23.91 bps over 286 trades in 145 week clusters; bootstrap 2000 draws rng(11): P(mean<=0) = 0.7065; 95% interval -112.0 .. +53.7
+  trades/year BTC: 52.2 straddles (104.4 option legs opened)
+  trades/year ETH: 50.7 straddles (101.5 option legs opened)
+  daily MTM Sharpe BTC: -0.33 (n days 1015, flat days count as 0)
+  daily MTM Sharpe ETH: -0.30 (n days 1015, flat days count as 0)
+  daily MTM Sharpe POOLED: -0.38 (n days 1015); worst day -1653.6 bps; daily marks carried forward 0
+  weekly Sharpe POOLED (x sqrt 52, info): -0.38
+
+== Labelled neighbour (not selectable): strangle at S0 +/- (ATM credit@0)/2, haircut 0.05
+  BTC    n=145 mean   -12.9 sd  422.1 t -0.37 win  64% median +154.0 worst   -1966 best   +503 total   -1866 maxDD   -3383 credit 270.0
+  ETH    n=141 mean   -21.5 sd  596.5 t -0.43 win  66% median +247.7 worst   -2291 best   +592 total   -3036 maxDD   -6237 credit 370.2
+  POOLED n=145 mean   -19.2 sd  466.1 t -0.50 win  66% median +167.1 worst   -2129 best   +526 total   -2785 maxDD   -4717
+
+== Pass rule (haircut 0.05)
+  FAIL  1 mean>0 BTC
+  FAIL  1 mean>0 ETH
+  FAIL  2 pooled t>=2.0
+  FAIL  3 credit>move BTC A
+  FAIL  3 credit>move BTC B
+  FAIL  3 credit>move ETH A
+  PASS  3 credit>move ETH B
+  FAIL  4 positive in >=2 of 2024/25/26
+  FAIL  5 pooled mean>0 and |worst|<=52*mean
+  FAIL  6 per-trade mean>0, bootstrap P<=0.01
+  FAIL  7 per-trade mean>0 in A and B
+  FAIL  8 positive on 2 of 2 coins
+  detail: pooled mean -26.27, t -0.63, worst -2062 (52 x mean = -1366); positive years 1/3; P 0.7065
+
+  IN-SAMPLE: FAIL (1/12 clauses)

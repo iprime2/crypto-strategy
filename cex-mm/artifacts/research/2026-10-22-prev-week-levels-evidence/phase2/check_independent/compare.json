@@ -1,0 +1,415 @@
+{
+ "all_gating_within_tol": true,
+ "events": {
+  "OT": {
+   "matched": 4755,
+   "only_indep": 0,
+   "only_run": 0,
+   "entry_time_mismatch": 0,
+   "exit_time_mismatch_after_5min_shift": 0,
+   "max_abs_gross_diff_bps": 3.353761712787673e-12,
+   "max_rel_level_diff": 3.3306690738754696e-15,
+   "max_abs_exit_px_diff": 0.0
+  },
+  "OX": {
+   "matched": 15756,
+   "only_indep": 0,
+   "only_run": 0,
+   "entry_time_mismatch": 0,
+   "exit_time_mismatch_after_5min_shift": 0,
+   "max_abs_gross_diff_bps": 4.462208380573429e-12,
+   "max_rel_level_diff": 4.9960036108132044e-15,
+   "max_abs_exit_px_diff": 0.0
+  }
+ },
+ "coin_weeks": {
+  "OT": {
+   "run_used": 1060,
+   "indep_used": 1060
+  },
+  "OX": {
+   "run_used": 3251,
+   "indep_used": 3251
+  }
+ },
+ "table": [
+  {
+   "panel": "OT",
+   "quantity": "n real events",
+   "indep": 887.0,
+   "run": 887.0,
+   "abs_diff": 0.0,
+   "within_tol": true,
+   "gating": true
+  },
+  {
+   "panel": "OT",
+   "quantity": "n P1 events",
+   "indep": 3868.0,
+   "run": 3868.0,
+   "abs_diff": 0.0,
+   "within_tol": true,
+   "gating": true
+  },
+  {
+   "panel": "OT",
+   "quantity": "real gross mean",
+   "indep": 58.46884623077097,
+   "run": 58.46884623077097,
+   "abs_diff": 0.0,
+   "within_tol": true,
+   "gating": true
+  },
+  {
+   "panel": "OT",
+   "quantity": "real net base mean",
+   "indep": 43.84884623077098,
+   "run": 43.84884623077098,
+   "abs_diff": 0.0,
+   "within_tol": true,
+   "gating": true
+  },
+  {
+   "panel": "OT",
+   "quantity": "P1 gross mean",
+   "indep": 16.48701904532363,
+   "run": 16.487019045323635,
+   "abs_diff": 3.552713678800501e-15,
+   "within_tol": true,
+   "gating": true
+  },
+  {
+   "panel": "OT",
+   "quantity": "real - P1 gross",
+   "indep": 41.981827185447344,
+   "run": 41.98182718544734,
+   "abs_diff": 7.105427357601002e-15,
+   "within_tol": true,
+   "gating": true
+  },
+  {
+   "panel": "OT",
+   "quantity": "H1 real net base",
+   "indep": 46.6734769836043,
+   "run": 46.6734769836043,
+   "abs_diff": 0.0,
+   "within_tol": true,
+   "gating": true
+  },
+  {
+   "panel": "OT",
+   "quantity": "H2 real net base",
+   "indep": 42.199463630455796,
+   "run": 42.199463630455796,
+   "abs_diff": 0.0,
+   "within_tol": true,
+   "gating": true
+  },
+  {
+   "panel": "OT",
+   "quantity": "coins with net > 0",
+   "indep": 12.0,
+   "run": 12.0,
+   "abs_diff": 0.0,
+   "within_tol": true,
+   "gating": true
+  },
+  {
+   "panel": "OT",
+   "quantity": "H1 real - P1 (extra)",
+   "indep": 45.403244262857626,
+   "run": 45.40324426285762,
+   "abs_diff": 7.105427357601002e-15,
+   "within_tol": true,
+   "gating": false
+  },
+  {
+   "panel": "OT",
+   "quantity": "H2 real - P1 (extra)",
+   "indep": 39.976146886809175,
+   "run": 39.976146886809175,
+   "abs_diff": 0.0,
+   "within_tol": true,
+   "gating": false
+  },
+  {
+   "panel": "OT",
+   "quantity": "real net stress (extra)",
+   "indep": 27.84884623077097,
+   "run": 27.84884623077097,
+   "abs_diff": 0.0,
+   "within_tol": true,
+   "gating": false
+  },
+  {
+   "panel": "OT",
+   "quantity": "P1_in gross (extra)",
+   "indep": 9.741312694993864,
+   "run": 9.741312694993868,
+   "abs_diff": 3.552713678800501e-15,
+   "within_tol": true,
+   "gating": false
+  },
+  {
+   "panel": "OT",
+   "quantity": "P1_out gross (extra)",
+   "indep": 27.276522482007,
+   "run": 27.276522482007007,
+   "abs_diff": 7.105427357601002e-15,
+   "within_tol": true,
+   "gating": false
+  },
+  {
+   "panel": "OT",
+   "quantity": "coin-weeks used (extra)",
+   "indep": 1060.0,
+   "run": 1060.0,
+   "abs_diff": 0.0,
+   "within_tol": true,
+   "gating": false
+  },
+  {
+   "panel": "OT",
+   "quantity": "coin-weeks skipped (extra)",
+   "indep": 292.0,
+   "run": 292.0,
+   "abs_diff": 0.0,
+   "within_tol": true,
+   "gating": false
+  },
+  {
+   "panel": "OT",
+   "quantity": "boot P(net<=0) (extra)",
+   "indep": 0.0005,
+   "run": 0.0005,
+   "abs_diff": 0.0,
+   "within_tol": true,
+   "gating": false
+  },
+  {
+   "panel": "OT",
+   "quantity": "boot P(diff<=0) (extra)",
+   "indep": 0.0,
+   "run": 0.0,
+   "abs_diff": 0.0,
+   "within_tol": true,
+   "gating": false
+  },
+  {
+   "panel": "OT",
+   "quantity": "boot diff CI lo (extra)",
+   "indep": 26.614176349396775,
+   "run": 26.614176349396768,
+   "abs_diff": 7.105427357601002e-15,
+   "within_tol": true,
+   "gating": false
+  },
+  {
+   "panel": "OT",
+   "quantity": "boot diff CI hi (extra)",
+   "indep": 57.62153935434452,
+   "run": 57.62153935434457,
+   "abs_diff": 4.973799150320701e-14,
+   "within_tol": true,
+   "gating": false
+  },
+  {
+   "panel": "OT",
+   "quantity": "max |per-coin net diff| (extra)",
+   "indep": 1.4210854715202004e-14,
+   "run": 0.0,
+   "abs_diff": 1.4210854715202004e-14,
+   "within_tol": true,
+   "gating": false
+  },
+  {
+   "panel": "OX",
+   "quantity": "n real events",
+   "indep": 2960.0,
+   "run": 2960.0,
+   "abs_diff": 0.0,
+   "within_tol": true,
+   "gating": true
+  },
+  {
+   "panel": "OX",
+   "quantity": "n P1 events",
+   "indep": 12796.0,
+   "run": 12796.0,
+   "abs_diff": 0.0,
+   "within_tol": true,
+   "gating": true
+  },
+  {
+   "panel": "OX",
+   "quantity": "real gross mean",
+   "indep": 22.376840027143498,
+   "run": 22.376840027143498,
+   "abs_diff": 0.0,
+   "within_tol": true,
+   "gating": true
+  },
+  {
+   "panel": "OX",
+   "quantity": "real net base mean",
+   "indep": 7.756840027143496,
+   "run": 7.756840027143496,
+   "abs_diff": 0.0,
+   "within_tol": true,
+   "gating": true
+  },
+  {
+   "panel": "OX",
+   "quantity": "P1 gross mean",
+   "indep": 2.9794512534729516,
+   "run": 2.979451253472959,
+   "abs_diff": 7.549516567451064e-15,
+   "within_tol": true,
+   "gating": true
+  },
+  {
+   "panel": "OX",
+   "quantity": "real - P1 gross",
+   "indep": 19.397388773670546,
+   "run": 19.39738877367054,
+   "abs_diff": 7.105427357601002e-15,
+   "within_tol": true,
+   "gating": true
+  },
+  {
+   "panel": "OX",
+   "quantity": "H1 real net base",
+   "indep": -1.8903351949707992,
+   "run": -1.8903351949707992,
+   "abs_diff": 0.0,
+   "within_tol": true,
+   "gating": true
+  },
+  {
+   "panel": "OX",
+   "quantity": "H2 real net base",
+   "indep": 18.361890803226586,
+   "run": 18.361890803226586,
+   "abs_diff": 0.0,
+   "within_tol": true,
+   "gating": true
+  },
+  {
+   "panel": "OX",
+   "quantity": "coins with net > 0",
+   "indep": 10.0,
+   "run": 10.0,
+   "abs_diff": 0.0,
+   "within_tol": true,
+   "gating": true
+  },
+  {
+   "panel": "OX",
+   "quantity": "H1 real - P1 (extra)",
+   "indep": 22.609148244382954,
+   "run": 22.609148244382943,
+   "abs_diff": 1.0658141036401503e-14,
+   "within_tol": true,
+   "gating": false
+  },
+  {
+   "panel": "OX",
+   "quantity": "H2 real - P1 (extra)",
+   "indep": 15.57398977667479,
+   "run": 15.573989776674779,
+   "abs_diff": 1.0658141036401503e-14,
+   "within_tol": true,
+   "gating": false
+  },
+  {
+   "panel": "OX",
+   "quantity": "real net stress (extra)",
+   "indep": -8.243159972856505,
+   "run": -8.243159972856505,
+   "abs_diff": 0.0,
+   "within_tol": true,
+   "gating": false
+  },
+  {
+   "panel": "OX",
+   "quantity": "P1_in gross (extra)",
+   "indep": 3.352553095647046,
+   "run": 3.3525530956470515,
+   "abs_diff": 5.329070518200751e-15,
+   "within_tol": true,
+   "gating": false
+  },
+  {
+   "panel": "OX",
+   "quantity": "P1_out gross (extra)",
+   "indep": 2.367367133521637,
+   "run": 2.367367133521649,
+   "abs_diff": 1.199040866595169e-14,
+   "within_tol": true,
+   "gating": false
+  },
+  {
+   "panel": "OX",
+   "quantity": "coin-weeks used (extra)",
+   "indep": 3251.0,
+   "run": 3251.0,
+   "abs_diff": 0.0,
+   "within_tol": true,
+   "gating": false
+  },
+  {
+   "panel": "OX",
+   "quantity": "coin-weeks skipped (extra)",
+   "indep": 454.0,
+   "run": 454.0,
+   "abs_diff": 0.0,
+   "within_tol": true,
+   "gating": false
+  },
+  {
+   "panel": "OX",
+   "quantity": "boot P(net<=0) (extra)",
+   "indep": 0.2455,
+   "run": 0.2455,
+   "abs_diff": 0.0,
+   "within_tol": true,
+   "gating": false
+  },
+  {
+   "panel": "OX",
+   "quantity": "boot P(diff<=0) (extra)",
+   "indep": 0.0,
+   "run": 0.0,
+   "abs_diff": 0.0,
+   "within_tol": true,
+   "gating": false
+  },
+  {
+   "panel": "OX",
+   "quantity": "boot diff CI lo (extra)",
+   "indep": 9.823754286427096,
+   "run": 9.823754286427071,
+   "abs_diff": 2.4868995751603507e-14,
+   "within_tol": true,
+   "gating": false
+  },
+  {
+   "panel": "OX",
+   "quantity": "boot diff CI hi (extra)",
+   "indep": 28.763246294690884,
+   "run": 28.763246294690852,
+   "abs_diff": 3.197442310920451e-14,
+   "within_tol": true,
+   "gating": false
+  },
+  {
+   "panel": "OX",
+   "quantity": "max |per-coin net diff| (extra)",
+   "indep": 1.0658141036401503e-14,
+   "run": 0.0,
+   "abs_diff": 1.0658141036401503e-14,
+   "within_tol": true,
+   "gating": false
+  }
+ ]
+}

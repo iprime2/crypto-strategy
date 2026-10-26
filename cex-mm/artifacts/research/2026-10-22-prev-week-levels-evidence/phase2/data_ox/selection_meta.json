@@ -1,0 +1,48 @@
+{
+ "rule": "phase2_plan.md section 2",
+ "n_symbols_local": 896,
+ "n_eligible": 103,
+ "s3_usdt_symbols": 900,
+ "s3_usdt_missing_locally": [
+  "\u54c8\u57fa\u7c73USDT",
+  "\u5e01\u5b89\u4eba\u751fUSDT",
+  "\u6211\u8e0f\u9a6c\u6765\u4e86USDT",
+  "\u725b\u6765USDT",
+  "\u9f99\u867eUSDT"
+ ],
+ "duplicate_month_sources": [],
+ "selected": [
+  "1000SHIBUSDT",
+  "SOLUSDT",
+  "SANDUSDT",
+  "LUNAUSDT",
+  "MANAUSDT",
+  "DOTUSDT",
+  "AVAXUSDT",
+  "FTMUSDT",
+  "MATICUSDT",
+  "GALAUSDT",
+  "AXSUSDT",
+  "DYDXUSDT",
+  "FILUSDT",
+  "LRCUSDT",
+  "CRVUSDT"
+ ],
+ "selected_cache_all_only_literal": [
+  "SANDUSDT",
+  "LUNAUSDT",
+  "FTMUSDT",
+  "MATICUSDT",
+  "LRCUSDT",
+  "CRVUSDT",
+  "ALICEUSDT",
+  "ALGOUSDT",
+  "ICPUSDT",
+  "ONEUSDT",
+  "CHRUSDT",
+  "THETAUSDT",
+  "OMGUSDT",
+  "EGLDUSDT",
+  "CHZUSDT"
+ ]
+}

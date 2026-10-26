@@ -1,0 +1,269 @@
+{
+ "OT": {
+  "coverage_variants": {
+   "cov95": {
+    "n": 1075,
+    "n_p1": 4680,
+    "net": 43.73643763281848,
+    "p_net": 0.002,
+    "diff": 41.920143323114395,
+    "p_diff": 0.0,
+    "h1": 56.29734120593012,
+    "h2": 36.78437684018588,
+    "coins_pos": 12,
+    "need": 9,
+    "n_weeks": 135,
+    "t1": true,
+    "t2": true,
+    "t3": true,
+    "t4": true,
+    "all": true,
+    "coin_weeks_used": 1298,
+    "dropped_4h_real_missing_exit": 4
+   },
+   "cov90": {
+    "n": 1108,
+    "n_p1": 4822,
+    "net": 49.73562846129311,
+    "p_net": 0.0,
+    "diff": 44.495617454569555,
+    "p_diff": 0.0,
+    "h1": 59.85646040981897,
+    "h2": 44.039983965578266,
+    "coins_pos": 12,
+    "need": 9,
+    "n_weeks": 137,
+    "t1": true,
+    "t2": true,
+    "t3": true,
+    "t4": true,
+    "all": true,
+    "coin_weeks_used": 1342,
+    "dropped_4h_real_missing_exit": 4
+   },
+   "cov0": {
+    "n": 1118,
+    "n_p1": 4860,
+    "net": 51.50744411684091,
+    "p_net": 0.0,
+    "diff": 45.495208710497266,
+    "p_diff": 0.0,
+    "h1": 64.45225890228156,
+    "h2": 44.039983965578266,
+    "coins_pos": 12,
+    "need": 9,
+    "n_weeks": 139,
+    "t1": true,
+    "t2": true,
+    "t3": true,
+    "t4": true,
+    "all": true,
+    "coin_weeks_used": 1352,
+    "dropped_4h_real_missing_exit": 4
+   }
+  },
+  "thin_bars": {
+   "real": {
+    "touch_bar_zero_volume": 0,
+    "touch_bar_trades_le_2": 0,
+    "touch_bar_trades_le_5": 0,
+    "exit_bar_zero_volume": 7,
+    "gross_mean_touch_trades_le_5": null
+   },
+   "P1": {
+    "touch_bar_zero_volume": 0,
+    "touch_bar_trades_le_2": 1,
+    "touch_bar_trades_le_5": 4,
+    "exit_bar_zero_volume": 28,
+    "gross_mean_touch_trades_le_5": 98.88020570335581
+   }
+  },
+  "gates_without_thin_touch_or_zero_vol_exit": {
+   "n": 880,
+   "n_p1": 3836,
+   "net": 44.47225414948064,
+   "p_net": 0.0005,
+   "diff": 41.496720645627605,
+   "p_diff": 0.0,
+   "h1": 45.45556331381986,
+   "h2": 43.8936281791294,
+   "coins_pos": 12,
+   "need": 9,
+   "n_weeks": 111,
+   "t1": true,
+   "t2": true,
+   "t3": true,
+   "t4": true,
+   "all": true
+  },
+  "exits_bad_print_5pct": {
+   "real": 0,
+   "P1": 0
+  },
+  "real_touch_excess_gt_5pct": {
+   "n": 13,
+   "gross_sum": 2068.820717205602,
+   "share_of_real_gross_sum": 0.0398909806485557,
+   "gross_mean": 159.14005516966168
+  },
+  "gates_without_touch_excess_gt_5pct": {
+   "n": 874,
+   "n_p1": 3831,
+   "net": 42.35144838614217,
+   "p_net": 0.003,
+   "diff": 41.12356980268629,
+   "p_diff": 0.0,
+   "h1": 51.323712595473644,
+   "h2": 37.09184522894786,
+   "coins_pos": 12,
+   "need": 9,
+   "n_weeks": 111,
+   "t1": true,
+   "t2": true,
+   "t3": true,
+   "t4": true,
+   "all": true
+  },
+  "gates_without_audit_wick_weeks": {
+   "n": 883,
+   "n_p1": 3849,
+   "net": 44.126005352851635,
+   "p_net": 0.0,
+   "diff": 41.49766837136363,
+   "p_diff": 0.0,
+   "h1": 48.09367900957014,
+   "h2": 41.82631614931534,
+   "coins_pos": 12,
+   "need": 9,
+   "n_weeks": 111,
+   "t1": true,
+   "t2": true,
+   "t3": true,
+   "t4": true,
+   "all": true
+  },
+  "OT_zero_volume_share_touch_to_exit": {
+   "DOGE": {
+    "mean": 0.0918560606060606,
+    "max": 0.3958333333333333,
+    "n_events_gt_25pct": 2
+   },
+   "LINK": {
+    "mean": 0.022817460317460316,
+    "max": 0.375,
+    "n_events_gt_25pct": 2
+   },
+   "NEO": {
+    "mean": 0.0030864197530864196,
+    "max": 0.08333333333333333,
+    "n_events_gt_25pct": 0
+   }
+  }
+ },
+ "OX": {
+  "thin_bars": {
+   "real": {
+    "touch_bar_zero_volume": 0,
+    "touch_bar_trades_le_2": 0,
+    "touch_bar_trades_le_5": 0,
+    "exit_bar_zero_volume": 0,
+    "gross_mean_touch_trades_le_5": null
+   },
+   "P1": {
+    "touch_bar_zero_volume": 0,
+    "touch_bar_trades_le_2": 0,
+    "touch_bar_trades_le_5": 0,
+    "exit_bar_zero_volume": 3,
+    "gross_mean_touch_trades_le_5": null
+   }
+  },
+  "gates_without_thin_touch_or_zero_vol_exit": {
+   "n": 2960,
+   "n_p1": 12793,
+   "net": 7.7568400271434985,
+   "p_net": 0.2455,
+   "diff": 19.338238265051686,
+   "p_diff": 0.0,
+   "h1": -1.8903351949707972,
+   "h2": 18.361890803226594,
+   "coins_pos": 10,
+   "need": 10,
+   "n_weeks": 247,
+   "t1": false,
+   "t2": true,
+   "t3": false,
+   "t4": true,
+   "all": false
+  },
+  "exits_bad_print_5pct": {
+   "real": 0,
+   "P1": 0
+  },
+  "real_touch_excess_gt_5pct": {
+   "n": 53,
+   "gross_sum": 6268.992584992195,
+   "share_of_real_gross_sum": 0.09464709484297817,
+   "gross_mean": 118.28287896211688
+  },
+  "gates_without_touch_excess_gt_5pct": {
+   "n": 2907,
+   "n_p1": 12554,
+   "net": 6.008295113640374,
+   "p_net": 0.2835,
+   "diff": 18.858871528294085,
+   "p_diff": 0.0,
+   "h1": -2.2553790986644238,
+   "h2": 15.152230274647197,
+   "coins_pos": 11,
+   "need": 10,
+   "n_weeks": 247,
+   "t1": false,
+   "t2": true,
+   "t3": false,
+   "t4": true,
+   "all": false
+  },
+  "OX_exits_in_flat_runs_ge3": {
+   "real": 0,
+   "P1": 3
+  },
+  "OX_delisting_tails": {
+   "LUNA": {
+    "last_used_week": "2022-05-02",
+    "effective_end": "2022-05-12 15:35:00",
+    "last_week_traded_share": 1.0,
+    "last_week_bars": 2016,
+    "real_4h_events_last_4_weeks": 4,
+    "real_4h_gross_mean_last_4_weeks": 65.99771580114239,
+    "real_4h_exit_after_eff_end": 0
+   },
+   "FTM": {
+    "last_used_week": "2024-12-30",
+    "effective_end": "2025-01-06 09:05:00",
+    "last_week_traded_share": 1.0,
+    "last_week_bars": 2016,
+    "real_4h_events_last_4_weeks": 6,
+    "real_4h_gross_mean_last_4_weeks": -256.89270345912433,
+    "real_4h_exit_after_eff_end": 0
+   },
+   "MATIC": {
+    "last_used_week": "2024-08-26",
+    "effective_end": "2024-09-04 09:00:00",
+    "last_week_traded_share": 1.0,
+    "last_week_bars": 2016,
+    "real_4h_events_last_4_weeks": 3,
+    "real_4h_gross_mean_last_4_weeks": 337.755388508029,
+    "real_4h_exit_after_eff_end": 0
+   },
+   "LRC": {
+    "last_used_week": "2026-03-16",
+    "effective_end": "2026-03-24 09:05:00",
+    "last_week_traded_share": 1.0,
+    "last_week_bars": 2016,
+    "real_4h_events_last_4_weeks": 3,
+    "real_4h_gross_mean_last_4_weeks": 286.2932364436188,
+    "real_4h_exit_after_eff_end": 0
+   }
+  }
+ }
+}

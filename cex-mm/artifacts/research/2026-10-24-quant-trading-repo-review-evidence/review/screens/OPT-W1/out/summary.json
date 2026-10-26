@@ -1,0 +1,55 @@
+{
+ "pass": false,
+ "clauses": {
+  "1 mean>0 BTC": false,
+  "1 mean>0 ETH": false,
+  "2 pooled t>=2.0": false,
+  "3 credit>move BTC A": false,
+  "3 credit>move BTC B": false,
+  "3 credit>move ETH A": false,
+  "3 credit>move ETH B": true,
+  "4 positive in >=2 of 2024/25/26": false,
+  "5 pooled mean>0 and |worst|<=52*mean": false,
+  "6 per-trade mean>0, bootstrap P<=0.01": false,
+  "7 per-trade mean>0 in A and B": false,
+  "8 positive on 2 of 2 coins": false
+ },
+ "pooled": {
+  "n": 145,
+  "mean": -26.265601849795654,
+  "sd": 503.96296722104336,
+  "t": -0.6275852580741169,
+  "win": 0.6413793103448275,
+  "worst": -2061.9910579155594,
+  "best": 828.4280388174791,
+  "total": -3808.51226822037,
+  "max_dd": -5808.675573386838,
+  "median": 175.1551441488455
+ },
+ "btc": {
+  "n": 145,
+  "mean": -20.17415828377497,
+  "sd": 456.73894437014246,
+  "t": -0.5318772091059789,
+  "win": 0.5862068965517241,
+  "worst": -1951.370647558559,
+  "best": 704.8413266186515,
+  "total": -2925.2529511473704,
+  "max_dd": -4314.228334056394,
+  "median": 106.00271462592599
+ },
+ "eth": {
+  "n": 141,
+  "mean": -27.747048466153334,
+  "sd": 647.8764255713886,
+  "t": -0.508550600683063,
+  "win": 0.6099290780141844,
+  "worst": -2379.8158691671915,
+  "best": 952.0147510163068,
+  "total": -3912.33383372762,
+  "max_dd": -7518.381350260538,
+  "median": 215.12545614052243
+ },
+ "bootstrap_p": 0.7065,
+ "per_trade_mean": -23.907646100961507
+}
