@@ -1,0 +1,5 @@
+[1] daily close vs 23:00 hourly close: n 21882, max |dln| 4.66e-02, share > 1e-9: 0.0001
+[1] missing P01 bars 2020-05..2026-09 per coin: {'BTC': 0, 'ETH': 0, 'XRP': 5, 'BNB': 0, 'ADA': 0, 'LTC': 5, 'LINK': 0, 'DOGE': 71, 'BCH': 0}
+[2] synthetic coint: selected on 1237/2780 Mondays, trades 264, mean gross bps 404.6
+[2] synthetic rw: selected on 49/2780 Mondays, trades 12, mean gross bps 469.0
+[4] look-ahead: trades closed before 2023-03-15: full 68, truncated 68, identical: True; daily returns before the cut identical: True

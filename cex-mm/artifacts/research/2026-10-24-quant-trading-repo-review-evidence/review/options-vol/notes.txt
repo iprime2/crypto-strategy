@@ -1,0 +1,27 @@
+options-vol review of je-suis-tm/quant-trading (shallow clone, HEAD 611b73f, 2024-04-14)
+Files reviewed: "Options Straddle backtest.py", "VIX Calculator.py", README.md sections 12 (lines 242-252) and 15 (274-280).
+Nothing from the ext repo was executed or imported. All checks below are own stdlib code in scripts/, run with python3 -I.
+
+Evidence files
+- out_straddle_check.txt : own re-implementation of the straddle P&L on data/stoxx50.xlsx (sheet aug).
+    Script formula prints -15.2 / +300.9 / +1075.5 for K=3350/3375/3450; consistent units give
+    -203.48 / -112.38 / -12.78 index points (-2034.8 / -1123.8 / -127.8 EUR per contract). K=3400 never signals.
+    Cause: spot and strike x contractsize (10), premiums not (script lines 123, 162-163).
+- out_vix_check.txt : own re-implementation of the VIX calc on the Henry Hub CSV, 2020-11-12.
+    As written 3.00; strikes rescaled /1000 -> 64.34; plus K0 included, merged strip -> 66.25.
+    Target 90 d vs rear term 74.8 d: extrapolation (negative front weight).
+- out_delta_indices.txt : /v2/indices = 503 entries, all index_type spot_pair, no volatility index.
+    /v2/tickers: 421 calls, 401 puts, 241 perps, 7 move_options ("BTC Daily Straddle"), 4 spot.
+- out_delta_products.txt : 822 live option products (BTC 256C/241P, ETH 139C/134P, XAUT 26C/26P);
+    BTC/ETH 8 expiries each (24,25,26,30 Oct; 6,13,27 Nov; 25 Dec 2026), XAUT 2; fees 0.0001 notional, premium cap 0.035.
+- out_delta_chain.txt : snapshot 2026-10-24 06:33 UTC, ATM IV, quoted spreads, OI, 24h notional turnover,
+    CBOE-style var-swap vol per expiry; 30-day BTC 35.5%, ETH 49.8% (truncated strike grids).
+- data/move_options: 7 live, 4071 expired MOVE contracts listed (products_move_*.json).
+
+Prior evidence in our repo (read, not re-run)
+- options-research/README.md:12-15 daily selling no edge (IS + pre-registered OOS); :13 buying ATM straddle at mark+5% loses
+  (-7 BTC, -14 ETH bps/day); :17-18 weekly/monthly expiries and delta-hedged straddles NOT tested.
+- resource/07-trend-rule-and-prop-trading-research.md:172 (daily option selling rejected), :181 (events), :184 (vol regime filters).
+- resource/08-trend-rule-improvement-research.md:111 (option selling, regime filters on the rejected list, not re-run).
+- cex-mm/artifacts/research/2026-10-13-prop-strategy-evidence/designs/D2.md:196 "Weekly/monthly VRP untested";
+  D3.md:201 "no option selling" (owner decision needed before any option selling, even paper).

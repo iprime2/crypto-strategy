@@ -1,0 +1,27 @@
+data: {'BTC': ('2020-05-01', 2344), 'ETH': ('2020-05-01', 2344), 'XRP': ('2020-05-01', 2339), 'BNB': ('2020-05-01', 2344), 'ADA': ('2020-05-01', 2344), 'LTC': ('2020-05-01', 2339), 'LINK': ('2020-05-01', 2344), 'DOGE': ('2020-07-10', 2274), 'BCH': ('2020-05-01', 2344)}
+columns: annual return, Sharpe (365), max DD, unit sides traded per instrument per year
+
+A. Pair trading rule (bug-fixed), 36 pairs of the nine, equal weight, per unit of gross
+  EG-250, |z|>1 hold, exit at band            FULL         -1.3%   -0.42    -11.9%       9.8
+  EG-250, |z|>1 hold, exit at band            2020-21      -3.4%   -0.87     -7.6%       3.2
+  EG-250, |z|>1 hold, exit at band            2022-26      -0.6%   -0.21     -7.3%      12.1
+  EG-250, |z|>1 hold, exit at band            2024-26      -1.1%   -0.36     -6.3%      12.0
+  round trips: 1131; closed trips with P&L: 1131; mean gross price P&L per trip -29.2 bps of Y notional (median 120.4); cost per trip about 29.2 bps for equal legs; mean share of pair-days in position 6.5%
+
+B. Oil Money rule on alt vs BTC (ln prices), equal weight over 8 alts
+  R2>0.7, 2-sigma break, follow, 12 bars (L/S)FULL          9.5%    0.44    -46.4%      16.0
+  R2>0.7, 2-sigma break, follow, 12 bars (L/S)2020-21      -8.4%   -0.33    -46.4%      14.6
+  R2>0.7, 2-sigma break, follow, 12 bars (L/S)2022-26      15.7%    0.79    -15.9%      16.5
+  R2>0.7, 2-sigma break, follow, 12 bars (L/S)2024-26       7.8%    0.40    -15.9%      16.6
+  entries: 412
+
+  R2>0.7, 2-sigma break, follow, 12 bars (long only)FULL          6.2%    0.77     -6.8%       0.9
+  R2>0.7, 2-sigma break, follow, 12 bars (long only)2020-21      23.7%    1.57     -6.8%       2.4
+  R2>0.7, 2-sigma break, follow, 12 bars (long only)2022-26       0.1%    0.02     -5.6%       0.4
+  R2>0.7, 2-sigma break, follow, 12 bars (long only)2024-26      -1.2%   -0.65     -3.6%       0.2
+  entries: 23
+
+  reference: always long, equal weight, no costFULL         75.4%    1.01    -80.2%       0.0
+  reference: always long, equal weight, no cost2020-21     222.2%    2.20    -62.0%       0.0
+  reference: always long, equal weight, no cost2022-26      23.7%    0.38    -66.8%       0.0
+  reference: always long, equal weight, no cost2024-26      36.0%    0.58    -66.4%       0.0

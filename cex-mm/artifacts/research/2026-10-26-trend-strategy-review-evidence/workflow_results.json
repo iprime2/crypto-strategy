@@ -1,0 +1,529 @@
+[
+ {
+  "lens": "Can the trend strategy (long/flat TSMOM on 9 Delta perps; weekly TV 0.25 and daily TV 0.40 paper books) earn real money, and what does real money (>= $500/month expected) require? A 10,000-path Student-t(4) Monte Carlo of dollar outcomes at resource/07's forward assumptions, the three Indian tax readings calibrated on resource/07's T6b table, comparators (FD, holding BTC, the live ADA market maker at its stated capacity, the Breakout prop route under the owner's budget rule), the capital that makes it real money, and the time-to-know problem.",
+  "headline_numbers": [
+   {
+    "name": "Live paper books, verified from the journals",
+    "value": "Daily: $992.94 after 19 rebalances (-0.71%), model $993.63, paper-minus-model -0.15..+0.26%, cost 6.33 bps per $ traded (fee 5.31 + slippage 1.02; model 7.31, gate 14.62), 47 orders on $1,626, funding +$0.35 received, gross 0.11-0.64x, realised vol 10.7%/yr (lead said 10.1; convention), buy-and-hold -5.36% (BTC -1.56%). Weekly: $997.00 after 2, model $996.87, gross 0.03x, cost 6.91 bps/$.",
+    "how": "verify_facts.py on reports/run-2026-10-26-pm/daily_journal.jsonl and weekly_journal.jsonl; output facts_check.txt. Every lead figure reproduces except the vol (10.7 vs 10.1)."
+   },
+   {
+    "name": "Expected $ per month before tax, weekly book at Sharpe 0.5 / 12% vol",
+    "value": "$6 at $1k, $29 at $5k, $143 at $25k, $573 at $100k (Sharpe 0.3: $3/$16/$80/$320; Sharpe 0.8: $10/$51/$254/$1,015). After slab tax x0.61: $4/$18/$88/$351 at Sharpe 0.5.",
+    "how": "mc.py, 5-year mean gain / 5 (mc_summary.json after_tax_ann_gain); closed form Sharpe x vol gives $5/$25/$125/$500."
+   },
+   {
+    "name": "One-year distribution at $5k",
+    "value": "Weekly S0.5: p10 -$475, p50 +$268, p90 +$1,152, max DD p50 -10%. Daily S0.5 (19% vol): p10 -$760, p50 +$395, p90 +$1,899, max DD p50 -16%. P(a losing year) 41% / 33% / 23% at Sharpe 0.3 / 0.5 / 0.8 (weekly); 42% / 35% / 24% daily.",
+    "how": "mc_outcomes.txt section (1), 10,000 paths, t(4) daily returns, 365 d/yr."
+   },
+   {
+    "name": "Kill #1 (-20% pause at a Monday check) false-alarm rate",
+    "value": "Weekly book within 3 years: 35% / 26% / 15% at Sharpe 0.3 / 0.5 / 0.8 (within 2y at S0.5: 15%, memo T6g 18%; zero edge 33% vs memo 45%). Daily book at 19% vol: 76% / 67% / 53% within 3 years; at the vol-equivalent -30% level 36% / 27% / 16%.",
+    "how": "mc_outcomes.txt, first-hit time of the drawdown on weekly marks; validation block against resource/07 T6g."
+   },
+   {
+    "name": "After-tax expected annual return, weekly book (daily book in brackets)",
+    "value": "Pre-tax S0.3/0.5/0.8: +3.8/+6.9/+12.2% [+6.4/+11.9/+22.5%]. Slab 30% on net with carry-forward: +2.0/+4.2/+7.8% [+3.3/+7.1/+13.8%]. VDA per coin-segment: -1.8/-0.2/+2.3% [-2.7/-0.2/+4.1%]. VDA per coin-day: -9.4/-9.0/-8.3% [-12.9/-12.5/-11.7%], 100% of 5-year paths lose.",
+    "how": "mc_outcomes.txt section (2): gross gains = linear fit of T6b's six full years (segment 12.7 + 1.31 x net, rmse 3.3 pp; coin-day 43.7 + 2.50 x net, rmse 9.5 pp), intercept scaled by vol; tax 30% of gross, paid from equity at year end."
+   },
+   {
+    "name": "Capital for 'real money' (>= $500/month expected)",
+    "value": "Weekly book pre-tax: $100k at Sharpe 0.5 (closed form; $87k with MC compounding), $167k at 0.3, $62.5k at 0.8; after slab tax $142k / $296k / $77k; per-segment VDA: never at S<=0.5, $256k at 0.8; per-coin-day: never. Daily book pre-tax $63k / $105k / $39k, after slab $85k / $183k / $44k. Only 30% of it sits on Delta under resource/07's rule.",
+    "how": "compare_realmoney_timetoknow.txt section (4): 6000 / expected annual gain fraction."
+   },
+   {
+    "name": "Comparators, expected $ per month",
+    "value": "FD 6.5-7% [UNVERIFIED]: $27-29 at $5k, $135-146 at $25k, risk-free (after slab ~4.7% [UNVERIFIED]). Hold BTC at Sharpe 0.5 / 57% vol: $119 at $5k but P(losing year) 42% and 5-year max DD p50 -70% (memo history: max DD -76.7%, 2022 -64%). ADA MM live: $5.31/day = ~$161/month on $292 (6.27 days, +$33.29 venue cash-flow), ~$120/month at the 2.12 bps fee tier; already 2.5-3% of ADAUSD's $595k/day turnover. Breakout $100k: EV +$1.25-2.48k per attempt = $74-146/month per account; $25k: $18-44/month.",
+    "how": "compare_realmoney_timetoknow.txt section (3); DATA.txt section A; markout_since20.txt; resource/07 prop table."
+   },
+   {
+    "name": "Time to know",
+    "value": "Sharpe SE 2.0 / 1.41 / 1.0 at months 3 / 6 / 12. Years to reject Sharpe 0 at 95% one-sided, 50% power: 30.1 / 10.8 / 4.2 at true 0.3 / 0.5 / 0.8 (80% power: 69 / 25 / 10). A true-0.5 book shows a negative observed Sharpe 39% / 36% / 31% of the time at months 3 / 6 / 12; a zero-edge book shows > 0.5 40% / 37% / 31%. Likelihood ratio of 'observed Sharpe > 0.5 after a year' for 0.5 vs 0: 1.6x.",
+    "how": "facts_check.txt (closed form) and mc_outcomes.txt section (5) (simulated observed Sharpe at 91/182/365 days)."
+   }
+  ],
+  "findings": [
+   {
+    "rank": 1,
+    "finding": "At any capital the owner can plausibly commit ($1k-$5k) the trend rule is pocket money, and an Indian FD gives the same expected dollars with no drawdown. Real money needs about $100k of strategy capital at the central Sharpe 0.5 (pre-tax), $142k after slab tax, and it never arrives under the per-segment VDA reading at Sharpe <= 0.5.",
+    "numbers": "Weekly S0.5 at $5k: +$29/month expected vs FD $27-29 [UNVERIFIED rate]; 1-year p10 -$475, 3-year p10 -$539; P(losing year) 33%. Capital for $6k/yr: $100k (closed form) / $87k (MC) at S0.5, $167k at S0.3, $62.5k at S0.8; after slab $142k / $296k / $77k. At $100k weekly S0.5 the 1-year p10 is -$9.5k and the 3-year p10 -$10.8k.",
+    "evidence": "mc_outcomes.txt section (1) and (4); compare_realmoney_timetoknow.txt; resource/07 expected-performance table (+$40-90/yr on $1,000) agrees with the MC's +$37-101.",
+    "money_at_stake": "A year of operation at $5k has an expected gain of $186-507 (S0.3-0.8); one bad year (p10) costs $309-582. The decision is whether to fund $100k+ for $500/month, not whether to run $1k."
+   },
+   {
+    "rank": 2,
+    "finding": "The tax reading, not the rule or the capital, decides whether the strategy can ever be positive. Per-coin-day VDA makes the expected return negative at every Sharpe and every capital; per-segment VDA makes it about zero at Sharpe 0.5 and negative at 0.3; only the slab reading keeps 60-64% of the pre-tax expectation. Gate 0 (the written CA opinion) is therefore worth more than any capital decision.",
+    "numbers": "Weekly book expected annual return after tax, S0.3/0.5/0.8: slab +2.0/+4.2/+7.8%; per-segment -1.8/-0.2/+2.3% (P(5-year total < 0) 72/56/30%); per-coin-day -9.4/-9.0/-8.3% (100% of paths lose). Daily book: per-segment -2.7/-0.2/+4.1%, per-coin-day -12.9/-12.5/-11.7%. The fit reproduces T6b's own years within 0.4-1.9 pp (segment) and 0.1-5 pp (coin-day), and resource/08's panel-B lines (weekly +8.7% -> +3.9 segment / -12.0 coin-day).",
+    "evidence": "mc_outcomes.txt section (2); resource/07 T6b table (tax section) and kill criterion #5; resource/08 'Tax lines'; 2026-10-22-trend-improvement.md finding #1.",
+    "money_at_stake": "At $25k over 5 years: +$8.6k expected pre-tax at S0.5 becomes +$5.3k slab, -$0.3k per-segment, -$11.2k per-coin-day. At $100k: +$34k / +$21k / -$1k / -$45k."
+   },
+   {
+    "rank": 3,
+    "finding": "The daily TV 0.40 book is not a shortcut to real money: it scales expected dollars by about 1.6x (19/12 vol) but the -20% pause as written fires on two thirds of 3-year paths at Sharpe 0.5, so kill #1 would halt it on luck most of the time; the kill level must be re-set (about -30%, 1.13x its ~26% backtest drawdown) before the daily book is ever the live candidate, and the same tax readings kill it.",
+    "numbers": "Daily S0.5: expected +$50/month at $5k vs $29 weekly; P(-20% pause within 1/2/3/5y) 23/50/67/86% (weekly 4/15/26/43%); at -30% 4/16/27/44%; 5-year max DD p50 -30%, p90 -20% (weekly -20% / -13%); P(losing year) 35%.",
+    "evidence": "mc_outcomes.txt section (1) daily cells and pause lines; resource/07 (TV scales return and drawdown, not Sharpe; pause set at 1.13x the hourly DD); 2026-10-08-trend-following-backtest.md (TV does not change Sharpe).",
+    "money_at_stake": "At $25k the daily book's 1-year p10 is -$3.8k against -$2.4k weekly for +$1k/yr more expected gain; a pause at -20% costs 4 weeks flat plus 13 weeks at half size on 67% of 3-year paths."
+   },
+   {
+    "rank": 4,
+    "finding": "The paper books are doing exactly what the model says, and that is all 19 days can show: every slot executed, costs below model, paper tracks model, funding received; the -0.71% is noise at the 34-36th percentile of a Sharpe-0.5 book. The 4-week gate (about 5 Nov) and Gate A (about 16 Nov) are process gates and are passing so far.",
+    "numbers": "19/19 daily and 2/2 weekly rebalances executed; cost 6.33 bps/$ (daily) and 6.91 (weekly) vs 7.31 model and 14.62 gate; paper-minus-model -0.15..+0.26%; funding +$0.35 received; max DD on marks -2.52%; expected 19-day return at S0.5 +0.31% with sd 2.74% (z -0.37).",
+    "evidence": "facts_check.txt (verify_facts.py on the two journals); report.json/payload.json in reports/run-2026-10-26-pm; 2026-10-08 memo's gate (every rebalance executes, costs within 2x of 7.31).",
+    "money_at_stake": "$7 of fees and slippage so far on $1,000; the gates decide whether a $1,000 live start is allowed, which is itself worth about $5-7/month expected."
+   },
+   {
+    "rank": 5,
+    "finding": "No live P&L number in the first year can move the decision. With 26 weeks live the Sharpe SE is about 1.4 (1/sqrt(0.5)); even a working Sharpe-0.5 book shows a losing year 31% of the time and a zero-edge book beats 0.5 observed 31% of the time; rejecting zero edge takes 10.8 years at 50% power (25 at 80%). Only process metrics and the tax opinion can be concluded on in months 3, 6, 12.",
+    "numbers": "Observed-Sharpe 80% band at true 0.5: -2.0..+3.1 (3 months), -1.3..+2.3 (6), -0.8..+1.8 (12). P(obs < 0 | 0.5) 39/36/31%; P(obs > 0.5 | 0) 40/37/31%. Likelihood ratio of a positive 6-month Sharpe for 0.5 vs 0: 1.28x; of > 0.5 after a year: 1.6x. On $1k the 12-month 80% band is -$95..+$230.",
+    "evidence": "mc_outcomes.txt section (5); facts_check.txt closed form; resource/07 T6f ('sampling error means no statistical kill can fire from data for years').",
+    "money_at_stake": "Prevents the two expensive mistakes: scaling up after a lucky year (1.6x likelihood ratio is not evidence) or abandoning after a normal losing year (31% even if the rule works)."
+   },
+   {
+    "rank": 6,
+    "finding": "Of the four comparators, only the ADA market maker pays at the owner's capital, and it is capacity-capped; the prop route cannot reach $500/month under the owner's own budget rule; holding BTC has a higher expectation but drawdowns that end retail accounts.",
+    "numbers": "ADA MM: +$33.29 in 6.27 days on $292 = ~$161/month (about 25x the trend book's expected $6/month at $1k), ~$120/month if the Scalper Offer (maker 1.25 bps) reverts to 2.12 bps; already 2.5-3% of $595k/day turnover, so more capital on ADA does not scale it. Breakout $100k: $882-1,751/yr per account (cycle ~17 months), 3.4-6.8 concurrent accounts for $6k/yr, against 'one account at a time' and 'one unrefunded $999 fee per $2,500 of own capital' (4-7 fees need $10-17.5k own capital and a rule change); 42-52% pass, -$0.5k EV in a 2025-26 regime; $25k: $18-44/month per account. BTC at Sharpe 0.5 / 57% vol: $119/month on $5k expected, median CAGR 12%, P(losing year) 42%, 5-year max DD p50 -70%, memo history -76.7%.",
+    "evidence": "DATA.txt section A, markout_since20.txt (net60 +3.44 bps per $, 5,148 fills), live_report_current_run.txt; resource/07 prop table and 'Sequencing and budget'; resource/07 comparison table (BTC).",
+    "money_at_stake": "$120-160/month from the MM today versus $5-10/month from the trend books at $1k; 'real money' from MM requires 3-4 more ADA-sized markets passing MAINNET_GATE, not more trend capital."
+   },
+   {
+    "rank": 7,
+    "finding": "The Monte Carlo is calibrated, not invented: it reproduces resource/07's T6g pause probabilities within a few points but runs i.i.d. with no volatility clustering, so its drawdown and pause frequencies are lower bounds and its tails are, if anything, kind.",
+    "numbers": "-20% pause within 2 years: S0.7 11% (memo 11%), S0.5 15% (memo 18%), zero edge 33% (memo 45%); within 3 years S0.5 26% (memo 21-32% for 0.5-0.7). Expected returns match the memo's +4..+9%/yr (MC +3.7..+10.1% at 1 year).",
+    "evidence": "mc_outcomes.txt validation block; resource/07 kill criterion #1 'why this form' column.",
+    "money_at_stake": "Read every drawdown and pause probability above as 'at least this'; the real 2025-10-10-type cascade days are fatter than t(4)."
+   }
+  ],
+  "recommendations": [
+   {
+    "action": "Keep both paper books running through their process gates (daily 4-week gate about 5 Nov, weekly Gate A about 16 Nov) and judge them only on process: every slot executed, cost per $ <= 14.62 bps, paper-minus-model drift, funding line, reconciliation. Do not read the P&L.",
+    "expected_effect": "The gates stay meaningful (they are the only things measurable within the horizon) and no decision is made on a 19-day, -0.71% number that sits at the 35th percentile of a working book.",
+    "test_or_gate": "Gate passes if 28/28 daily and 4/4 weekly rebalances executed, cost per $ traded <= 2 x 7.31 bps, paper-minus-model within +-0.5%, funding received or paid < 2%/yr of equity; kill #2/#3 of resource/07 apply."
+   },
+   {
+    "action": "Do not put more than the $1,000 starter into the trend rule until two things are true: the written CA opinion (Gate 0) rules out the per-coin-day VDA reading, and the owner has at least $25k of strategy capital whose 1-year p10 (-$2.4k weekly, -$3.8k daily at Sharpe 0.5) he can lose without changing the rule. Below that, an FD at 6.5-7% [UNVERIFIED] has the same expected dollars with no drawdown.",
+    "expected_effect": "Avoids years of operating a book whose after-tax expectation may be zero or negative, and avoids paying the drawdown price for pocket money; keeps the option to scale to $100k+ (the real-money level at Sharpe 0.5) if the opinion is favourable and the process gates hold.",
+    "test_or_gate": "Gate 0 opinion in hand naming the gain basis; if per-coin-day applies: stop (kill #5); if per-segment applies: run only if the owner accepts an expected return of about zero at Sharpe 0.5 (positive only at Sharpe >= 0.8); if slab applies: capital decision per the real-money table ($142k for $500/month at Sharpe 0.5)."
+   },
+   {
+    "action": "If the daily TV 0.40 book is ever chosen as the live candidate (resource/07 names the daily rule with the 10% band as the bot version), re-set the pause level to about -30% before go-live and record it, instead of the -20% written for the 12% vol book.",
+    "expected_effect": "The pause false-alarm rate within 3 years at Sharpe 0.5 falls from 67% to 27% (weekly book at -20%: 26%), so the kill stays a weak-but-usable detector rather than a near-certain halt.",
+    "test_or_gate": "Record the level in the plan before the first live rebalance; the MC's -30% line for the daily book (mc_outcomes.txt) is the pre-registered expectation: 4% / 16% / 27% / 44% within 1 / 2 / 3 / 5 years."
+   },
+   {
+    "action": "For real money at the owner's capital, prioritise the market maker's capacity over trend capital: find 3-4 more ADA-sized markets through the shadow test (AVAX in progress) and take each through MAINNET_GATE, and re-measure the ADA net60 at the 2.12 bps maker fee in case the Scalper Offer is withdrawn.",
+    "expected_effect": "Each ADA-like market at today's measured rate adds about $120-160/month at ~$300 of capital; four of them approach $500/month, which the trend rule needs about $100k (pre-tax, Sharpe 0.5) to match.",
+    "test_or_gate": "Per market: >= 300 shadow fills with positive net60 at 1000 ms latency and under --rule touch, then >= 4 weeks live positive net-of-fee markout, toxicity ratio < 0.7 at 10 s, no reconciliation gap (STRATEGY.md 11.3, MAINNET_GATE.md). Stop adding markets if the ADA net60 at 2.12 bps falls below +1 bps per $."
+   },
+   {
+    "action": "Replace equity-based judgement of the trend books with a monthly process sheet: executed-on-time count, cost per $ traded (vs 7.31 model, 14.62 gate), paper-minus-model drift, funding paid as % of equity (<2%/yr), gross exposure vs cap, and, once live, venue position == order list, leverage <= 5x, margin cross, withdrawal <= 7 business days.",
+    "expected_effect": "The owner watches the only things that can fail detectably in the first years (kills #2, #3, #4 of resource/07) and stops reacting to noise that is 31-39% likely to be negative even if the rule works.",
+    "test_or_gate": "Any missed slot twice in a row, any position not on the order list, median fill worse than 14.62 bps over ten orders, or funding paid above 2%/yr: stop and fix the process; nothing else changes the rule."
+   },
+   {
+    "action": "Leave the Breakout prop route deferred as resource/07 specifies (26 live weeks, CA opinion covering the prop route, written answers from the firm), and do not plan on it as income: under the owner's own budget rule it is at most one account.",
+    "expected_effect": "Expected value of the route is capped at about $75-145/month per $100k account before tax ($18-44 at $25k), with a 48-58% chance of a sunk $999 fee (about $1,180 with GST [UNVERIFIED]) per attempt and negative EV in a 2025-26-type regime.",
+    "test_or_gate": "First $25k attempt only after all 26 Mondays executed, Gate 0 opinion extended to prop payouts, and the five firm rules answered in writing; never more than one unrefunded fee per $2,500 of own capital."
+   }
+  ],
+  "limits": [
+   "The Monte Carlo is a model of resource/07's assumptions, not a forecast: i.i.d. Student-t(4) daily returns with constant Sharpe and vol, no volatility clustering, no regime dependence, no funding or fee lines (they are inside the memo's net Sharpe). It reproduces T6g's pause probabilities within a few points but understates them (zero edge 33% vs 45% within 2 years), so every drawdown and pause figure is a lower bound.",
+   "The daily book's 19% vol is the full-sample T1 figure for TV 0.40; the paper book has realised only 10.7%/yr in 19 days at 0.11-0.64x gross because signals have been weak. The daily book is given the same Sharpe grid as the weekly book; resource/07 puts the daily cadence about 0.13 Sharpe above the weekly, which would shift the daily results toward the next-higher Sharpe cell.",
+   "The tax model is a linear fit of six T6b years of the design line (rmse 3.3 pp per-segment, 9.5 pp per-coin-day), intercept scaled by vol for the daily book; a daily-rebalanced book's 'segments' are shorter, so its per-segment line probably sits between the two fits (resource/08's daily panel-B line implies gross gains of about 32% at +13.6% net vs the fit's 37%). Slab tax ignores cess, surcharge and the 4-year carry-forward limit. None of this is tax advice; the CA opinion is Gate 0.",
+   "Whole-contract rounding, the 30%-on-venue margin dynamics and the BTC/BNB round-to-zero effect at $1,000 are not modelled (resource/07: rounding is noise from $1,000; at $500 gross is 75% of intended).",
+   "FD rate 6.5-7% and after-tax 4.7% are resource/07's [UNVERIFIED] figures; every prop-firm fact is [UNVERIFIED]/[THIRD-PARTY] per resource/07, and the prop EV per year uses the memo's 17-month cycle (my $0.9-1.75k/yr per $100k account vs the memo's $1.3-1.8k).",
+   "The ADA market-maker comparator rests on 6.27 days of venue cash-flow (+$33.29), a revocable Scalper Offer fee of 1.25 bps, an open +496 ADA position at the end, and DATA.txt's capacity statement (2.5-3% of $595k/day); it was not re-measured here.",
+   "The realised vol of the daily paper book is 10.7%/yr by rebalance-to-rebalance equity (18 returns x sqrt(365)); the lead's 10.1% is a different convention. The 19-day return percentile (34-36th) is the same either way.",
+   "No chart was produced; the tables are text. All scratch files are under the OUT folder; nothing in the repo or on the VM was touched or read beyond the copied data."
+  ],
+  "files": [
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-money/mc.py",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-money/mc_outcomes.txt",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-money/mc_summary.json",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-money/compare.py",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-money/compare_realmoney_timetoknow.txt",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-money/verify_facts.py",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-money/facts_check.txt",
+   "/home/user/crypto-strategy/resource/07-trend-rule-and-prop-trading-research.md",
+   "/home/user/crypto-strategy/resource/08-trend-rule-improvement-research.md",
+   "/home/user/crypto-strategy/cex-mm/artifacts/research/2026-10-22-trend-improvement.md",
+   "/home/user/crypto-strategy/cex-mm/artifacts/research/2026-10-13-prop-strategy-research.md",
+   "/home/user/crypto-strategy/cex-mm/artifacts/research/2026-10-08-trend-following-backtest.md",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/DATA.txt",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/reports/run-2026-10-26-pm/daily_journal.jsonl",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/reports/run-2026-10-26-pm/weekly_journal.jsonl",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/markout_since20.txt"
+  ]
+ },
+ {
+  "lens": "Trend fidelity: is the trend strategy doing what the backtest says, and is the paper test passing? Daily book (TV 0.40, band 0, $1,000, 19 rebalances 8-26 Oct) and weekly book (TV 0.25, 10% band, 2 Mondays), read from the 26 Oct journal copies and re-derived from Delta public data and cex-mm/scripts/trend_backtest.py (read-only import). No VM access, no keys, no orders, nothing in the repo edited. All scratch under /tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-fidelity/.",
+  "headline_numbers": [
+   {
+    "name": "Daily book, lead's numbers reproduced",
+    "value": "-0.71% ($992.94 at the 26 Oct 00:05 UTC rebalance), model $993.63 (-0.64%), 47 orders on $1,625.81, costs 6.33 bps per $ traded = fees 5.31 + slippage 1.02 (model 7.31, gate 14.62), max DD -2.52% from the $1,018.61 peak, buy-and-hold of the 9 coins -5.36% (BTC -1.56%). All exact.",
+    "how": "fidelity1.py and fidelity2.py section F on daily_journal.jsonl: equity == cash + positions x mid to 0.00 on all 19 rows; equity_before[k] == equity[k-1] + positions x (mid change) - funding to 1e-6; equity[k] == equity_before - fees - slippage$ to 1e-6."
+   },
+   {
+    "name": "One sign error in the lead's facts",
+    "value": "Funding was PAID $0.35, not received. The journal field is trend_paper.py's fund_paid (state['cash'] -= fund_paid), and the 18 values sum to +0.35.",
+    "how": "fidelity1.py totals; trend_paper.py step(): `fund_paid = sum(q*cval*mid*funding)`, `state['cash'] -= fund_paid`. The Telegram card (payload.json) already lists it under costs."
+   },
+   {
+    "name": "Backtest on the same window, independent of trend_paper.py",
+    "value": "trend_backtest.backtest() on Delta closes 9-25 Oct (signal 8-24 Oct), whole contracts at $1,000: -1.10%; unrounded -0.96%. Paper book over the matching 9 Oct 00:05 -> 26 Oct 00:05: -1.21%; its model -1.12%. Daily-return correlation paper vs rounded backtest 0.996. The paper book's extra first period (8 Oct 16:37 -> 9 Oct 00:05) made +0.52% and is not in the backtest.",
+    "how": "fidelity2.py section E: Delta daily candles and hourly FUNDING candles fetched 26 Oct 17:40Z (fetch_delta.py), fed to tb.backtest(capital=1000, cvals from /v2/products); paired day by day with journal rows (backtest nxt=D <-> paper row dated D+1)."
+   },
+   {
+    "name": "Signal reproduction",
+    "value": "Journal weights equal target_weights() on today's Delta closes to 0.0e+00 on all 19 signal days x 9 coins (daily, TV 0.40) and both weekly rows (TV 0.25). The candle history is not revised: 12 Oct cache vs today's fetch identical hour-for-hour (funding) and day-for-day (closes) over 1-11 Oct.",
+    "how": "fidelity2.py section A; fidelity3.py revision check against scratchpad/trend-cache/delta-2026-10-12.json."
+   },
+   {
+    "name": "Tracking error is whole-contract rounding, nothing else",
+    "value": "Cumulative paper-minus-model -7.7 bp of equity: rounding -7.3 bp, funding +2.1 bp (paper booked less funding than the model), cost -0.5 bp (paper traded 16% more notional, $1,626 vs model turnover $1,398, at a 13% lower unit cost: a wash). |Rounding| averages 7.1 bp/day, max 28.7 bp (22->23 Oct). Per-period paper/model ranges -14.9 to +25.7 bp.",
+    "how": "fidelity2.py section D: per period, rounding = sum((actual_w - model_w) x mid return), with actual_w = positions x cval x mid / equity; funding = model w x my funding minus journal funding/equity; cost = model turnover x 7.31 bps minus paper fees+slippage."
+   },
+   {
+    "name": "Why rounding dominates at $1,000",
+    "value": "BTC (contract ~$80) and BNB (~$74) round to 0 contracts on 9 of 19 signal days and to 1 contract (about 2x target) on the other 10; paper gross ran 0.60x-1.60x of model gross (0.60-0.68 on 12-16 Oct, 1.50-1.60 from 20 Oct). At $2,500 the ratio is 0.83-0.99, at $5,000 0.95-1.10, at $10,000 0.95-1.01, and BTC/BNB never round to zero.",
+    "how": "fidelity2.py section G: same weights and mids re-rounded at other capitals."
+   },
+   {
+    "name": "Book behaviour vs the rule",
+    "value": "Long/flat: no negative weight on any day. Vol-scaled: w x vol60 = sig x 0.40/9 by construction (recomputed exactly). Signals: 171 coin-days = flat 21%, one-third 62%, two-thirds 0%, full 17%, mean 0.38; all 9 coins at full signal on 7 Oct, mean 0.15 by 20 Oct and 25 Oct; 9 on/off flips in 18 transitions (ETH 3, BCH 2, XRP/ADA/LINK/DOGE 1, BTC/BNB/LTC 0). Coins held: 9 -> 8 -> 7 -> 6 (12-17 Oct) -> 7 -> 4 (21 Oct) -> 6 -> 5 -> 4 (BCH 6, BNB 1, BTC 1, LTC 4). Equity in positions: 64% day 1, 34-36% to 11 Oct, 11-12% 13-17 Oct, 19-27% since; 80.5% cash at the end.",
+    "how": "fidelity1.py gross/positions/weights tables; fidelity2.py section A signal strings."
+   },
+   {
+    "name": "Realised vol vs 'TV 0.40'",
+    "value": "Realised book vol 10.6%/yr net (10.7% over all 18 periods; model 11.3%; lead said 10.1%). TV 0.40 is a per-coin scaling constant, not a book target: with all 9 coins at full signal the ex-ante book vol is 34% (not 40%, because the 60-day pairwise correlation is 0.69, and 0.40 x sqrt((1+8x0.69)/9) = 0.34); with mean signal 0.15-0.30 after 11 Oct the model's ex-ante vol was 5-10%, the paper book's 7-10%. Low vol is the rule being mostly flat in a falling market, not a sizing fault.",
+    "how": "fidelity2.py section A: 60-day covariance of log returns on each signal day, w'Sigma'w for model weights, paper weights, and all-full-signal weights."
+   },
+   {
+    "name": "What drove the -0.71%",
+    "value": "Price P&L -5.67: LTC -3.54, LINK -3.10, BCH -2.12, ETH -0.71, BTC -0.51, ADA -0.33 against BNB +3.00, DOGE +1.00, XRP +0.65. Two days did the damage with the rule already de-risked: 12->13 Oct basket -5.38% vs book -1.69% at 0.26x gross; 22->23 Oct basket -4.19% vs book -0.96% at 0.27x. Fees 0.86, slippage 0.17, funding 0.35.",
+    "how": "fidelity1.py per-coin table (positions x mid changes); fidelity3.py basket moves (equal-weight mean of mid changes)."
+   },
+   {
+    "name": "Weekly book",
+    "value": "$997.00 (-0.30%) after 2 Mondays, model $996.87 (paper-model +0.3 and +1.3 bp), 12 orders on $144.52 at 6.91 bps (fees 5.31 + slippage 1.60), 10% band skipped nothing on either Monday (plan identical at band 0 and 0.10). Gross 0.028x vs model 0.077x: BTC target 0.33 and BNB 0.34 contracts round to 0 on both Mondays, so the book holds 37-64% of its model exposure (LTC 3, BCH 4 only). At $2,500 the ratio would be 1.13-1.14, at $5,000 0.98-1.12.",
+    "how": "fidelity2.py sections G and H, plan_orders() re-run from trend_paper.py at band 0 and 0.10."
+   },
+   {
+    "name": "Funding line does not reproduce",
+    "value": "Journal funding $0.35 over 18 intervals; recomputed from today's FUNDING candles with trend_paper.py's own formula (since <= t < until, 24 of 24 hours covered) $0.56; journal lower on 15 of 18 intervals, max gap $0.06. The history is unrevised since 12 Oct, so the difference arose at fetch time (00:05 UTC). Model equity recomputed with my funding: $993.44 vs journal $993.63.",
+    "how": "fidelity2.py sections B and C; fidelity3.py revision check. Cause [UNVERIFIED]: hypothesis is provisional candle values in the hours just after the 00:00 UTC funding exchange."
+   },
+   {
+    "name": "Execution gate numbers (resource/07 kill #3 form)",
+    "value": "Median per-order slippage vs mid: daily 1.60 bps over 47 orders (last ten 0.81), weekly 1.28 bps over 12; max 8.70 bps (ADA; ADA median 6.47 daily, 5.97 weekly) against a 14.62 bps threshold. Runs fired 19/19 on schedule (18 at 00:05:13-29 UTC, first at 16:37 on 8 Oct).",
+    "how": "journal orders[].slippage_bps; fidelity3.py run-time list."
+   },
+   {
+    "name": "Statistics the lead quoted, verified",
+    "value": "At Sharpe 0.5 and 12% vol, a 19-day -0.71% sits at the 35th percentile (39th at the daily book's long-run 19% vol; 17.3 actual days gives the same). Years to reject Sharpe 0 at 95% one-sided with 50% power: 30.1 (true 0.3), 10.8 (0.5), 4.2 (0.8); 24.7 years at 80% power for 0.5.",
+    "how": "fidelity2.py section I, normal approximation (1.645/S)^2."
+   }
+  ],
+  "findings": [
+   {
+    "rank": 1,
+    "finding": "The paper book is doing what the backtest says. Signals reproduce to zero error from public closes, the close-to-close backtest on the same Delta data loses about the same amount over the same days (correlation 0.996), and the only systematic gap is whole-contract rounding of BTC and BNB at $1,000. This is a fidelity pass, not an edge result: 19 days at the 35th-39th percentile of the forward expectation says nothing either way.",
+    "numbers": "Paper -1.21% vs backtest$1k -1.10% / unrounded -0.96% / model -1.12% over 9-26 Oct; paper-model cumulative -7.7 bp, rounding -7.3 of it; weights diff 0.0e+00 on 19x9 days; 35th-39th percentile; 10.8 years to reject zero at Sharpe 0.5.",
+    "evidence": "fidelity2.py sections A, D, E, I; chart trend_fidelity_chart.png panel 1; cex-mm/scripts/trend_backtest.py::backtest, target_weights.",
+    "money_at_stake": "None now (paper). It removes 'the paper trader is wrong' as a reason to stop or change the rule."
+   },
+   {
+    "rank": 2,
+    "finding": "The daily book's 4-week gate (2026-10-08 memo) is passing on every written criterion with 10 rebalances to go. What would fail it: two missed or partial rebalances, or costs above 2x the model (14.62 bps). A thin-book ValueError aborts a run and the hourly retry makes it late, not missed; the 00:05 times show no retry so far. Costs would need average slippage above 9 bps, which only ADA-like books produce (ADA 6.5 bps median), and ADA is a sixth of traded notional.",
+    "numbers": "19/19 executed at 00:05:13-29 UTC; 6.33 bps vs 14.62 (43% of the limit); tracking -7 bp cumulative, +-29 bp per period; median slippage 1.60 bps, last ten 0.81; resource/07 drawdown pause at -20% vs -2.52% realised.",
+    "evidence": "cex-mm/artifacts/research/2026-10-08-trend-following-backtest.md 'Next experiment' (success: every rebalance executes, costs within 2x of 7.31; stop: missed/partial on two days or costs > 2x); fidelity1.py; fidelity3.py run times.",
+    "money_at_stake": "Gate pass unlocks nothing by itself: resource/07 puts the CA opinion (gate 0) and the weekly book's Gate A before any live capital."
+   },
+   {
+    "rank": 3,
+    "finding": "The weekly book's Gate A (around 16 Nov) cannot pass on the paper evidence alone. Its market-side items pass; its human-side items have no evidence in the data or the repo: hand-computed Monday order lists compared with --orders-only on four Mondays, the watcher rehearsal, the one-contract round trip on each of the nine coins to read real fees and slippage, and the CA opinion. Two Mondays of four have run.",
+    "numbers": "2/2 Mondays executed; 6.91 bps per $ traded vs 14.62; tracking +0.3 / +1.3 bp; hand lists 0/4 evidenced [UNVERIFIED whether done off-repo]; CA opinion not in the repo; real-account fills exist only for ADA (the market maker, maker fills, not the taker round trip the plan asks for).",
+    "evidence": "resource/07-trend-rule-and-prop-trading-research.md 'The next eight weeks' rows week 1 (platform check) and weeks 2-4 (Gate A); cex-mm/artifacts/research/2026-10-13-prop-strategy-research.md 'Next experiment'; weekly_journal.jsonl; fidelity2.py section H.",
+    "money_at_stake": "The date, not the money: the live start (week 5, $1,000, 30% on venue) slips by however long the CA opinion and the hand-list weeks take."
+   },
+   {
+    "rank": 4,
+    "finding": "At $1,000 the weekly book is structurally a seven-coin book in weak-signal regimes: at TV 0.25 the BTC and BNB targets are a third of a contract, so the two largest weights round to zero and the book holds 37-64% of its model exposure. resource/07 named this effect and set $1,000 as the minimum; the current regime (every signal at one-third) is exactly the case it describes, and the daily book shows the same granularity as a coin-flip (0 or 2x target on each of BTC and BNB). The 10% band has had no effect yet (2 Mondays, 0 skips). TV 0.25 halves weights as designed; whether the band pays cannot be judged from two rebalances.",
+    "numbers": "Weekly gross 0.028x vs model 0.077x (ratio 0.37 on 26 Oct, 0.64 on 19 Oct); BTC target 0.33, BNB 0.34 contracts; at $2,500 ratio 1.13-1.14, at $5,000 0.98-1.12. Daily: BTC/BNB round to 0 on 9/19 days, gross ratio 0.60-1.60 at $1,000 vs 0.83-0.99 at $2,500.",
+    "evidence": "fidelity2.py sections G and H; resource/07 'Capital' paragraph ('When every signal is at one-third, BTC and BNB targets of $21-23 round to zero entirely'); resource/07 T5 ($1,000 Sharpe 0.81 vs 0.70 unrounded is rounding luck, not a feature).",
+    "money_at_stake": "At the memo's forward +4 to +9%/yr, running at half the intended exposure halves the expected +$40-90 a year; at $2,500 the expected figure is +$100-225 with the exposure actually expressed."
+   },
+   {
+    "rank": 5,
+    "finding": "The paper trader under-books funding by about 40% relative to the final published rates, and the journal does not store the per-coin rates it used, so the funding line cannot be audited after the fact. The candle history is not revised later, so the gap arose at fetch time; the likely cause is provisional values in the most recent hours [UNVERIFIED]. On real money the venue ledger settles funding, so this is a paper-accounting and model-equity issue, not a trading loss.",
+    "numbers": "Journal $0.35 vs recomputed $0.56 over 18 intervals (2 bp of equity in 17 days, about 0.45%/yr of equity at 0.2x gross, inside resource/07's 0.4-2.1%/yr funding line); journal lower on 15/18 intervals; model equity $993.63 journal vs $993.44 with final rates.",
+    "evidence": "fidelity2.py section B (same filter as trend_paper.py fetch_funding, 24/24 hours covered); fidelity3.py (12 Oct cache == today for 1-11 Oct, 264/264 hours per coin).",
+    "money_at_stake": "About $2-4 a year at $1,000; it matters for the paper-minus-model metric (it flatters the model by about 2 bp per 17 days) and for the memo's funding-bleed kill signature, which reads the Delta statement, not the journal."
+   },
+   {
+    "rank": 6,
+    "finding": "Re-tuning is not on the table. The 22 Oct study tested 26 pre-registered cells in seven classes and every one failed its own rule; the two closest (TIME-1 tranching, TIME-4 two sessions) failed two conditions each. Nothing a 19-day paper window can show would move any of these verdicts.",
+    "numbers": "Signal (10 cells: SIG-2 ensemble d+0.016/w-0.128 FAIL; SIG-1B dead zone -0.115/-0.157 FAIL; SIG-3a EWMAC binary -0.105/-0.074 FAIL; SIG-3b EWMAC continuous -0.127/-0.091 FAIL; SIG-4 Donchian +0.008/-0.049 FAIL; SIG-7A 250-day sleeve -0.229/-0.061 FAIL; SIG-10 agreement count -0.063/-0.149 FAIL; SIG-9 turning point not run, gated off by D-1; SIG-11 breakout blend +0.011/-0.020 FAIL; SIG-13 funding-adjusted -0.036/-0.016 FAIL). Sizing (5: SZ-1 EWMA vol -0.058/-0.045 FAIL turnover only -7..-13%; SZ-3 Carver mix -0.060/-0.066 FAIL; SZ-17 hourly RV A POST -0.080 FAIL; SZ-6b correlation factor +0.011/+0.001 FAIL below 0.05 hurdle; SZ-13 min-contract FAIL orders unchanged). Universe (2: UNI-1 liquidity-ranked 9 +0.256/+0.273 FAIL after the data fix on matched-vol max DD -24.51 vs -24.01; UNI-2 gold +0.093/+0.088 FAIL below hurdle 0.112/0.100, pre-2024 negative). Cost (1: COST-2 contract buffer +0.030 FAIL fee cut 0.189 pp vs 0.20 bar). Overlay (2: OVL-2 funding cut-out +0.138/+0.105 FAIL P 0.12/0.13; OVL-3 fast-exit veto -0.075/-0.029 FAIL). Timing (3: TIME-1 tranche K7 +0.176 vs hurdle 0.183 FAIL plus 594 orders/yr vs cap 350; TIME-3 decision-hour +0.059/+0.007 FAIL; TIME-4 Mon+Thu +0.159 vs 0.169 FAIL plus 332 orders vs 220). Combos (3: COMBO-A +0.123 vs 0.205 FAIL; COMBO-B -0.045 FAIL; COMBO-C +0.165 vs 0.184 FAIL). Gains are B POST Sharpe vs the running book, d = daily, w = weekly, t = tranche.",
+    "evidence": "resource/08-trend-rule-improvement-research.md 'Results' table; cex-mm/artifacts/research/2026-10-22-trend-improvement-evidence/phase2/verdicts.md (table, 'Passes', 'Near misses', correction 2026-10-22); cex-mm/artifacts/research/2026-10-22-trend-improvement.md.",
+    "money_at_stake": "The only open tests are the annual review: UNI-1 re-run exactly as frozen on gap-patched data with one more year (uni1_verify/synthesis.md section 5), TIME-1 only if a bot book ever replaces hand execution, and resource/07 kill #6 (stop if the 2022-onward Sharpe is below 0.3 on all 18 settings and max DD is no better than the vol-matched basket). What changes the verdict: one more year of data, capital of at least $5,000, a CA opinion."
+   },
+   {
+    "rank": 7,
+    "finding": "Daily vs weekly: the memos' split stands on the data. Weekly by hand for own capital (no bot, 131-192 orders a year, cost 0.13 Sharpe and about 3 points of drawdown vs daily, Monday slot the worst weekday on every panel), daily at half size with resting stops only for a prop account. Both books track their models; the weekly's measured costs are fine; its measured handicap is the $1,000 granularity above, which is a capital decision in the design's own terms, not a rule change. Over the one overlapping week the weekly lost less only because it held less.",
+    "numbers": "19->26 Oct: daily -0.47% at 0.20x gross, weekly -0.29% at 0.08x, basket -2.63%. Weekly costs 6.91 bps vs daily 6.33 (ADA slippage 5-7 bps on its wide tick drives both). resource/07: weekly 1.12 vs daily 1.25 Sharpe at TV 0.25 on Binance 2020-26; Sunday-candle slot 0.70 vs 0.92-1.15 on Delta.",
+    "evidence": "fidelity3.py weekly-vs-daily block; resource/07 'The rule, specified' (Execution, Capital) and 'Prop firms'; 2026-10-22 memo finding 2 (weekday luck).",
+    "money_at_stake": "The daily book's thinner tails are worth about 3 points of drawdown a year, which resource/07 trades for not running a bot; nothing in 19 days changes that trade."
+   },
+   {
+    "rank": 8,
+    "finding": "Can it earn real money? Fidelity says the rule will deliver the backtest's return, whatever that turns out to be; the memos put it at +$40 to +$90 a year on $1,000 before tax (Sharpe 0.3-0.8 at about 12% vol), negative in a 2022-type year, and possibly negative after tax under the VDA reading. The live ADA market maker is not a competitor for the same decision: it earned +$33 in 6.3 days on $292 but is capped by a venue that trades about $600k of ADA a day; the trend rule has no capacity problem at $1,000-$5,000 but a small expected return and a tax question. The owner's question is answered by size, not by this test.",
+    "numbers": "Trend: +$40-90/yr at $1,000, +$200-450 at $5,000 (resource/07 expected-performance table); -$69 in a 2022-type year; after 30% VDA on gross gains 2025-type year -2.7%. ADA MM: +3.4 bps net per $ (markout_since20.txt), bot volume 2.5-3% of venue turnover (DATA.txt A).",
+    "evidence": "resource/07 'Expected performance'; DATA.txt section A (comparator only; not re-derived here).",
+    "money_at_stake": "$40-90 a year at the current capital, which is the number the owner must weigh against the CA's fee and his time."
+   }
+  ],
+  "recommendations": [
+   {
+    "action": "Leave both paper books exactly as they are through 5 Nov (daily) and 16 Nov (weekly). No restart, no parameter change.",
+    "expected_effect": "The daily gate completes on its own criteria; today it passes every one.",
+    "test_or_gate": "2026-10-08 memo: 29/29 rebalances executed, costs within 2x of 7.31 bps (14.62). Fail on two missed or partial days or costs above 14.62 bps."
+   },
+   {
+    "action": "Correct the report text: funding of $0.35 was paid, not received (journal field = fund_paid; cash is debited by it).",
+    "expected_effect": "The owner's cost line reads correctly; the Telegram card already treats it as a cost.",
+    "test_or_gate": "sum(journal['funding']) = +0.35 with trend_paper.py step() debiting cash by that amount."
+   },
+   {
+    "action": "Audit the paper funding line: on the VM (read-only, owner's go-ahead) re-fetch the last 24 h of FUNDING:<sym> candles one day after a rebalance and diff them against what the trader summed; or, as a code change via the lead-engineer flow, log the per-coin funding rates in each journal row.",
+    "expected_effect": "Explains the $0.35 vs $0.56 gap (2 bp of equity per 17 days) and makes the model-equity comparison auditable; on real money, reconcile funding against the Delta statement weekly as resource/07 already requires.",
+    "test_or_gate": "Recomputed funding equals the journal to within $0.01 per interval; if the live-hour candles are provisional, the trader should sum through the last completed funding exchange only."
+   },
+   {
+    "action": "Start the human Gate A items now, since none is evidenced: commission the CA opinion (gate 0); hand-compute the Monday lists for 2 and 9 Nov and compare them with `trend_paper.py --weekly --orders-only`; do the one-contract open/close on each of the nine coins on the real account (real money, owner's explicit go-ahead; the ADA maker fills from the MM do not cover this); rehearse the watcher.",
+    "expected_effect": "Without these, Gate A fails on 16 Nov regardless of the paper numbers; with them, it can pass on the measured side (6.91 bps, 2/2 executed, tracking +1 bp).",
+    "test_or_gate": "resource/07 weeks 2-4 row: every rebalance executed, cost <= 14.62 bps per side, hand and script lists identical on four Mondays, watcher rehearsal done, CA opinion favourable."
+   },
+   {
+    "action": "Before go-live, restate the minimum capital for the weekly book from the measured rounding: $2,500 (start) instead of $1,000, or explicitly accept a seven-coin book whenever every signal is at one-third.",
+    "expected_effect": "At $2,500 the book expresses 98-114% of its model exposure instead of 37-64%; expected pre-tax money rises from +$40-90 to about +$100-225 a year at the same Sharpe, with the on-venue sleeve still at 30%.",
+    "test_or_gate": "Paper gross / model gross over the next two Mondays at $1,000 vs re-rounded at $2,500 (fidelity2.py section G); resource/07 T5 lines at $2,500 and $5,000 (Sharpe 0.70 / 0.69 vs 0.70 unrounded, i.e. no rounding luck)."
+   },
+   {
+    "action": "Do not re-tune on paper results. Keep the only open tests as written: the annual review re-run of UNI-1 exactly as frozen, TIME-1 only if a bot book replaces hand execution, and resource/07 kill #6.",
+    "expected_effect": "Avoids chasing a 19-day sample that sits at the 35th-39th percentile of the forward expectation; at Sharpe 0.5 the data to reject zero takes 10.8 years at 50% power.",
+    "test_or_gate": "uni1_verify/synthesis.md section 5 clauses on both books; resource/07 kill #6 (2022-onward Sharpe < 0.3 on all 18 settings and max DD no better than the vol-matched basket)."
+   }
+  ],
+  "limits": [
+   "19 daily and 2 weekly rebalances: a plumbing and cost check, not an edge test; every percentile and years-to-reject figure is a normal approximation.",
+   "The $992.66 / $996.83 live marks at 13:46Z are not reproducible from the copied data (no mids captured at that time); the rebalance-mark figures ($992.94 / $997.00) are.",
+   "The funding discrepancy's cause is [UNVERIFIED]: the VM was not touched and the journal does not store per-coin rates; only the public history (unrevised since 12 Oct) was checked.",
+   "Delta data: candles fetched 26 Oct 17:40Z; the 26 Oct candle is partial and a placeholder 27 Oct bar (volume 0) exists, both dropped; my BTC/ETH FUNDING fetch silently lost one 1999-hour chunk (12 Jun-3 Sep), irrelevant to October but a reminder that the chunked fetch can return empty results without error.",
+   "Absence of hand-computed order lists, watcher rehearsal, CA opinion and the nine one-contract round trips is absence of evidence in the copied data and the repo, not proof they were not done off-repo.",
+   "The weekly 10% band verdict is inconclusive at two rebalances; the TV 0.25 under-expression is regime-dependent (one-third signals) and would ease at full signals.",
+   "The long Binance-proxy backtests, the 24-perp panel and the tax readings were not re-run; they are cited from resource/07, resource/08 and the 22 Oct evidence pack.",
+   "The ADA market-maker comparator numbers are taken from DATA.txt section A as given and were not re-derived under this lens."
+  ],
+  "files": [
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-fidelity/trend_fidelity_chart.png",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-fidelity/trend_fidelity_chart.html",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-fidelity/summary.json",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-fidelity/fidelity1.py",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-fidelity/fidelity2.py",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-fidelity/fidelity3.py",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-fidelity/fidelity1_out.json",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-fidelity/fidelity2_out.json",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-fidelity/fetch_delta.py",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-fidelity/delta_daily_2026-10-27.json",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-fidelity/chart_data.py",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-fidelity/chart_data.json",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-fidelity/make_chart.py",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-fidelity/render.js",
+   "/home/user/crypto-strategy/cex-mm/scripts/trend_backtest.py",
+   "/home/user/crypto-strategy/cex-mm/scripts/trend_paper.py",
+   "/home/user/crypto-strategy/resource/07-trend-rule-and-prop-trading-research.md",
+   "/home/user/crypto-strategy/resource/08-trend-rule-improvement-research.md",
+   "/home/user/crypto-strategy/cex-mm/artifacts/research/2026-10-22-trend-improvement.md",
+   "/home/user/crypto-strategy/cex-mm/artifacts/research/2026-10-22-trend-improvement-evidence/phase2/verdicts.md",
+   "/home/user/crypto-strategy/cex-mm/artifacts/research/2026-10-13-prop-strategy-research.md",
+   "/home/user/crypto-strategy/cex-mm/artifacts/research/2026-10-08-trend-following-backtest.md",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/reports/run-2026-10-26-pm/daily_journal.jsonl",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/reports/run-2026-10-26-pm/weekly_journal.jsonl"
+  ]
+ },
+ {
+  "checks": [
+   {
+    "claim": "Daily book headline (both analysts, lead): -0.71% ($992.94), model $993.63, 47 orders on $1,625.81, costs 6.33 bps per $ = fees 5.31 + slippage 1.02, max DD -2.52% from $1,018.61, buy-and-hold of the 9 coins -5.36% (BTC -1.56%), price P&L -5.67 with LTC -3.54 / LINK -3.10 / BCH -2.12 against BNB +3.00",
+    "verdict": "holds",
+    "evidence": "Own code skeptic_journal.py on daily_journal.jsonl: -0.706%, model -0.637%, 47 orders, notional 1625.81, fee 5.310 + slip 1.022 = 6.332 bps, DD -2.52%, peak 1018.61, B&H -5.356%, BTC -1.557%, per-coin P&L identical; equity == cash + positions x mid to 0.0, equity_before and equity identities hold to 1e-13 (journal_recompute.json)",
+    "corrected_number": "as claimed"
+   },
+   {
+    "claim": "Funding of $0.35 was RECEIVED (lead's facts, money analyst headline and finding 4)",
+    "verdict": "refuted",
+    "evidence": "trend_paper.py step(): fund_paid = sum(q*cval*mid*funding); state['cash'] -= fund_paid; journal 'funding' field is fund_paid. Sum over 18 intervals = +0.3533, positive on 15 of 18 (skeptic_journal.py). The Telegram card (payload.json) lists it under costs. Fidelity analyst's correction is right.",
+    "corrected_number": "PAID $0.35 (0.74%/yr of equity annualised); recomputed from today's FUNDING candles $0.56 (1.19%/yr)"
+   },
+   {
+    "claim": "Realised vol of the daily book 10.1%/yr (lead); 10.6-10.7% (analysts)",
+    "verdict": "weakened",
+    "evidence": "skeptic_journal.py: sample sd of 18 rebalance-to-rebalance returns x sqrt(365) = 10.69%; day-length-normalised 11.06%; excluding the 7.5-hour first period 10.4%. The lead's 10.1% matches no standard convention I can reproduce. Immaterial to any conclusion.",
+    "corrected_number": "10.4-11.1% depending on convention"
+   },
+   {
+    "claim": "Fidelity: journal weights equal target_weights() on Delta closes to 0.0 on all 19x9 daily and 2x9 weekly coin-days; signals 171 coin-days = flat 21%, one-third 62%, full 17%, mean 0.38",
+    "verdict": "holds",
+    "evidence": "skeptic_signal.py: own implementation of the rule from resource/07's formula (not imported from the repo) on Delta 1d candles fetched 26 Oct 18:0x UTC; max abs weight diff 0 on both books; flat 36 / third 106 / two-thirds 0 / full 29 of 171, mean 0.376",
+    "corrected_number": "as claimed"
+   },
+   {
+    "claim": "Fidelity: close-to-close backtest on the same Delta data 9-25 Oct: rounded $1,000 -1.10%, unrounded -0.96%; paper 9 Oct 00:05 -> 26 Oct 00:05 -1.21%, model -1.12%; daily-return correlation 0.996",
+    "verdict": "holds",
+    "evidence": "skeptic_signal.py own backtest (taker 5.31 + 2 bps, funding from hourly mean x3): rounded -1.101% ($988.99), unrounded -0.964%; paper -1.215%, model -1.124%; corr 0.9962 over 17 pairs. The extra first paper period made +0.515% from $1,000 (fidelity said +0.52%).",
+    "corrected_number": "as claimed"
+   },
+   {
+    "claim": "Fidelity: funding line does not reproduce: journal $0.35 vs $0.56 recomputed with trend_paper.py's formula, journal lower on 15 of 18 intervals, model equity $993.44 with final rates",
+    "verdict": "holds",
+    "evidence": "skeptic_signal.py: own recompute on candles fetched today, since<=t<until per interval, 24 of 24 hours covered: total 0.5632 vs journal 0.3533; journal lower on 17 of 18 (not 15), max gap $0.06. Cause (provisional candle values at 00:05 UTC) remains [UNVERIFIED]: the VM was not touched and the journal stores no per-coin rates.",
+    "corrected_number": "journal lower on 17 of 18 intervals; $0.3533 vs $0.5632"
+   },
+   {
+    "claim": "Fidelity: at $1,000 the weekly book holds 37-64% of its model exposure (BTC target 0.33, BNB 0.34 contracts round to zero); at $2,500 the ratio is 1.13-1.14, at $5,000 0.98-1.12; daily book gross ratio 0.60-1.60 at $1k, 0.83-0.99 at $2.5k, 0.95-1.10 at $5k",
+    "verdict": "holds",
+    "evidence": "skeptic_signal.py re-rounding of journal weights at other capitals: weekly 0.638 (19 Oct) / 0.368 (26 Oct) at $1k, 1.132/1.140 at $2.5k, 0.985/1.125 at $5k, 0.994/0.925 at $10k; BTC 0.28/0.33, BNB 0.32/0.34 contracts; daily ranges 0.60-1.60 / 0.83-0.99 / 0.95-1.10. Note this contradicts resource/07's 'from $1,000 rounding is noise': in a one-third-signal regime it is a 7-coin book at half the intended exposure.",
+    "corrected_number": "as claimed"
+   },
+   {
+    "claim": "Fidelity: ex-ante book vol with all nine at full signal is 34% at TV 0.40 because the 60-day pairwise correlation is 0.69; model ex-ante 5-10% after 11 Oct",
+    "verdict": "holds",
+    "evidence": "skeptic_signal.py 60-day covariance on the 25 Oct signal day: all-full-signal 34.0%, mean pairwise corr 0.687, model weights 4.8%, paper weights 7.1%",
+    "corrected_number": "as claimed"
+   },
+   {
+    "claim": "Fidelity: the daily book's 4-week gate is passing on every written criterion: 19/19 runs at 00:05:13-29 UTC, costs 6.33 bps = 43% of the 14.62 limit, only slippage above 9 bps could fail it",
+    "verdict": "weakened",
+    "evidence": "Run times reproduce (18 at 00:05:13-29, first 16:37 on 8 Oct). But the 5.31 bps fee component is the model's constant by construction (fee = notional x 5.31e-4 in trend_paper.py), not a measurement; the only measured term is 1.02 bps of slippage from a paper walk of a 50-level L2 snapshot at 00:05 UTC, not a hand fill at 05:35-07:00 IST. The per-$-traded lens also hides the rate: turnover 34.3x/yr (model 29.5x) vs the backtest's implied ~15x (fees 1.1%/yr at 7.31 bps), i.e. trading cost 2.17%/yr of equity plus funding 0.74-1.19%/yr = 2.9-3.4%/yr, against ~10%/yr expected gross at Sharpe 0.5 and 19% vol. Not a gate failure; a gate that is close to unfailable.",
+    "corrected_number": "cost rate 2.9-3.4%/yr of equity in this regime (backtest 1.1% fees + 3.4% funding at 0.20x gross)"
+   },
+   {
+    "claim": "Money: expected $ per month before tax, weekly book at Sharpe 0.5: $6 at $1k, $29 at $5k, $143 at $25k, $573 at $100k; expected annual return +3.8/+6.9/+12.2% at Sharpe 0.3/0.5/0.8",
+    "verdict": "weakened",
+    "evidence": "These are the MC's 5-year compounded mean gain divided by 5, which overstates the one-year expectation by ~15% at S0.5 and ~24% at S0.8 ((1.0983^5-1)/5 = 12.0% vs 9.8%). Closed form S x vol x capital/12 gives $5/$25/$125/$500 (the analyst also quotes it); own MC one-year means 3.63/6.18/9.83% and $5/$13/$26/$129/$515 per month (skeptic_stats.py mc, closed_form). The after-tax and capital-for-$500 lines inherit the inflation.",
+    "corrected_number": "$5 / $25 / $125 / $500 per month at S0.5; +3.6 / +6.2 / +9.8% per year"
+   },
+   {
+    "claim": "Money: P(losing year) 41/33/23% weekly, 42/35/24% daily at Sharpe 0.3/0.5/0.8; -20% pause within 3 years 35/26/15% weekly, 76/67/53% daily, 36/27/16% daily at -30%; 1-year p10 at $5k weekly S0.5 -$475, p90 +$1,152",
+    "verdict": "holds",
+    "evidence": "Own i.i.d. t(4) MC, 20,000 paths, weekly marks (skeptic_stats.py): losing year 40.3/32.8/23.2 weekly, 41.8/34.4/23.8 daily; -20% within 3y 35.0/25.6/15.1 weekly, 75.3/66.8/52.5 daily; -30% daily 35.5/26.4/14.9; $5k p10 -$478, p90 +$1,131. Both MCs are i.i.d. and understate T6g's bootstrap (zero edge 2y: 33% vs 45%).",
+    "corrected_number": "as claimed (within MC noise)"
+   },
+   {
+    "claim": "Money: after slab 30% tax with carry-forward the weekly book keeps about x0.61: +2.0/+4.2/+7.8% at Sharpe 0.3/0.5/0.8",
+    "verdict": "holds",
+    "evidence": "Own 5-year carry-forward MC: keep ratio 0.56/0.65/0.68, after-tax +2.0/+4.0/+6.8% on the one-year basis (skeptic_stats.py slab_tax_carryforward); the 7.8 at S0.8 carries the compounding inflation above. The 30% slab and no cess are assumptions about the owner's bracket [UNVERIFIED].",
+    "corrected_number": "+2.0 / +4.0 / +6.8% after slab tax (keep 0.56-0.68)"
+   },
+   {
+    "claim": "Money: per-segment VDA fit gross gains = 12.7 + 1.31 x net (rmse 3.3 pp) on T6b's six full years; after tax about zero at Sharpe 0.5, negative at 0.3; per-coin-day negative at every Sharpe",
+    "verdict": "holds",
+    "evidence": "Own least squares on resource/07 T6b: intercept 12.73, slope 1.314, rmse 3.27; after-tax at net 3.8/6.9/12.2 = -1.5/+0.4/+3.6% closed form (analyst -1.8/-0.2/+2.3 by MC): either way about zero at the central case. T6b's own after-tax column reproduces (2024 +9.4, 2025 -2.7, 2022 -7.9). Per-coin-day: every T6b year negative, as stated.",
+    "corrected_number": "per-segment after tax -1.5 / +0.4 / +3.6% (closed form)"
+   },
+   {
+    "claim": "Money: capital for >= $500/month expected: $100k at Sharpe 0.5 pre-tax ($167k at 0.3, $62.5k at 0.8), $142k/$296k/$77k after slab tax, never under per-segment VDA at S <= 0.5",
+    "verdict": "holds",
+    "evidence": "6000 / (S x 0.12) = $100,000 / $166,667 / $62,500; after slab 6000/0.042 = $142.9k (skeptic_stats.py closed_form). The anchor Sharpe is the issue (next check): at the ex-ante 2022-26 point estimate 0.47-0.49 it is $102-106k; at an excess-over-cash Sharpe of 0.2 it is $250k.",
+    "corrected_number": "$100k at S0.5; $250k at S0.2"
+   },
+   {
+    "claim": "Both analysts: Sharpe 0.5 at 12% vol is the right central prior (resource/07's forward range 0.3-0.8)",
+    "verdict": "weakened",
+    "evidence": "The 0.5 is the in-sample 2022-26 Sharpe of the weekly book on the 24-perp ex-ante panel: B POST 0.492, 0.471 under the Delta-funding stress line (resource/08 line 320; phase2/reference.md), with Lo SE about 0.5 (T6f: 0.67 +/- 0.51 on the nine) -> 95% CI about -0.5 to +1.5. It is not an out-of-sample forecast and has no shrinkage for: the signal adding only 0.11 Sharpe over the vol-matched always-long basket since 2022 (av_sub), the rule sitting below that basket's rolling 24-month Sharpe on 59% of days since 2022-04 (T6a), the Delta slot being the worst of seven weekdays (C FULL 0.704 vs mean 0.980), and excess over 4.5% USD cash of about 0.2 (resource/07). At S0.3 the years to reject zero are 30 (50% power) / 69 (80%); at S0.2, 68 / 155; with the Lo-SE inflation of 1.27x even S0.5 needs 17.5 years (skeptic_stats.py). The honest reading: 0.5 is a forecast of vol-scaled crypto beta's Sharpe, and a skeptic's range is 0.2-0.5, i.e. $2-5 a month at $1,000.",
+    "corrected_number": "central 0.3-0.5 raw, ~0.2 excess over cash; $2-5/month at $1k, $10-25/month at $5k"
+   },
+   {
+    "claim": "Both analysts: the 19-day -0.71% is noise at the 34th-36th percentile of a Sharpe-0.5 book and says nothing either way",
+    "verdict": "holds",
+    "evidence": "skeptic_stats.py: 35.2nd percentile at S0.5/12%/17.3 days (35.5 at 19 days), 34-40 across the S/vol grid, and 38-40 under zero edge: a one-sigma-wide grid cannot separate 0.5 from 0. It is not being over-read; the risk is the opposite, reading the process gates as evidence of edge.",
+    "corrected_number": "34-40th percentile; 38-40th under zero edge"
+   },
+   {
+    "claim": "Money: the ADA market maker made +$33.29 in 6.27 days on $292 = ~$161/month, ~25x the trend book at $1k, and is capacity-capped at 2.5-3% of $595k/day",
+    "verdict": "holds",
+    "evidence": "mm_ledger.py on dash_state/tx.json: cashflow +46.05, commission -12.72, funding -0.05 = +33.29; balance 292.16 -> 325.45; 5 full UTC days mean $5.65/day, sd $2.08, every day positive; equity samples 304.50 -> 325.33 with max DD -0.93%. Caveats the analyst states and I confirm: 5-6 days, a revocable 1.25 bps Scalper Offer fee, +496 ADA inventory at the end, 100% of that capital on the venue. Its per-fill evidence (5,148 fills, net60 +3.44 bps, markout_since20.txt, not re-derived) is of a different statistical order than 18 daily trend returns, but 6 days of P&L is not a Sharpe estimate.",
+    "corrected_number": "$5.65/day over 5 full days; matching it needs $24-32k of trend capital at S0.5 ($40-53k at S0.3)"
+   },
+   {
+    "claim": "Money: an Indian FD at 6.5-7% gives the same expected dollars as the trend book at $1k-$5k with no drawdown",
+    "verdict": "weakened",
+    "evidence": "The FD rate is [UNVERIFIED] (resource/07). The design already keeps 70% in an FD, so the incremental over 100% FD is the trend P&L minus FD interest foregone on the 30% on-venue sleeve: +$16/+$40/+$76 a year at $1k and +$79/+$199/+$379 at $5k at S0.3/0.5/0.8 (skeptic_stats.py fd_incremental). The currencies differ (USD-quoted Delta P&L vs an INR deposit); how Delta India settles P&L in INR is [UNVERIFIED] here.",
+    "corrected_number": "incremental over all-FD: +$40/yr at $1k, +$199/yr at $5k (S0.5)"
+   },
+   {
+    "claim": "Fidelity: the weekly book's Gate A (about 16 Nov) cannot pass on paper evidence alone: hand-computed Monday lists, watcher rehearsal, nine one-contract round trips and the CA opinion are not evidenced",
+    "verdict": "holds",
+    "evidence": "Nothing in reports/run-2026-10-26-pm/ or the repo evidences them; resource/07 'The next eight weeks' rows week 1 and weeks 2-4 require them. Absence of evidence in the copied data, not proof they were not done off-repo [UNVERIFIED].",
+    "corrected_number": "0 of 4 hand lists, 0 of 9 round trips evidenced"
+   },
+   {
+    "claim": "Money: time to know: Sharpe SE 2.0/1.41/1.0 at months 3/6/12; years to reject zero 30.1/10.8/4.2 (50% power), 69/25/10 (80%)",
+    "verdict": "holds",
+    "evidence": "1/sqrt(T) and (z/S)^2 reproduce exactly (skeptic_stats.py years_to_reject_zero: 30.1/10.8/4.2 and 68.7/24.7/9.7). With excess kurtosis 14-15 (T6f) the Lo SE is about 1.27x the i.i.d. figure, so real-world SEs are ~2.5/1.8/1.3 and the years 1.6x longer.",
+    "corrected_number": "as claimed; 1.3-1.6x longer with the kurtosis-inflated SE"
+   },
+   {
+    "claim": "Lead: weekly book $997.00, model $996.87, gross 0.03x after 2 rebalances",
+    "verdict": "holds",
+    "evidence": "skeptic_journal.py: $996.9999, model $996.8694, gross 0.028x, 12 orders on $144.52, cost 6.909 bps (5.31 + 1.599), funding paid $0.09 over one interval",
+    "corrected_number": "as claimed"
+   }
+  ],
+  "missed": [
+   "The owner's time was never priced. At $1,000 the weekly book's expected +$36-96 a year buys about 23-26 hours of Monday sessions and reconciliations: $1.4-3.7 an hour; the daily book at 365 sessions of 15 minutes is $0.6-1.7 an hour; below $5,000 of capital neither reaches $12 an hour (skeptic_stats.py owner_time). The MM also costs ops time, but it is the same hours for 25x the dollars.",
+   "Gate 0 costs more than the book earns. A written CA opinion on an unsettled question [UNVERIFIED fee, INR 5-30k = $57-341] equals 1-6 years of the $1,000 book's expected pre-tax profit at Sharpe 0.5 and 0.2-1.1 years at $5,000. The opinion is only rational if the owner already intends >= $25k of trend capital or the prop route; neither analyst drew that line.",
+   "What the apparatus manages: at 0.12x average gross (weekly) / 0.20x (daily) a $1,000 book holds about $120 / $200 of average crypto notional. Two paper books, a dashboard, a Telegram card, 26 pre-registered variants and a CA opinion are the overhead on a $120 crypto position; at $5,000 it is $600.",
+   "The forward prior is in-sample beta. B POST weekly 0.492 (0.471 with Delta funding) is the 2022-26 point estimate on the ex-ante panel; the signal adds 0.11 over the vol-matched basket since 2022 and the rule trails that basket on 59% of rolling 24-month days. 'Can it earn real money' therefore reduces to 'will crypto beta pay a Sharpe of 0.5 over the next years at 0.12x leverage', which is an asset-allocation view, not a trading edge, and the drawdown halving (-17% vs -37%) is the only product the signal demonstrably sells.",
+   "Cost rate, not cost per $ traded. In this one-third-signal regime the daily book turns over 34x a year (backtest ~15x): 2.2%/yr of equity in trading costs plus 0.7-1.2%/yr funding = 2.9-3.4%/yr against ~10%/yr expected gross. The 'costs within 2x of model' gate cannot see this because its fee term is the model constant and only paper slippage is measured; the weekly book shows the same 2x turnover (7.5x/yr vs 0.25% fees at 7.31 bps = 3.4x) at tiny dollars.",
+   "Rounding at $1,000 is not noise, contrary to resource/07's capital paragraph: the weekly book expressed 37-64% of model exposure on its two Mondays and is a seven-coin book whenever every signal is one-third; the $1,000 T5 Sharpe of 0.81 vs 0.70 unrounded is luck. The fidelity analyst found it; the money analyst's MC ignores it, so its $-per-month at $1k-$2.5k is too high by up to half in weak-signal regimes.",
+   "Venue risk is unpriced in both reports: 30% of trend capital and 100% of the MM's $325 sit on Delta India (kill #4 exists, no probability or loss-given-event is assigned; no published Delta incident history per resource/07 [GAP]). Neither the trend book nor the MM comparator carries a haircut for it; the MM, which both reports favour in $/month, has three times the on-venue fraction.",
+   "Neither analyst asked which decision any paper result can change. The gates (28/28 executed, costs < 14.62, paper-minus-model drift) are near-unfailable process checks; passing them unlocks a $1,000 live start worth +$3-5 a month at Sharpe 0.3-0.5. The decision tree is really: < $5k never pays the CA fee or the hours; $5-25k is pocket money with a -$500 to -$2,400 p10 year; >= $100k is 'real money' only as a levered crypto-beta allocation. A hand-executed $1,000 weekly book cannot be told from a zero-edge book for 10-30 years, so the owner decides on priors, not on anything the books will show.",
+   "The MM comparison omits that matching the MM's $120-160/month needs $24-32k of trend capital at S0.5 ($40-53k at S0.3) and that the MM's figure rests on 5 full days, a revocable 1.25 bps fee and +496 ADA of inventory; conversely the trend book is the only thing in the repo that scales with capital at all. Both points cut, and neither report weighs them against each other."
+  ],
+  "decision": "KEEP the two paper books running to their gates (5 Nov daily, 16 Nov weekly): they cost nothing and the plumbing is verified (weights to 0 error, backtest correlation 0.996, every identity holds; two housekeeping fixes: the report must say funding PAID $0.35, and the paper trader under-books funding by about 40%, $0.35 vs $0.56). Do NOT fund the trend rule with real money at <= $5,000 and do NOT pay for Gate 0 on its account alone: at Sharpe 0.3-0.5 (the in-sample 2022-26 ex-ante figure is 0.47-0.49, excess over cash ~0.2) a $1,000 book is worth +$3-5 a month pre-tax, +$2-3 after slab tax, about zero under per-segment VDA, negative under per-coin-day VDA, for ~25 hours a year and a CA fee [UNVERIFIED $57-341] worth 1-6 years of that; at $5,000 it is +$15-25 a month with a one-in-three losing year and a p10 year of about -$500. It becomes 'real money' (>= $500/month expected) only at >= $100k pre-tax (>= $142k after slab tax, never under per-segment VDA at S <= 0.5), and at that size the question is whether the owner wants 0.12x levered crypto beta with half the drawdown of holding it, which is an allocation choice, not a trading edge: a weekly hand book of $1,000 cannot be distinguished from zero edge for 11-30 years (18-48 with the kurtosis-inflated SE). SWITCH the owner's time, not his capital, to the market maker's capacity: the ADA book made +$33.29 in 6.3 days on $292 (5 full days all positive, mean $5.65/day) with per-fill evidence (5,148 fills, net60 +3.44 bps) that is orders of magnitude stronger than 18 daily trend returns, and matching it would need $24-32k of trend capital; the path to $500/month at the owner's capital is 3-4 more ADA-sized markets through the shadow test and MAINNET_GATE, not more trend capital. If the owner later has >= $25k he is prepared to draw down 10-15% on, restart the weekly book at $2,500+ (where rounding expresses 98-114% of model exposure) only after the CA opinion rules out per-coin-day VDA; below that, the trend rule is an exercise in process, and its honest value is the 26-week execution record the prop route requires (EV +$0.3-0.75k per $25k attempt, the only size the owner's own fee rule allows).",
+  "strongest_counter": "The MM edge I am steering the owner toward rests on 5-6 days of P&L, a revocable 1.25 bps Scalper Offer (at 2.12 bps the net60 is ~2.5 bps and the $/month roughly halves), +496 ADA of inventory at the end, 100% of its capital on the venue, a bot the repo itself calls its largest operational risk, and a $595k/day market where the bot is already 2.5-3% of turnover; its earlier real-money run lost -3.6 bps per fill, so 'measured edge' may be a regime, not a property. The trend rule, by contrast, is the only engine in the repo that scales with capital, was positive after Delta costs in every year but 2022 on every universe tested over 6.4 years of proxy data, halves the drawdown of long crypto (-17% vs -37%), needs no bot, and its process record is the entry ticket for the one route that can pay four figures. Dismissing it as pocket money conflates the owner's current capital with the strategy's quality: at $25k-$100k the same rule is a reasonable, cheap, drawdown-controlled crypto allocation, and the paper books are exactly how one earns the right to run it. And my 'Sharpe 0.2-0.5' shrinkage is itself a judgement: if crypto beta repeats 2023-24 the book earns +14-23% in a year and every 'cannot be told from noise' argument becomes irrelevant to the owner's bank balance.",
+  "files": [
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-skeptic/skeptic_summary.txt",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-skeptic/skeptic_journal.py",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-skeptic/journal_recompute.json",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-skeptic/skeptic_fetch.py",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-skeptic/skeptic_fetch2.py",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-skeptic/delta_raw/daily_candles.json",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-skeptic/delta_raw/funding_1h.json",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-skeptic/delta_raw/products_cv.json",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-skeptic/skeptic_signal.py",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-skeptic/signal_recompute.json",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-skeptic/skeptic_stats.py",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-skeptic/stats_recompute.json",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-skeptic/mm_ledger.py",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-skeptic/mm_ledger.txt",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/reports/run-2026-10-26-pm/daily_journal.jsonl",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/reports/run-2026-10-26-pm/weekly_journal.jsonl",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/DATA.txt",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/dash_state/tx.json",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-fidelity/summary.json",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-money/mc_outcomes.txt",
+   "/tmp/claude-0/-home-user-crypto-strategy/06a4a035-9ed5-5cdd-b015-c18e9399531d/scratchpad/quant/out/trend-money/compare_realmoney_timetoknow.txt",
+   "/home/user/crypto-strategy/cex-mm/scripts/trend_paper.py",
+   "/home/user/crypto-strategy/cex-mm/scripts/trend_backtest.py",
+   "/home/user/crypto-strategy/resource/07-trend-rule-and-prop-trading-research.md",
+   "/home/user/crypto-strategy/resource/08-trend-rule-improvement-research.md",
+   "/home/user/crypto-strategy/cex-mm/artifacts/research/2026-10-13-prop-strategy-evidence/backtest_results.md",
+   "/home/user/crypto-strategy/cex-mm/artifacts/research/2026-10-22-trend-improvement-evidence/phase2/reference.md",
+   "/home/user/crypto-strategy/cex-mm/artifacts/research/2026-10-22-trend-improvement.md",
+   "/home/user/crypto-strategy/cex-mm/artifacts/research/2026-10-08-trend-following-backtest.md",
+   "/home/user/crypto-strategy/cex-mm/artifacts/research/2026-10-13-prop-strategy-research.md"
+  ]
+ }
+]

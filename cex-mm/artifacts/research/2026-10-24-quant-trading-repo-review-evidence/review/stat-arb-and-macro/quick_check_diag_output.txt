@@ -1,0 +1,12 @@
+entries long / short: 184 / 228
+BTC-hedged closed trades 369: mean net 225.4 bps of alt notional, median 83.8, share > 0 53.4%; cost charged per hedged round trip about 29.2 bps at beta 1
+year   long-leg  short-leg  L/S book  BTC-hedged  hedged-long-alt  hedged-short-alt  EW-nine   (sum of daily returns, %)
+2020      10.4       -2.3       8.1        33.5              4.0              29.5    109.4
+2021      37.8      -59.8     -22.1        31.6             28.0               3.6    262.0
+2022      15.9       24.6      40.5        19.0             33.3             -14.2    -68.9
+2023      13.9       -1.0      12.9        25.0              7.1              17.9     82.5
+2024      23.4       -5.2      18.2       -12.6             -0.8             -11.8     98.5
+2025       8.3       -0.5       7.8        25.0             19.5               5.5      3.9
+2026       0.8       -5.4      -4.6       -18.1            -12.8              -5.2     -3.3
+FULL corr(L/S book, EW nine) = 0.038 | BTC-hedged Sharpe = 0.89 | L/S Sharpe = 0.44
+2022-26 corr(L/S book, EW nine) = 0.014 | BTC-hedged Sharpe = 0.54 | L/S Sharpe = 0.79

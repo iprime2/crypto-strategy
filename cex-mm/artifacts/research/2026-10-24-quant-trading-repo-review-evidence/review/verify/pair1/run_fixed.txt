@@ -1,0 +1,48 @@
+fixed {
+ "base": {
+  "n_trades": 153,
+  "mean_net_bps": -295.89631522033216,
+  "boot_P_mean_le0": 0.99,
+  "boot_ci95": [
+   -582.2759242856465,
+   -45.998298529762295
+  ],
+  "H1_mean_net_bps": -383.4997659854307,
+  "H2_mean_net_bps": -220.04454687494203,
+  "coins_positive": 1,
+  "sharpe": -0.9844389883066801,
+  "sharpe_2020-05..2023-12": -1.3239745869698907,
+  "sharpe_2024-01..2026-09": -0.7760621631910212,
+  "F5_P_sharpe_le0": 0.998,
+  "final_equity": 0.7166050071933786,
+  "verdict": {
+   "test1": false,
+   "test2": false,
+   "test3": false,
+   "PASS": false
+  }
+ },
+ "stress": {
+  "n_trades": 153,
+  "mean_net_bps": -328.2617102121364,
+  "boot_P_mean_le0": 0.994,
+  "boot_ci95": [
+   -614.8820038147155,
+   -78.2235406546685
+  ],
+  "H1_mean_net_bps": -415.8880506106671,
+  "H2_mean_net_bps": -252.39012279389647,
+  "coins_positive": 1,
+  "sharpe": -1.1036573266508427,
+  "sharpe_2020-05..2023-12": -1.4495778942085287,
+  "sharpe_2024-01..2026-09": -0.8987100605819748,
+  "F5_P_sharpe_le0": 0.9995,
+  "final_equity": 0.6876603154995262,
+  "verdict": {
+   "test1": false,
+   "test2": false,
+   "test3": false,
+   "PASS": false
+  }
+ }
+}

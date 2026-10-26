@@ -1,0 +1,3 @@
+2026-10-26 13:46 UTC  signal 2026-10-25 (Sunday close)  equity $992.66 after $0.01 funding  target vol 0.40  band 0%
+coin    held  target  trade   notional          mid
+(nothing to trade)

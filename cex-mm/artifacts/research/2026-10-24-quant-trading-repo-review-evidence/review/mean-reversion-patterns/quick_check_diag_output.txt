@@ -1,0 +1,9 @@
+(1) open vs previous close, and shooting-star condition counts, 2020-05..2026-09
+   coin-days 21016; |open/prev close - 1| > 1 bp on 4867 days; red (c1) 10396; up close (c5) 10632; c1 & c5 22; c1 & c5 with non-zero body 8
+(2) long-only dip legs: exposure and mean next-day return when held vs all coin-days (gross, bps/day)
+   RSI14 <30 long only              FULL     exposure   3.0% of coin-days; held-day mean   84.8 bps (naive t 3.55, n 636); all coin-days   20.7 bps
+   RSI14 <30 long only              2020-21  exposure   0.8% of coin-days; held-day mean  617.3 bps (naive t 3.98, n 43); all coin-days   61.7 bps
+   RSI14 <30 long only              2022-26  exposure   3.8% of coin-days; held-day mean   46.2 bps (naive t 2.08, n 593); all coin-days    6.4 bps
+   BB20/2 revert-to-mid long only   FULL     exposure  24.9% of coin-days; held-day mean   20.6 bps (naive t 2.07, n 5235); all coin-days   20.7 bps
+   BB20/2 revert-to-mid long only   2020-21  exposure  20.1% of coin-days; held-day mean   66.8 bps (naive t 1.65, n 1087); all coin-days   61.7 bps
+   BB20/2 revert-to-mid long only   2022-26  exposure  26.6% of coin-days; held-day mean    8.5 bps (naive t 1.26, n 4148); all coin-days    6.4 bps

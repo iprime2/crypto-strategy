@@ -1,0 +1,870 @@
+[
+ {
+  "pair": "XRPUSDT",
+  "month": "2022-02",
+  "monthly_rows": 7200,
+  "monthly_header": true,
+  "monthly_sha256_of_csv": "1dc975ba940447607ac56175ee200ea8d72b4a5348aa4d1c73db96f7e4711c75",
+  "daily": [
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-02-01.zip",
+    "sha256": "a627e2ed6d737de974180573665baef405bfa3b6f0600be0f328cb7465bef589",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-02-02.zip",
+    "sha256": "e799feb951d86f3c0bf66260553a1e3fb9eeec6c468c9424c06e9d9a8f3ea18e",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-02-03.zip",
+    "sha256": "a7fac67578eb6d94334b7a91cbb8b479349496418561e61b1fa377637b9c0776",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-02-04.zip",
+    "sha256": "22f364ded7b2feb4cd44864c83fd4517304ccba9e00a85537d7941029d08ffd8",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-02-05.zip",
+    "sha256": "d60bb75bfd567ce346cbdcc7b924b44c3a3b84dc93b9a3b379a9357b4b342e45",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-02-06.zip",
+    "sha256": "e4fa513def2b23662ed3f5282b22517d810dc37a9c2719e6c037c0079362a0e6",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-02-07.zip",
+    "sha256": "fd3bac6ebaf9dad08208d61d94a11203bb2489e35d27f1ec567393bd9af11474",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-02-08.zip",
+    "sha256": "f3c9f9c8cfa065b700eaa3b1c4c098cb4ae2af812803641c4e62f29718422da8",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-02-09.zip",
+    "sha256": "912f127d068ea00a733ff7db0610fe851eb8d36787f74ef1317b43dfd6e5df7d",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-02-10.zip",
+    "sha256": "eee8f6e1a03e70e9410d27e497087070c06ecc683458e0020aa1a0c4ffae0bdb",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-02-11.zip",
+    "sha256": "91d424c7e761322c7bcec1237eec182d03f0fe08d688d5480f660819efbf7b0c",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-02-12.zip",
+    "sha256": "6e9802564facdfa760ce68d699867c26a43d4681a341eb73cffd80124e7ececf",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-02-13.zip",
+    "sha256": "f9af6d7acc4aa2a7d0f95e01ba736e73dc00ae89ad536cae4fb89a1f1cca40ab",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-02-14.zip",
+    "sha256": "57b6d45fa2173be08d263c79ff0b9ad8161c954ff8e9c00796a9649b030cff0e",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-02-15.zip",
+    "sha256": "4f3be9ff8338e4fb829c6809816cfc20c7af4450b3b1baaa14fa7216a73f0d80",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-02-16.zip",
+    "sha256": "9f028dba203ccf5280378d47b9aa0626645998c2c6e5f9343bb0e9f2b0022e18",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-02-17.zip",
+    "sha256": "043a39e54b4e5e1bdf65bcb3819232013b456b2be3a0311299e06d3eaa29dc15",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-02-18.zip",
+    "sha256": "66a56983b49291a98162317cab4afc27e1ca146ab4046a6d384126ca2688f8b5",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-02-19.zip",
+    "sha256": "a5230c38ffaf880d83e335cbbca127fcea1104efaf10c2e4bb8ac37c01fa315c",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-02-20.zip",
+    "sha256": "640ce954a119168a7e97b98029cfe8dc3a7906eed81a7019631c5c08bc7cea62",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-02-21.zip",
+    "sha256": "2d1b06376544be16847eb3d4789b66e21019ca9a0a66cff2438dfbb2abd2010e",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-02-22.zip",
+    "sha256": "6a8471c21c7266fefb140546b8b2b7872c91be14ae5beff0a394ecfbb27f7d0d",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-02-23.zip",
+    "sha256": "a779c39a3c973617a407732bbd0c1ae4760c02cd0e4b3ce128623881a4317ad5",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-02-24.zip",
+    "sha256": "3c7971e2114f1005c014a987c7354686a5b1f7463452d9191ec82b4a103f046e",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-02-25.zip",
+    "sha256": "e0dda12c9f5161a5c37bafb2a32f2e63e6811ade95857cfac6180440c05c927f",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-02-26.zip",
+    "sha256": "6b813df59fa14a138b81ff67f3e226206f12936138a9fa5b6805f3b7bb01f777",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-02-27.zip",
+    "sha256": "633595243cf3d477a48fe583b80c341c45d95a26c2b0ea7cf46febc1e1d1bb5f",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-02-28.zip",
+    "sha256": "c1f6b551bca2e8bfdc7c2403ee22cb923e9b7164474528c1b1ba39af5076c9fe",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   }
+  ],
+  "daily_rows": 8064,
+  "monthly_rows_not_in_daily": 0,
+  "rows_added": 864,
+  "new_rows": 8064,
+  "new_sha256_of_csv": "f2002fdc0ffe983327c223dbbc8d1c5f764dcb68ea92dc7cbee8d08bb8ef998a"
+ },
+ {
+  "pair": "XRPUSDT",
+  "month": "2022-04",
+  "monthly_rows": 8064,
+  "monthly_header": true,
+  "monthly_sha256_of_csv": "efe42d88e5d80ae623f1e66b2931f46a0e3ab02ccc89ad57aeee1e4f64c239e1",
+  "daily": [
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-04-01.zip",
+    "sha256": "48e9c949df60ec86d7d005528b15bec9035d5d2bf618a673c02669e2a1689db3",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-04-02.zip",
+    "sha256": "d232b5f97372483e698f1176aa35a2b9d30fe343b0e509bddd28d97945edce19",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-04-03.zip",
+    "sha256": "325d081396e3a848766b4c835e0175f22509d0b248352391e3a8ec0daf278bf1",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": true
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-04-04.zip",
+    "sha256": "4122ae7093f9125bcd2e4c2374504bb45fa01c4aeec33ab99014c3748b308c1d",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": true
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-04-05.zip",
+    "sha256": "3bf92e9c509771eb3b9cfdb0c42f50ab6689970390f5da71e4c322a56f240e83",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-04-06.zip",
+    "sha256": "6a2b7748f3c1cd502094d04bdd57071e144d91fd3181ce1597ba8e6fe946e568",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-04-07.zip",
+    "sha256": "0eb6d2b6aa1cfb29d659efb5a0661b555a2a217020525aee5e7dec01845a0dd0",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-04-08.zip",
+    "sha256": "6efe0eb2e497971c9a6b263615876d49921919e3b81afc4ddf856a60b67ce148",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-04-09.zip",
+    "sha256": "79ec0d1da95542942e591f3d184cf9ed7c0e92bd14e6f3077a29ad5865ec8a7c",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-04-10.zip",
+    "sha256": "513c551910bd5eb6f011f055a59d8ceb512f3799bb988df682942fd0829d2829",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-04-11.zip",
+    "sha256": "0e2d38f77a17393939ecac81e57c52adfb383b192509c7d7ded545d5f420413b",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-04-12.zip",
+    "sha256": "e2133df803d954ea84ad2be8188c0bd4419f782fd10994d7ec045eb1675ffbf0",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-04-13.zip",
+    "sha256": "684c5e88920b15bab46ec155421fc2b452a58810741e179b53d4b84d73c505de",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-04-14.zip",
+    "sha256": "1caac972744215633cee60361d07f2b784082085e5487b5f78f4246508d65654",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-04-15.zip",
+    "sha256": "46a7f5f50936b41425c05bb8a142b5b4c2fe843a225350b762657837d7e09478",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-04-16.zip",
+    "sha256": "f3cf797eeffab83cc61a04798599d277c4f53802e8b66233a6499e7df175207b",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-04-17.zip",
+    "sha256": "2b6b1337bf261ebf40ad0d58ce3fc746ed7addbda1f57dff7813441e3ccdd63e",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-04-18.zip",
+    "sha256": "eb1a404bc092d6490ddb4c3ab2b21c33d9946658041491b9037e5ed9e02bfe9c",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-04-19.zip",
+    "sha256": "65420f7678454b19bb47e69f111f2292ce8211019f415083b10e8762a7be2955",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-04-20.zip",
+    "sha256": "529dfead732d3cf11f51a0fde62ca69296684380ae597a045f207a89c74fe64d",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-04-21.zip",
+    "sha256": "d3d8441c05a95a9ded4f4217a828d8e4f81af8a63a5131531221efb2efeed7ca",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-04-22.zip",
+    "sha256": "517d787dd2bdda7d50daf14f1f9389c62fdf14884170898483979b13d7579758",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-04-23.zip",
+    "sha256": "d30c054b14cbe97e0128b37e593265742546460f607a655732ce01c1637ebb36",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-04-24.zip",
+    "sha256": "a50e15733f3cd7ac174f0fd5218ecaec1d21290d86acfaad06c958a1ff0ef9e7",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-04-25.zip",
+    "sha256": "e7b7b6c5703ccd951d8e32aee38605022ebbf44d2c771fc4e00c0872e741e3e0",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-04-26.zip",
+    "sha256": "c4755ed59f8e5d11514187ff91996a3e07b6b0a0b440e10ef98cba8f4f612551",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-04-27.zip",
+    "sha256": "cea5ce702e406bc2c1b0931bb7a2e218b2493c04be4f6626f4a31f70faa25318",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-04-28.zip",
+    "sha256": "438eea2dd14a3327ea76df3730ee94acd79ac25e0f326c42828fa3e9e30c63dd",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-04-29.zip",
+    "sha256": "232e93ec07778774c68cd500ca333fe312063afe0020b838b16608faa4c66a81",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/XRPUSDT/5m/XRPUSDT-5m-2022-04-30.zip",
+    "sha256": "9ca1f0042d65b89d4e50a7c33c3b57ad057cb30054b4ce2dfab022e6be491505",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   }
+  ],
+  "daily_rows": 8640,
+  "monthly_rows_not_in_daily": 0,
+  "rows_added": 576,
+  "new_rows": 8640,
+  "new_sha256_of_csv": "637bfb08e2283851fe4c0379e8edb8b7a5af174b31c0e4c86489b94617f8710c"
+ },
+ {
+  "pair": "LTCUSDT",
+  "month": "2022-02",
+  "monthly_rows": 7200,
+  "monthly_header": true,
+  "monthly_sha256_of_csv": "79a948f4dfbe45e2dfdd693788f1eb971d3654bd61b4c42287f25c6ee6a49511",
+  "daily": [
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-02-01.zip",
+    "sha256": "742e900b140977286288f07450d84873788fdaa06158ce8dbc535650b315398d",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-02-02.zip",
+    "sha256": "6dad273f29e333de70a2b6b53ee2bb7b13615c2dcbd153cea7eebb40b4f00bf3",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-02-03.zip",
+    "sha256": "518854f92a61d8e5e9bdf60a7024583a78bf3f391c8f77faf5650da50713689f",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-02-04.zip",
+    "sha256": "74eec8fe4905802712dc106f4dd8c461cbb65ba1959cee07cdde942930315a42",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-02-05.zip",
+    "sha256": "90c6d17ab6d1e4b4a4544238e4417fc0ef99a41e257ad8d26fb64599ca041602",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-02-06.zip",
+    "sha256": "faf5d4bce59b66b5966dd0d5747159d0e452ab9c88ee7b93011b9e0c21a11462",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-02-07.zip",
+    "sha256": "5f1b790b9dd2ffcf5eeb8cccbaf36b4ae06c342074a13954aa9fe88080351693",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-02-08.zip",
+    "sha256": "6945bbd9118497796cd4a59908116bd63a65d2402484b8f5d9e5ffaa0798ee0f",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-02-09.zip",
+    "sha256": "6246a786ef5c443fe8b973985330490360da147c9119755873a8443f9e23b959",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-02-10.zip",
+    "sha256": "bf8348074ba88b90c5068743709c5159455dbee2c64f5c98db805e6165bc7f16",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-02-11.zip",
+    "sha256": "69a3d4b9551ea86e20eccd32daf4c5dd7c89889d771a787dc2896d1e4c65e1e1",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-02-12.zip",
+    "sha256": "6e25804671b7545d1deae6fba27729db56ce868e68b2777fbbc4d2ddb1c6a562",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-02-13.zip",
+    "sha256": "668192b67a558e8a9afa7fa6adaa2e1f320b71c7f87706ba3d32a434315d404d",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-02-14.zip",
+    "sha256": "27be0dbaf4ca655c7c8c718ce755d999dfb544b2a059973b2103e8172e68bd17",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-02-15.zip",
+    "sha256": "4e0e36e564f09b2eb692a765accdce806cce5af378adcdb28e1fb50b3712ed2c",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-02-16.zip",
+    "sha256": "79d2afaec973b9447fa542139211db1dd794c2fc36a82515646c4d3e1956e573",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-02-17.zip",
+    "sha256": "ed9640d1559a0c65abe091ead5fd4d86cb35becd909d8656ea0df5f6baf990a0",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-02-18.zip",
+    "sha256": "a1565206d79fac93e104847e38f8d26fdb3e8274a889065a030706351be92988",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-02-19.zip",
+    "sha256": "af5132260df88348121a2e3a8902a554d397f3cdc69b3f4266b3ad9fa26cf47c",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-02-20.zip",
+    "sha256": "d1fefe1e380c200f543d228ce71eb0a529a996ba1c3f6947aa95d24f6ed60ccd",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-02-21.zip",
+    "sha256": "74e008750befc1ca5179a4a3509774713b93d282f3d87f414d9bb2c363ca1ab9",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-02-22.zip",
+    "sha256": "b039bcd6af3271f088d1d4951c4989f7f60e929d0f22964686cf119ad4aa4536",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-02-23.zip",
+    "sha256": "a99051d9da116a64441005265fdb5ab5ace2647c003f8a4c6c34d0988bfc0a12",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-02-24.zip",
+    "sha256": "02cddbec86d6cfb0505eb998e06e8c6321ecb04f0c8a79f088912f2b358eda5d",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-02-25.zip",
+    "sha256": "887fc2a8898fefbe2e01face332bd3a36d2baa206d7687ad3e988b18b0da39b2",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-02-26.zip",
+    "sha256": "ad0bc1d0bd3519bdc628a4f0464479d41d75c36fe362e4623fffdfab744d906c",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-02-27.zip",
+    "sha256": "804db53dee1987fcb3b5f95407670d964d6db05f461c28dda3f907f858f6f493",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-02-28.zip",
+    "sha256": "34118e6ca8876c355dfa3d25cf80b23a86941a4e637184de33c5217129bbf542",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   }
+  ],
+  "daily_rows": 8064,
+  "monthly_rows_not_in_daily": 0,
+  "rows_added": 864,
+  "new_rows": 8064,
+  "new_sha256_of_csv": "dd4677c3f7121223b315c1237c9fab81eca53d5bd0af0ba3a452a3034f99f8b2"
+ },
+ {
+  "pair": "LTCUSDT",
+  "month": "2022-04",
+  "monthly_rows": 8064,
+  "monthly_header": true,
+  "monthly_sha256_of_csv": "c122c8832de13e21d8595e1e4fab4f259b0659e1023b16e12d378a21d15e76a9",
+  "daily": [
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-04-01.zip",
+    "sha256": "3e3d56eb4f691c37cf3afccef114ef167dd0f517d6200f142494edce2e59f324",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-04-02.zip",
+    "sha256": "6e98524e250a7336d8515643ac9b5364816305c8a1b10ca4f56123821bd3660a",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-04-03.zip",
+    "sha256": "f8bc6de8dd1df5960b3c5f97f352bd182d69fc878d0530d40617e4a3dd586939",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": true
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-04-04.zip",
+    "sha256": "221cb0563b76150bdcc1f24d91d0cf29e1f59285ad18c939c45bea947b094da9",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": true
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-04-05.zip",
+    "sha256": "d96216e50ec80a12486738fa644824d9dde529549e491154dbafd98a8312e5c0",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-04-06.zip",
+    "sha256": "852567b5a77b85cec7d4ead42093c2e64e99393531c09b0cfcd74f6e5c2513bd",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-04-07.zip",
+    "sha256": "b85b20c8ec40aa3078fec755298a97c317ef8ee0149405b6cb81ac0997134062",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-04-08.zip",
+    "sha256": "11df70d14d58dfe82f47722b36f8e2159dc37145bb1613a2eb7795c6b6cf923d",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-04-09.zip",
+    "sha256": "1ad0d1916f732fa91af37aaf8e0f9f25b8845d1652c628fb778d08bd4b75b347",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-04-10.zip",
+    "sha256": "5da4387b248a23d3c1768e6a64036868f1d85cb107e6e0b56a67edba8a72570e",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-04-11.zip",
+    "sha256": "5c4986b3d1c7b0687f353bd38316d414f2b8fbde687fe7c5aa7875db2c24b182",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-04-12.zip",
+    "sha256": "37e01496d1c7b4660b66ab25f56309c4c172f14911fe30de2dd7614bef422431",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-04-13.zip",
+    "sha256": "1d1769a254b31be930830d79a8b948fa9c309eac6342f7a80fe964bf1dc54334",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-04-14.zip",
+    "sha256": "a6777311a87e5249e00052f189135335ecaf1ecd2f1cf018190dcf3e7ddf2ee2",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-04-15.zip",
+    "sha256": "492476de22a45d40d04012d9c9cd9c4a0087973c9bafa52f91fe11b69acad145",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-04-16.zip",
+    "sha256": "9b52ba4254aacfc7893440cf34f8a3f6c93e3815fb10301d9b81fc826bc36117",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-04-17.zip",
+    "sha256": "3969bba7ab54a29d76067500dd31f28d6a9192efe0906989d80110036d203027",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-04-18.zip",
+    "sha256": "a1d383d48f3e8885081df945f0e5bad5cce51f061b8fe443ee763941706294f3",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-04-19.zip",
+    "sha256": "62e666ee518611f4450a184c20091c22883eebcb1b6179ffd3f8fdaff518ae5c",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-04-20.zip",
+    "sha256": "e1a8b93001b4092de24af95b380a32eb7cf71218a21928293745c847783991bc",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-04-21.zip",
+    "sha256": "9664e9aa7a2bbe58ac736119f4b31131f58afbf84cd60e84b345b1db522255d2",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-04-22.zip",
+    "sha256": "7ecf8eee1205a10884d3b6b8f4758f81f1771a8987fa394602c248d5432ff5f4",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-04-23.zip",
+    "sha256": "eed5d36bcc84c86d7f8b57db58d30c9c70354a465f8891aa45070afaa0ca30dc",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-04-24.zip",
+    "sha256": "67d1c0635cd727c60242b1b633ba565dff57380bd6a27cfa44d6ce3368320938",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-04-25.zip",
+    "sha256": "cf43789bf602ff2e014d604a60e2de4f199ae27c30727662e148a27d64e20674",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-04-26.zip",
+    "sha256": "a02061450bcf0dd0a4801bdb2ca19fc7b8ef24d0e18b2b84af76636e32507a35",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-04-27.zip",
+    "sha256": "e288dcdf58741aff6f84230e3c260e4d79e9b52354869dd90650eebf060dba00",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-04-28.zip",
+    "sha256": "bd4ca04595bf02844db3f9a3bea91d651be391cdbfacf7b5c33f2da25940e418",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-04-29.zip",
+    "sha256": "1b1251341b0d3ab71f26c671a571a9f840c5390cbfa6fe2acc339e890c1d1d3f",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   },
+   {
+    "zip": "data/futures/um/daily/klines/LTCUSDT/5m/LTCUSDT-5m-2022-04-30.zip",
+    "sha256": "ad2e3bbfeb1adcd3b5fa90a973975b645ba1cb06c38302324dbb5037cd23a070",
+    "checksum_ok": true,
+    "rows": 288,
+    "header": false
+   }
+  ],
+  "daily_rows": 8640,
+  "monthly_rows_not_in_daily": 0,
+  "rows_added": 576,
+  "new_rows": 8640,
+  "new_sha256_of_csv": "e70029ea37ca57d673997c1b54784aab6bd634c6a6553a0fe040580afbaf48f4"
+ }
+]

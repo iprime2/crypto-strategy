@@ -1,0 +1,65 @@
+(3) COMPARISON LINES, expected $ per month, with the source of each number
+----------------------------------------------------------------------------------------------------------------------
+line                                                       $1k       $5k      $25k     $100k   basis
+Trend weekly TV0.25, Sharpe 0.3, pre-tax                    +3       +16       +80      +320   MC, 5y mean gain / 5 (resource/07 forward range)
+Trend weekly TV0.25, Sharpe 0.5, pre-tax                    +6       +29      +143      +573   MC, 5y mean gain / 5 (resource/07 forward range)
+Trend weekly TV0.25, Sharpe 0.8, pre-tax                   +10       +51      +254    +1,015   MC, 5y mean gain / 5 (resource/07 forward range)
+  same, after slab 30% on net (carry-forward)               +4       +18       +88      +351   MC + resource/08 slab reading
+  same, after VDA 30% per coin-segment                      -0        -1        -4       -18   MC + T6b per-segment fit
+  same, after VDA 30% per coin-day                          -7       -37      -187      -748   MC + T6b per-coin-day fit
+Trend daily TV0.40 (19% vol), Sharpe 0.3, pre-tax           +5       +27      +134      +535   MC; -20% pause fires within 3y on 76% of paths
+Trend daily TV0.40 (19% vol), Sharpe 0.5, pre-tax          +10       +50      +249      +995   MC; -20% pause fires within 3y on 67% of paths
+Trend daily TV0.40 (19% vol), Sharpe 0.8, pre-tax          +19       +94      +468    +1,873   MC; -20% pause fires within 3y on 53% of paths
+Indian FD 6.5% [UNVERIFIED]                                 +5       +27      +135      +542   resource/07 expected-performance table [UNVERIFIED rate]
+Indian FD 7.0% [UNVERIFIED]                                 +6       +29      +146      +583   resource/07 [UNVERIFIED]
+Indian FD after slab tax ~4.7% [UNVERIFIED]                 +4       +20       +98      +392   resource/07 tax section [UNVERIFIED]
+Hold BTC, Sharpe 0.5 at 57% vol (MC arithmetic mean)       +24      +119      +594    +2,375   resource/07 table: BTC 2022-26 Sharpe 0.50, vol 57%; MC median CAGR 12.2%, 5y max DD p50 -70%
+Hold BTC, memo history 2020-05..2026-09                                                        CAGR +42.4%, max DD -76.7%, 2022 -64%, 2025 -6%, 2026 -6% (resource/07 comparison table)
+
+ADA market maker (live, DATA.txt section A): +$33.29 in 6.27 days on $292 = $5.31/day = ~$161/month = ~$1,940/yr at the CURRENT size,
+  which already trades $15-17k/day = 2.5-3% of ADAUSD's $595k/day venue turnover: that IS the stated capacity, so the rate does not scale with capital.
+  net60 +3.44 bps per $ traded (markout_since20.txt, 5,148 fills) rests on the Scalper Offer maker fee of 1.25 bps; at the 2.12 bps tier it is ~2.57 bps -> ~$120/month.
+  Six days of data; the venue is the source of truth (+33.29 cash-flow, equity 292.16 -> 325.45). 'Real money' from MM needs ~3-4 more ADA-sized markets passing the gate, not more capital on ADA.
+
+Breakout prop route (resource/07, all firm facts [UNVERIFIED]/[THIRD-PARTY]):
+  $100k account, fee $999: EV +1,250..+2,480 per attempt at forward Sharpe 0.5-0.9 after a 15% non-payment haircut; pass 42-52%; median pass 120-140 d; cycle ~17 months
+    -> $882-1,751 per year of daily operation per account (memo quotes $1.3-1.8k/yr for $100k); = $74-146 per month
+    -> concurrent accounts for $500/month: 3.4 to 6.8; the owner's rules allow one account at a time and never more than one unrefunded $999 fee per $2,500 of own capital
+       (so 4-7 concurrent fees need >= $10,000-17,500 of own liquid capital AND a rule change). $0.2-0.8k of each $100k EV is option value any zero-edge trader collects.
+  $25k account, fee $275: EV +300..+750 per attempt at forward Sharpe 0.5-0.9 after a 15% non-payment haircut; pass 42-52%; median pass 120-140 d; cycle ~17 months
+    -> $212-529 per year of daily operation per account; = $18-44 per month
+    -> concurrent accounts for $500/month: 11.3 to 28.3; the owner's rules allow one account at a time and never more than one unrefunded $275 fee per $2,500 of own capital
+       (so 12-29 concurrent fees need >= $30,000-72,500 of own liquid capital AND a rule change).
+  After slab tax the $100k after-tax EV is roughly $0.8-1.7k per attempt (resource/07). In a 2025-26 regime the EV is negative (-$0.5k per $100k attempt, pass 17%).
+
+Live trend books for reference (facts_check.txt): daily $992.94 after 19 rebalances (-0.71%), weekly $997.00 after 2; costs 6.33 bps per $ traded; funding +$0.35 received.
+  At $1,000 the daily book's EXPECTED gain at Sharpe 0.5 is about $7/month before tax ($5/month weekly); the 19-day realised -0.71% is the 34-36th percentile of that distribution, i.e. noise.
+
+(4) CAPITAL FOR 'REAL MONEY' (>= $500/month = $6,000/yr EXPECTED gain), from the MC's 5-year mean gain / 5
+----------------------------------------------------------------------------------------------------------------------
+book / Sharpe         pre-tax  slab 30% (cf)   slab no cf  per-segment VDA  per-coin-day VDA   P(losing yr)  P(-20% pause <=3y)  5y max DD p50/p90
+weekly S0.3          $156,326       $295,861     $383,757            never             never           41%                35%  -22% / -14%
+weekly S0.5           $87,247       $142,424     $158,731            never             never           33%                26%  -20% / -13%
+weekly S0.8           $49,276        $77,146      $80,697         $256,224             never           23%                15%  -17% / -12%
+daily S0.3            $93,512       $182,587     $235,013            never             never           42%                76%  -33% / -22%
+daily S0.5            $50,240        $84,751      $94,282            never             never           35%                67%  -30% / -20%
+daily S0.8            $26,700        $43,628      $45,635         $145,024             never           24%                53%  -26% / -18%
+Closed form check: capital = 6000 / (Sharpe x vol): weekly 0.3/0.5/0.8 -> $166,667 / $100,000 / $62,500; daily (19%) -> $105,263 / $63,158 / $39,474.
+With the 30%-on-venue rule, 'capital' is total strategy capital; e.g. $100k means ~$30k on Delta and ~$70k in an FD (whose ~$4.5k/yr of interest is not strategy edge).
+Every number is an EXPECTATION with a p10 that is negative at 1 and 3 years for every cell below Sharpe 0.8 (mc_outcomes.txt): at $100k weekly S0.5 the 1-year p10 is about -$8k and the 3-year p10 about -$5k.
+
+(5) TIME TO KNOW
+----------------------------------------------------------------------------------------------------------------------
+  month 3   Sharpe SE ~ 1/sqrt(0.25) = 2.00; a true 0.5 book shows an observed Sharpe below 0 with probability 40%; a zero-edge book shows > 0.5 with probability 40%
+  month 6   Sharpe SE ~ 1/sqrt(0.50) = 1.41; a true 0.5 book shows an observed Sharpe below 0 with probability 36%; a zero-edge book shows > 0.5 with probability 36%
+  month 12  Sharpe SE ~ 1/sqrt(1.00) = 1.00; a true 0.5 book shows an observed Sharpe below 0 with probability 31%; a zero-edge book shows > 0.5 with probability 31%
+  year 2    Sharpe SE ~ 1/sqrt(2.00) = 0.71; a true 0.5 book shows an observed Sharpe below 0 with probability 24%; a zero-edge book shows > 0.5 with probability 24%
+  year 5    Sharpe SE ~ 1/sqrt(5.00) = 0.45; a true 0.5 book shows an observed Sharpe below 0 with probability 13%; a zero-edge book shows > 0.5 with probability 13%
+  true Sharpe 0.3: years to reject Sharpe 0 at 95% one-sided with 50% power = (1.645/0.3)^2 = 30.1; with 80% power 68.7
+  true Sharpe 0.5: years to reject Sharpe 0 at 95% one-sided with 50% power = (1.645/0.5)^2 = 10.8; with 80% power 24.7
+  true Sharpe 0.8: years to reject Sharpe 0 at 95% one-sided with 50% power = (1.645/0.8)^2 = 4.2; with 80% power 9.7
+  What CAN be concluded by month 3 / 6 / 12: whether the process works (every slot executed, cost per $ inside 2x model, reconciliation exact, funding line as modelled, no kill #2/#3).
+  What CANNOT: whether the edge is 0, 0.5 or 0.8 Sharpe. At 12 months the 80% band of the observed Sharpe at true 0.5 is -0.8..+1.8 (mc_outcomes.txt), and a positive year is only 1.3-1.6x more likely under Sharpe 0.5 than under zero edge.
+  Watch instead (all measurable now, from the journals): executed on time (19/19 daily, 2/2 weekly so far); cost per $ traded 6.33 bps vs 7.31 model / 14.62 gate; paper-minus-model within +-0.26%;
+  funding received +$0.35 (failure signature: funding PAID > 2%/yr of equity); gross within 0.11-0.64x (cap 2x daily, 1x weekly); live: venue position == order list every slot, leverage <= 5x, margin cross, withdrawal <= 7 business days.
+  Equity-based kills are useless at this horizon: the -20% pause fires on luck 15% of the time within 2 years at Sharpe 0.5 (MC; memo T6g 18%), and the modelled 30-day cost ($3.88 on $1,000) is a tenth of a month's standard deviation (resource/07 T6d).

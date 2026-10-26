@@ -1,0 +1,170 @@
+{
+ "window": "2026-10-08T16:37Z (start, $1,000) -> 2026-10-26T00:05Z (19th rebalance)",
+ "daily_book": {
+  "equity_last_rebalance": 992.94,
+  "return_pct": -0.71,
+  "model_equity": 993.63,
+  "model_return_pct": -0.64,
+  "paper_minus_model_bp_cumulative": -7.0,
+  "paper_minus_model_bp_per_period_range": [
+   -14.9,
+   25.7
+  ],
+  "orders": 47,
+  "notional_traded_usd": 1625.81,
+  "fees_usd": 0.86,
+  "slippage_usd": 0.17,
+  "funding_paid_usd_journal": 0.35,
+  "funding_paid_usd_recomputed_from_public_candles": 0.56,
+  "cost_bps_per_usd_traded": {
+   "fees": 5.31,
+   "slippage": 1.02,
+   "total": 6.33,
+   "model": 7.31,
+   "gate": 14.62
+  },
+  "price_pnl_usd": -5.67,
+  "per_coin_price_pnl_usd": {
+   "BNB": 3.0,
+   "DOGE": 1.0,
+   "XRP": 0.65,
+   "ADA": -0.33,
+   "BTC": -0.51,
+   "ETH": -0.71,
+   "BCH": -2.12,
+   "LINK": -3.1,
+   "LTC": -3.54
+  },
+  "realised_vol_pct_ann": {
+   "paper_net": 10.6,
+   "model": 11.3,
+   "lead_claim": 10.1
+  },
+  "max_dd_pct_rebalance_marks": -2.52,
+  "peak": 1018.61,
+  "gross_range": [
+   0.11,
+   0.64
+  ],
+  "gross_last": 0.19,
+  "cash_share_last_pct": 80.5,
+  "coins_held_range": [
+   4,
+   9
+  ],
+  "coins_held_last": 4,
+  "signal_coin_days": {
+   "n": 171,
+   "flat_pct": 21,
+   "one_third_pct": 62,
+   "two_thirds_pct": 0,
+   "full_pct": 17,
+   "mean": 0.38
+  },
+  "onoff_flips_18_transitions": 9,
+  "exante_vol_pct": {
+   "full_signal_all_9": 34,
+   "model_last": 4.9,
+   "paper_last": 7.1,
+   "corr60_mean_pairwise": 0.69
+  },
+  "tracking_decomposition_bp": {
+   "rounding": -7.3,
+   "funding": 2.1,
+   "cost": -0.5,
+   "actual": -7.7,
+   "abs_rounding_mean_per_day": 7.1,
+   "abs_rounding_max": 28.7
+  },
+  "rounding_sensitivity_gross_ratio": {
+   "1000": [
+    0.6,
+    1.6
+   ],
+   "2500": [
+    0.83,
+    0.99
+   ],
+   "5000": [
+    0.95,
+    1.1
+   ],
+   "10000": [
+    0.95,
+    1.01
+   ]
+  },
+  "btc_rounds_to_zero_days_of_19_at_1000": 9,
+  "backtest_9to26oct": {
+   "rounded_1k_pct": -1.1,
+   "unrounded_pct": -0.96,
+   "paper_pct": -1.21,
+   "model_pct": -1.12,
+   "corr_paper_vs_rounded": 0.996,
+   "first_period_not_in_backtest_pct": 0.52
+  },
+  "buy_and_hold_9_equal_pct": -5.36,
+  "btc_pct": -1.56,
+  "big_days": {
+   "12-13 Oct": {
+    "basket_pct": -5.38,
+    "book_pct": -1.69,
+    "gross": 0.26
+   },
+   "22-23 Oct": {
+    "basket_pct": -4.19,
+    "book_pct": -0.96,
+    "gross": 0.27
+   }
+  },
+  "runs_on_schedule": "19/19, 18 at 00:05:13-00:05:29 UTC"
+ },
+ "weekly_book": {
+  "equity": 997.0,
+  "return_pct": -0.3,
+  "model": 996.87,
+  "paper_minus_model_bp": [
+   0.3,
+   1.3
+  ],
+  "gross": 0.028,
+  "model_gross": 0.077,
+  "gross_ratio": [
+   0.64,
+   0.37
+  ],
+  "orders": 12,
+  "notional": 144.52,
+  "cost_bps": {
+   "fees": 5.31,
+   "slippage": 1.6,
+   "total": 6.91
+  },
+  "band_triggered": 0,
+  "btc_bnb_round_to_zero": "both Mondays",
+  "rounding_sensitivity_gross_ratio": {
+   "1000": [
+    0.37,
+    0.64
+   ],
+   "2500": [
+    1.13,
+    1.14
+   ],
+   "5000": [
+    0.98,
+    1.12
+   ]
+  }
+ },
+ "stats": {
+  "percentile_at_sharpe05_vol12_19d": 35,
+  "percentile_at_vol19": 39,
+  "years_to_reject_sharpe0_95pct_50pct_power": {
+   "0.3": 30.1,
+   "0.5": 10.8,
+   "0.8": 4.2
+  },
+  "years_at_80pct_power_sharpe05": 24.7
+ }
+}

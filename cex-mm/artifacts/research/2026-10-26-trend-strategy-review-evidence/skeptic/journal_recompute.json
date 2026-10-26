@@ -1,0 +1,307 @@
+{
+ "daily": {
+  "n": 19,
+  "start": "2026-10-08T16:37:11.877636+00:00",
+  "end": "2026-10-26T00:05:13.942860+00:00",
+  "span_days": 17.31,
+  "equity_last": 992.9427902288976,
+  "ret_pct": -0.706,
+  "model_last": 993.632191585845,
+  "model_ret_pct": -0.637,
+  "paper_minus_model_bp_range": [
+   -14.9,
+   25.7
+  ],
+  "paper_minus_model_bp_last": -6.9,
+  "n_orders": 47,
+  "notional": 1625.81,
+  "fees": 0.8633,
+  "fee_bps": 5.31,
+  "slip_usd": 0.1662,
+  "slip_bps_notional_weighted": 1.022,
+  "slip_bps_usd_over_notional": 1.022,
+  "cost_bps": 6.332,
+  "median_order_slip_bps": 1.596,
+  "max_order_slip_bps": 8.703,
+  "funding_sum": 0.3533,
+  "funding_sign_note": "journal field = fund_paid; cash -= fund_paid; positive = PAID by the book",
+  "funding_intervals": 18,
+  "funding_pos_intervals": 15,
+  "funding_neg_intervals": 3,
+  "id_eq": 0.0,
+  "id_before": 1.1368683772161603e-13,
+  "id_after": 2.2737367544323206e-13,
+  "vol_naive_pct": 10.69,
+  "vol_daynorm_pct": 11.06,
+  "vol_daynorm_ex_first_pct": 10.4,
+  "mdd_pct": -2.52,
+  "peak": 1018.61,
+  "bh_mean_pct": -5.356,
+  "bh_btc_pct": -1.557,
+  "bh": {
+   "BTC": -1.56,
+   "ETH": -4.32,
+   "XRP": -4.34,
+   "BNB": 0.95,
+   "ADA": -12.04,
+   "LTC": -9.39,
+   "LINK": -8.32,
+   "DOGE": -7.54,
+   "BCH": -1.65
+  },
+  "price_pnl": {
+   "BTC": -0.51,
+   "ETH": -0.71,
+   "XRP": 0.65,
+   "BNB": 3.0,
+   "ADA": -0.33,
+   "LTC": -3.54,
+   "LINK": -3.1,
+   "DOGE": 1.0,
+   "BCH": -2.12
+  },
+  "price_pnl_sum": -5.67,
+  "gross_min": 0.111,
+  "gross_max": 0.644,
+  "gross_last": 0.195,
+  "period_rets_pct": [
+   0.558,
+   0.434,
+   0.414,
+   0.484,
+   -1.704,
+   0.235,
+   -0.445,
+   0.125,
+   -0.183,
+   -0.215,
+   0.127,
+   0.08,
+   0.411,
+   0.218,
+   -0.958,
+   0.019,
+   -0.106,
+   -0.134
+  ],
+  "period_days": [
+   0.311,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0
+  ],
+  "positions_last": {
+   "LTC": 4,
+   "BNB": 1,
+   "BTC": 1,
+   "BCH": 6
+  },
+  "cash_last": 799.73,
+  "rebalance_utc_times": [
+   "10-08 16:37:11",
+   "10-09 00:05:29",
+   "10-10 00:05:29",
+   "10-11 00:05:29",
+   "10-12 00:05:13",
+   "10-13 00:05:13",
+   "10-14 00:05:29",
+   "10-15 00:05:29",
+   "10-16 00:05:29",
+   "10-17 00:05:29",
+   "10-18 00:05:29",
+   "10-19 00:05:29",
+   "10-20 00:05:29",
+   "10-21 00:05:29",
+   "10-22 00:05:29",
+   "10-23 00:05:29",
+   "10-24 00:05:14",
+   "10-25 00:05:14",
+   "10-26 00:05:13"
+  ],
+  "slip_median_by_coin": {
+   "BTC": [
+    0.03,
+    3
+   ],
+   "ETH": [
+    0.1,
+    5
+   ],
+   "XRP": [
+    0.75,
+    5
+   ],
+   "BNB": [
+    0.21,
+    3
+   ],
+   "ADA": [
+    6.47,
+    14
+   ],
+   "LTC": [
+    1.62,
+    2
+   ],
+   "LINK": [
+    0.8,
+    6
+   ],
+   "DOGE": [
+    1.76,
+    3
+   ],
+   "BCH": [
+    2.13,
+    6
+   ]
+  },
+  "notional_by_coin": {
+   "BTC": 247.95,
+   "ETH": 244.18,
+   "XRP": 122.31,
+   "BNB": 364.94,
+   "ADA": 117.59,
+   "LTC": 111.58,
+   "LINK": 199.22,
+   "DOGE": 117.46,
+   "BCH": 100.57
+  },
+  "zero_weight_coin_days": 36,
+  "coin_days": 171
+ },
+ "weekly": {
+  "n": 2,
+  "start": "2026-10-19T00:05:29.540669+00:00",
+  "end": "2026-10-26T00:05:13.946302+00:00",
+  "span_days": 7.0,
+  "equity_last": 996.9998616815016,
+  "ret_pct": -0.3,
+  "model_last": 996.8693839295826,
+  "model_ret_pct": -0.313,
+  "paper_minus_model_bp_range": [
+   0.3,
+   1.3
+  ],
+  "paper_minus_model_bp_last": 1.3,
+  "n_orders": 12,
+  "notional": 144.52,
+  "fees": 0.0767,
+  "fee_bps": 5.31,
+  "slip_usd": 0.0231,
+  "slip_bps_notional_weighted": 1.599,
+  "slip_bps_usd_over_notional": 1.599,
+  "cost_bps": 6.909,
+  "median_order_slip_bps": 1.282,
+  "max_order_slip_bps": 6.789,
+  "funding_sum": 0.0899,
+  "funding_sign_note": "journal field = fund_paid; cash -= fund_paid; positive = PAID by the book",
+  "funding_intervals": 1,
+  "funding_pos_intervals": 1,
+  "funding_neg_intervals": 0,
+  "id_eq": 0.0,
+  "id_before": 0.0,
+  "id_after": 2.2737367544323206e-13,
+  "vol_naive_pct": NaN,
+  "vol_daynorm_pct": 2.13,
+  "vol_daynorm_ex_first_pct": NaN,
+  "mdd_pct": -0.3,
+  "peak": 1000.0,
+  "bh_mean_pct": -2.629,
+  "bh_btc_pct": -2.476,
+  "bh": {
+   "BTC": -2.48,
+   "ETH": -3.5,
+   "XRP": -0.86,
+   "BNB": 1.99,
+   "ADA": -7.84,
+   "LTC": -4.04,
+   "LINK": -5.04,
+   "DOGE": -3.14,
+   "BCH": 1.23
+  },
+  "price_pnl": {
+   "BTC": 0.0,
+   "ETH": -0.84,
+   "XRP": -0.1,
+   "BNB": 0.0,
+   "ADA": -0.88,
+   "LTC": -0.48,
+   "LINK": -0.61,
+   "DOGE": 0.0,
+   "BCH": 0.1
+  },
+  "price_pnl_sum": -2.81,
+  "gross_min": 0.028,
+  "gross_max": 0.079,
+  "gross_last": 0.028,
+  "period_rets_pct": [
+   -0.294
+  ],
+  "period_days": [
+   7.0
+  ],
+  "positions_last": {
+   "LTC": 3,
+   "BCH": 4
+  },
+  "cash_last": 968.79,
+  "rebalance_utc_times": [
+   "10-19 00:05:29",
+   "10-26 00:05:13"
+  ],
+  "slip_median_by_coin": {
+   "ETH": [
+    0.16,
+    2
+   ],
+   "XRP": [
+    0.77,
+    2
+   ],
+   "ADA": [
+    5.97,
+    2
+   ],
+   "LTC": [
+    1.73,
+    2
+   ],
+   "LINK": [
+    0.85,
+    2
+   ],
+   "BCH": [
+    2.25,
+    2
+   ]
+  },
+  "notional_by_coin": {
+   "BTC": 0,
+   "ETH": 47.34,
+   "XRP": 23.44,
+   "BNB": 0,
+   "ADA": 21.66,
+   "LTC": 17.51,
+   "LINK": 23.49,
+   "DOGE": 0,
+   "BCH": 11.08
+  },
+  "zero_weight_coin_days": 6,
+  "coin_days": 18
+ }
+}

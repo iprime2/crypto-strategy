@@ -1,0 +1,29 @@
+
+Cash-flow PnL per product (position marked at last fill price):
+  ADAUSD   fills= 6281 pos=+578.0000 gross=  +45.74 fees=  12.72 (maker 12.72, taker 0.00) net=  +33.02
+
+Enriched 5148 of 6281 fills (need Binance 1s data t..t+300s)
+
+ADAUSD maker                 n= 5148 $   86,989 fee=1.25 cap= 4.76 mo 1s:-0.07 5s:-0.20 30s:-0.05 60s:-0.08 300s:-0.41 | net60= 3.44
+  ADAUSD maker buy           n= 2460 $   43,499 fee=1.22 cap= 2.95 mo 1s:-0.09 5s:-0.19 30s:-0.01 60s: 0.11 300s: 0.80 | net60= 1.85
+  ADAUSD maker sell          n= 2688 $   43,490 fee=1.28 cap= 6.57 mo 1s:-0.05 5s:-0.20 30s:-0.10 60s:-0.27 300s:-1.61 | net60= 5.03
+ADAUSD taker                 n=0
+
+Maker fills by day:
+  2026-10-20                 n=  529 $    7,551 fee=1.25 cap= 4.37 mo 1s: 0.06 5s:-0.24 30s:-0.93 60s:-0.64 300s: 0.21 | net60= 2.47
+  2026-10-21                 n=  942 $   17,207 fee=1.27 cap= 4.85 mo 1s:-0.12 5s:-0.49 30s:-0.37 60s:-0.86 300s:-1.13 | net60= 2.73
+  2026-10-22                 n=  827 $   15,419 fee=1.23 cap= 4.66 mo 1s:-0.14 5s:-0.26 30s:-0.26 60s:-0.26 300s:-1.32 | net60= 3.17
+  2026-10-23                 n=  873 $   14,478 fee=1.26 cap= 5.06 mo 1s:-0.04 5s: 0.17 30s: 0.67 60s: 0.99 300s:-0.06 | net60= 4.79
+  2026-10-24                 n= 1030 $   16,414 fee=1.25 cap= 4.70 mo 1s:-0.09 5s:-0.20 30s: 0.51 60s: 0.60 300s: 0.61 | net60= 4.05
+  2026-10-25                 n=  947 $   15,920 fee=1.24 cap= 4.75 mo 1s:-0.04 5s:-0.12 30s:-0.33 60s:-0.45 300s:-0.38 | net60= 3.07
+
+Price path before maker fills (negative = market ran into our resting quote):
+    5s before: median  -0.00 bps, 27% of fills had >1 bp move toward us
+   30s before: median  -0.00 bps, 48% of fills had >1 bp move toward us
+   60s before: median  -4.43 bps, 52% of fills had >1 bp move toward us
+
+Maker markout by 5s pre-move bucket:
+  pre5 in [-99,-3)           n= 1397 $   25,166 fee=1.22 cap= 5.07 mo 1s:-0.04 5s:-0.11 30s: 0.70 60s: 0.45 300s: 0.41 | net60= 4.30
+  pre5 in [-3,-1)            n=0
+  pre5 in [-1,1)             n= 3066 $   50,859 fee=1.30 cap= 4.71 mo 1s:-0.06 5s:-0.13 30s:-0.23 60s:-0.25 300s:-0.21 | net60= 3.17
+  pre5 in [1,99)             n=  685 $   10,964 fee=1.06 cap= 4.28 mo 1s:-0.22 5s:-0.71 30s:-0.98 60s:-0.52 300s:-3.16 | net60= 2.71

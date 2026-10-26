@@ -1,0 +1,47 @@
+## Panel A: coin-weeks used 2995, skipped 11; touch rates any 0.801 PWH 0.473 PWL 0.426
+   reel-style: {"real": {"reject60": 0.4416790490341753, "continued": 0.7246077621800165}, "P1": {"reject60": 0.5462931034482759, "continued": 0.7048163581742417}, "P2": {"reject60": 0.47183098591549294, "continued": 0.6784232365145229}}
+   F  1h: real n   2692 gross  -17.65 net  -27.08 hit 0.460 | P1 n  11600 gross   -0.86 | P2 n   568 gross  +26.80 | diff P1  -16.79 [-23.31,-10.50] P 1.0000 | real net P 1.0000
+   F  4h: real n   2692 gross  -33.04 net  -42.47 hit 0.470 | P1 n  11600 gross   -6.85 | P2 n   568 gross  +29.44 | diff P1  -26.19 [-34.58,-17.94] P 1.0000 | real net P 1.0000 *primary*
+   F 24h: real n   2692 gross  -62.93 net  -72.36 hit 0.501 | P1 n  11600 gross  -33.68 | P2 n   568 gross  -59.61 | diff P1  -29.25 [-42.98,-15.55] P 1.0000 | real net P 0.9995
+   B  1h: real n   2422 gross   +3.07 net  -11.55 hit 0.384 | P1 n  10319 gross   +5.43 | P2 n   482 gross   -4.69 | diff P1   -2.35 [-8.62,+3.77] P 0.7655 | real net P 0.9810
+   B  4h: real n   2422 gross  +12.30 net   -2.32 hit 0.443 | P1 n  10319 gross   +9.82 | P2 n   482 gross   -0.45 | diff P1   +2.48 [-8.26,+11.52] P 0.2925 | real net P 0.5795
+   B 24h: real n   2422 gross  +27.65 net  +13.03 hit 0.452 | P1 n  10319 gross  +34.18 | P2 n   482 gross  +59.87 | diff P1   -6.53 [-23.99,+9.93] P 0.7670 | real net P 0.2820 *primary*
+   S  1h: real n   1311 gross  -13.58 net  -28.20 hit 0.442 | P1 n   6482 gross   -5.60 | P2 n   316 gross   +8.19 | diff P1   -7.99 [-22.81,+4.44] P 0.8780 | real net P 1.0000
+   S  4h: real n   1311 gross  -15.48 net  -30.10 hit 0.477 | P1 n   6482 gross   -4.78 | P2 n   316 gross  +13.97 | diff P1  -10.70 [-24.89,+2.96] P 0.9325 | real net P 1.0000 *primary*
+   S 24h: real n   1311 gross  -29.49 net  -44.11 hit 0.522 | P1 n   6482 gross   -6.68 | P2 n   316 gross  +44.79 | diff P1  -22.81 [-51.37,+5.14] P 0.9430 | real net P 0.9875
+## Panel B: coin-weeks used 8268, skipped 82; touch rates any 0.802 PWH 0.456 PWL 0.444
+   F  1h: real n   7439 gross   -2.97 net  -12.40 hit 0.448 | P1 n  32056 gross   +8.51 | P2 n  1582 gross  +33.71 | diff P1  -11.48 [-16.28,-6.41] P 1.0000 | real net P 0.9935
+   F  4h: real n   7439 gross  -16.22 net  -25.65 hit 0.491 | P1 n  32056 gross   +0.62 | P2 n  1582 gross  +31.25 | diff P1  -16.84 [-22.75,-10.86] P 1.0000 | real net P 1.0000 *primary*
+   F 24h: real n   7439 gross  -33.24 net  -42.67 hit 0.517 | P1 n  32056 gross   -9.41 | P2 n  1582 gross  -20.55 | diff P1  -23.83 [-34.11,-14.03] P 1.0000 | real net P 0.9930
+   B  1h: real n   6721 gross   +3.24 net  -11.38 hit 0.393 | P1 n  28597 gross   +3.32 | P2 n  1353 gross   -0.81 | diff P1   -0.08 [-4.47,+4.25] P 0.5155 | real net P 0.9965
+   B  4h: real n   6721 gross   +6.01 net   -8.61 hit 0.432 | P1 n  28597 gross   +5.58 | P2 n  1353 gross   +0.11 | diff P1   +0.44 [-6.90,+7.73] P 0.4435 | real net P 0.8815
+   B 24h: real n   6721 gross   +3.78 net  -10.84 hit 0.439 | P1 n  28597 gross   +7.32 | P2 n  1353 gross  +16.99 | diff P1   -3.54 [-15.32,+8.42] P 0.7005 | real net P 0.7155 *primary*
+   S  1h: real n   3728 gross   -9.96 net  -24.58 hit 0.451 | P1 n  17869 gross   -4.40 | P2 n   889 gross   -0.96 | diff P1   -5.56 [-14.89,+1.59] P 0.9165 | real net P 1.0000
+   S  4h: real n   3728 gross  -14.32 net  -28.94 hit 0.482 | P1 n  17869 gross   -1.60 | P2 n   889 gross   +2.87 | diff P1  -12.73 [-24.85,-2.97] P 0.9950 | real net P 1.0000 *primary*
+   S 24h: real n   3728 gross  -13.47 net  -28.09 hit 0.531 | P1 n  17869 gross   +3.39 | P2 n   889 gross   -3.33 | diff P1  -16.87 [-34.49,+1.78] P 0.9630 | real net P 0.9555
+## Panel C: coin-weeks used 828, skipped 0; touch rates any 0.786 PWH 0.425 PWL 0.465
+   F  1h: real n    737 gross  -14.79 net  -24.22 hit 0.410 | P1 n   3155 gross   -6.80 | P2 n   156 gross   -9.12 | diff P1   -7.99 [-15.85,+0.48] P 0.9705 | real net P 1.0000
+   F  4h: real n    737 gross  -41.94 net  -51.37 hit 0.465 | P1 n   3155 gross  -28.31 | P2 n   156 gross  -58.28 | diff P1  -13.64 [-26.51,-1.00] P 0.9800 | real net P 1.0000 *primary*
+   F 24h: real n    737 gross   +6.79 net   -2.64 hit 0.543 | P1 n   3155 gross  +16.18 | P2 n   156 gross  -29.83 | diff P1   -9.38 [-29.69,+10.03] P 0.8220 | real net P 0.5125
+   B  1h: real n    675 gross   +9.67 net   -4.95 hit 0.390 | P1 n   2905 gross  +14.67 | P2 n   142 gross  +49.88 | diff P1   -5.00 [-13.61,+3.21] P 0.8895 | real net P 0.7720
+   B  4h: real n    675 gross  +18.21 net   +3.59 hit 0.455 | P1 n   2905 gross  +20.56 | P2 n   142 gross  +55.97 | diff P1   -2.35 [-20.01,+14.70] P 0.6180 | real net P 0.4235
+   B 24h: real n    675 gross  -36.48 net  -51.10 hit 0.410 | P1 n   2905 gross  -36.94 | P2 n   142 gross  +35.76 | diff P1   +0.47 [-22.86,+23.31] P 0.4930 | real net P 0.9245 *primary*
+   S  1h: real n    336 gross  -22.69 net  -37.31 hit 0.455 | P1 n   1673 gross  -14.77 | P2 n    79 gross   -3.18 | diff P1   -7.92 [-37.31,+11.68] P 0.6770 | real net P 1.0000
+   S  4h: real n    336 gross  -25.79 net  -40.41 hit 0.461 | P1 n   1673 gross  -18.38 | P2 n    79 gross   +5.38 | diff P1   -7.41 [-43.94,+20.87] P 0.6345 | real net P 0.9645 *primary*
+   S 24h: real n    336 gross  +38.50 net  +23.88 hit 0.554 | P1 n   1673 gross  +26.81 | P2 n    79 gross  +23.47 | diff P1  +11.70 [-23.49,+44.11] P 0.2565 | real net P 0.1795
+
+## Pass rules (plan section 5), primary horizons
+F 4h: LEVEL EDGE FAIL: 1 diff>=5 & P<=0.003 (A)=NO; 2 both halves diff>0 (A)=NO; 3 >=6/9 coins diff>0 (A)=NO; 4 diff>0 on B=NO
+   details A diff -26.19 P 1.0000; halves -33.33/-19.41; coins 0; B diff -16.84; C diff -13.64
+F 4h: TRADABLE FAIL: 1 net>0 & P<=0.003 (A)=NO; 2a halves net>0 (A)=NO; 2b >=6/9 coins net>0 (A)=NO; 2c net>0 on B=NO; 3 net>0 on C (info if n<300)=NO
+   details A net -42.47 P 1.0000; halves -43.02/-41.95; coins 0; B net -25.65; C net -51.37 (C n 737)
+B 24h: LEVEL EDGE FAIL: 1 diff>=5 & P<=0.003 (A)=NO; 2 both halves diff>0 (A)=NO; 3 >=6/9 coins diff>0 (A)=NO; 4 diff>0 on B=NO
+   details A diff -6.53 P 0.7670; halves -14.54/+0.92; coins 4; B diff -3.54; C diff +0.47
+B 24h: TRADABLE FAIL: 1 net>0 & P<=0.003 (A)=NO; 2a halves net>0 (A)=NO; 2b >=6/9 coins net>0 (A)=NO; 2c net>0 on B=NO; 3 net>0 on C (info if n<300)=NO
+   details A net +13.03 P 0.2820; halves +48.36/-20.54; coins 5; B net -10.84; C net -51.10 (C n 675)
+S 4h: LEVEL EDGE FAIL: 1 diff>=5 & P<=0.003 (A)=NO; 2 both halves diff>0 (A)=NO; 3 >=6/9 coins diff>0 (A)=NO; 4 diff>0 on B=NO
+   details A diff -10.70 P 0.9325; halves -12.19/-9.49; coins 1; B diff -12.73; C diff -7.41
+S 4h: TRADABLE FAIL: 1 net>0 & P<=0.003 (A)=NO; 2a halves net>0 (A)=NO; 2b >=6/9 coins net>0 (A)=NO; 2c net>0 on B=NO; 3 net>0 on C (info if n<300)=NO
+   details A net -30.10 P 1.0000; halves -33.54/-27.07; coins 0; B net -28.94; C net -40.41 (C n 336)
+
+daily Sharpe A: {"F": {"1h": -1.6727891453847603, "4h": -1.7816980049153586, "24h": -0.9429717214522325}, "B": {"1h": -0.8837914784099242, "4h": -0.10774600914668916, "24h": 0.1887802812314104}, "S": {"1h": -1.2669050354510902, "4h": -1.2204525934835202, "24h": -0.8596398842942997}}

@@ -1,0 +1,48 @@
+SCREEN PAIR-1 -- daily cointegration spread reversion on Delta perps (market-neutral pairs)
+Frozen 2026-10-24 BEFORE any pairs computation on crypto data in this review. Not run here.
+Status: proposal for a later pre-registered test; nothing traded.
+
+Universe
+  Primary: the nine (BTC ETH XRP BNB ADA LTC LINK DOGE BCH), all 36 unordered pairs.
+  Breadth / out of sample: the repo's 24 ex-ante Binance USDT-M perps (listed by 2020-02-20), 276 pairs, 2022-01..2026-09.
+  Venue check: Delta India daily closes + funding, nine, 2024-08..2026-10.
+Data
+  Binance USDT-M 1d klines (00:00 UTC close) and 8 h funding (data.binance.vision); Binance 1 h klines for fills.
+  Decision at the 00:00 UTC daily close t; fill at the 01:00 UTC hourly close (never the decision bar).
+Legs
+  X = the coin earlier in [BTC, ETH, XRP, BNB, ADA, LTC, LINK, DOGE, BCH] (24-panel: ordered by 30-day median
+  turnover at 2020-02-20, descending); Y = the later coin.
+Formation (every Monday 00:00 UTC; data up to and including that close only)
+  OLS  ln P_Y = a + b ln P_X  on the trailing 180 daily closes; residual e.
+  Eligible if: Engle-Granger cointegration p < 0.05 (MacKinnon cointegration critical values, constant, AIC lag
+  choice up to 10); b in [0.25, 4]; OU half-life h = -ln2 / ln(1+c) from  de_t = k + c e_{t-1}  with c < 0, h in [2, 30] days.
+  Select up to K = 4 eligible pairs by lowest p, each coin in at most 2 selected pairs.
+Signal (daily)
+  z_t = (ln P_Y,t - b ln P_X,t - a - mean_e) / sd_e, with a, b, mean_e, sd_e frozen at the pair's formation Monday.
+Entry (flat pair, pair currently selected)
+  z_t >= +2.0 : short Y, long X.   z_t <= -2.0 : long Y, short X.
+Sizing
+  Y notional N; X notional b * N (hedge-ratio legs). N set so the pair's ex-ante spread vol (sd of daily de over the
+  formation window x sqrt(365)) equals 0.10 / sqrt(K) a year; gross per pair <= 0.5x equity; total gross <= 2.0x equity.
+Exit (first of)
+  |z_t| <= 0.5 (target); |z_t| >= 4.0 (model-break stop); days held > min(2h, 30); Monday re-test p > 0.20.
+  Open pairs keep their entry a, b, mean_e, sd_e until exit. No re-entry in a stopped pair for 3 days.
+Costs
+  Every leg fill: taker 5.31 bps + 2 bps slippage = 7.31 bps/side/leg (pair round trip = 4 fills = 29.24 bps of leg notional
+  for equal legs). Stress: 10 bps slippage. Funding charged per leg at every stamp (long pays positive funding, short
+  receives). Daily mark-to-market. No maker fills (not testable on candles).
+Report
+  Net Sharpe (365-day), CAGR, max DD, round trips/yr, mean net bps per round trip, funding share of PnL, stop-out share,
+  worst pair loss, correlation of daily returns with the weekly TV 0.25 trend book.
+Pass (all required)
+  1. Net Sharpe >= 0.50 on the nine 2020-05..2026-09.
+  2. Net Sharpe > 0 on the nine in both 2020-05..2023-12 and 2024-01..2026-09.
+  3. Net Sharpe > 0 on the 24 ex-ante panel 2022-01..2026-09.
+  4. Mean net per pair round trip >= +29.24 bps of leg notional (gross >= 2x cost).
+  5. Week-cluster bootstrap (2,000 draws) P(Sharpe <= 0) <= 0.10 on test 1.
+  6. Nine-panel Sharpe > 0 at 10 bps slippage.
+  7. |corr| with the weekly trend book <= 0.30.
+  Neighbours (window 120 / 365; entry 1.5 / 2.5; K 2 / 6) reported as labelled neighbours, never selected.
+Outcome handling
+  Fail -> one row in resource/07 "considered and rejected". Pass -> paper-book candidate only; needs the user's decision
+  because resource/07 line 237 bars shorts and a second strategy, plus a whole-contract feasibility check at $1,000 / $5,000.
