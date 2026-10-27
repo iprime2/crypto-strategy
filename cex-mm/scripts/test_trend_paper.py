@@ -236,6 +236,12 @@ class CarryForward(unittest.TestCase):
         listed = tp.order_list(s, closes, books, {}, cvals, NOW, funding_detail=det)
         self.assertEqual(s, before)
         self.assertAlmostEqual(listed["funding"], 50.0 * 0.01 / 100, places=15)
+        self.assertEqual(listed["unpublished"], 0)
+        down = self.fetched(FakeFunding(block_rate, down=["BTC"]), s["last_rebalance_ts"], int((NOW + dt.timedelta(1)).timestamp()))
+        self.next_day(closes, NOW + dt.timedelta(1))
+        listed = tp.order_list(s, closes, books, tp.funding_owed(down), cvals, NOW + dt.timedelta(1), funding_detail=down)
+        self.assertEqual(listed["unpublished"], len(down["exchanges"]))  # BTC's three exchanges
+        self.assertEqual(s, before)
 
     def test_main_rebalances_through_an_outage_and_fetches_funding_before_books(self):
         now = dt.datetime.now(dt.timezone.utc)

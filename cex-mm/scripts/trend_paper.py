@@ -241,7 +241,8 @@ def order_list(state: dict, closes: dict, books: dict, funding: dict, cvals: dic
     late_paid = settle_pending(state.get("funding_pending", []), (funding_detail or {}).get("late_rates", {}))[1]
     m = mark(state, closes, books, funding, cvals, now, target_vol, late_paid)
     plan, skipped = plan_orders(state["positions"], m["weights"], m["equity"], m["mids"], cvals, band)
-    return {**m, "plan": plan, "skipped": skipped}
+    unpublished = len(new_pending(funding_detail, state["positions"], state["model_weights"], m["mids"], cvals))
+    return {**m, "plan": plan, "skipped": skipped, "unpublished": unpublished}
 
 
 def step(state: dict, closes: dict, books: dict, funding: dict, cvals: dict, now: dt.datetime, *,
@@ -344,6 +345,8 @@ def print_order_list(listed: dict, config: dict, now: dt.datetime) -> None:
     print(f"{now:%Y-%m-%d %H:%M} UTC  signal {sd} ({sd:%A} close)  equity ${listed['equity']:,.2f} after "
           f"${listed['funding']:.2f} funding  target vol {config['target_vol']:.2f}  band {config['band']:.0%}"
           f"{'  weekly' if config['weekly'] else ''}")
+    if listed.get("unpublished"):
+        print(f"funding for {listed['unpublished']} coin-exchanges is not published yet: carried, booked at a later rebalance")
     print(f"{'coin':<5} {'held':>6} {'target':>7} {'trade':>6} {'notional':>10} {'mid':>12}")
     for r in listed["plan"]:
         print(f"{r['coin']:<5} {r['held']:>6} {r['target']:>7} {r['contracts']:>+6} {r['notional']:>10,.2f} {listed['mids'][r['coin']]:>12,.4f}")
