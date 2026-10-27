@@ -6,6 +6,7 @@ import contextlib
 import io
 import json
 import os
+import shutil
 import sys
 import tempfile
 import unittest
@@ -13,6 +14,14 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fair_exposure as fe  # noqa: E402
+
+
+def tmpdir(test: unittest.TestCase) -> Path:
+    """A fresh temp directory, removed when `test` ends (pass or fail)."""
+    d = Path(tempfile.mkdtemp())
+    test.addCleanup(shutil.rmtree, d, ignore_errors=True)
+    return d
+
 
 T0 = 1_791_800_000_000
 
@@ -35,7 +44,7 @@ def run_lines(n: int = 600, step_at: int = 300, lag: int = 25) -> list[str]:
 
 class Report(unittest.TestCase):
     def rows(self):
-        d = Path(tempfile.mkdtemp())
+        d = tmpdir(self)
         (d / "dry-run.log").write_text("".join(run_lines()))
         return fe.load([str(d / "dry-run.log")], "ADAUSDT"), d
 
@@ -54,7 +63,7 @@ class Report(unittest.TestCase):
         self.assertEqual(logged["anchored_pct"], 100.0)
 
     def test_a_long_lag_shows_in_the_gap_tail(self):
-        d = Path(tempfile.mkdtemp())
+        d = tmpdir(self)
         (d / "dry-run.log").write_text("".join(run_lines(lag=120)))  # lagging in 20% of samples
         old = fe.report(fe.load([str(d / "dry-run.log")], "ADAUSDT"), 5.0, 3.0, 1.0, 20.0)["fair_delta"]
         self.assertAlmostEqual(old["gap_p90_bps"], 10.0, delta=0.01)
@@ -73,13 +82,13 @@ class Report(unittest.TestCase):
         text = buf.getvalue()
         self.assertIn("logged fair", text)
         self.assertIn("fair_delta (no anchor)", text)
-        empty = Path(tempfile.mkdtemp())
+        empty = tmpdir(self)
         (empty / "dry-run.log").write_text("".join(run_lines(n=50)))
         with contextlib.redirect_stderr(io.StringIO()):
             self.assertEqual(fe.main(["--run-dir", str(empty)]), 2)
 
     def test_samples_with_a_silent_binance_feed_are_skipped(self):
-        d = Path(tempfile.mkdtemp())
+        d = tmpdir(self)
         lines = [l.replace('"anchored": true', '"anchored": true, "binance_age_ms": 9000') if i % 10 == 0 else l
                  for i, l in enumerate(run_lines())]
         (d / "dry-run.log").write_text("".join(lines))
@@ -87,7 +96,7 @@ class Report(unittest.TestCase):
         self.assertEqual(len(fe.load([str(d / "dry-run.log")], "ADAUSDT", max_binance_age_ms=1e9)), 600)
 
     def test_runs_before_fair_delta_was_logged_score_the_logged_fair_only(self):
-        d = Path(tempfile.mkdtemp())
+        d = tmpdir(self)
         lines = [l.replace('"fair_delta"', '"x_fair_delta"') for l in run_lines()]
         (d / "dry-run.log").write_text("".join(lines))
         out = fe.report(fe.load([str(d / "dry-run.log")], "ADAUSDT"), 5.0, 3.0, 1.0, 20.0)
