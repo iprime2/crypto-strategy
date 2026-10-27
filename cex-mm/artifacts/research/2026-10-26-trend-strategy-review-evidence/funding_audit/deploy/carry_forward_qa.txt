@@ -1,0 +1,58 @@
+day 1, unpublished none: funding $0.682328, 0 carried, 0 settled late
+day 2, unpublished BTC,ETH: funding $0.608218, 6 carried, 0 settled late
+day 3, unpublished BTC,ETH,XRP,BNB,ADA,LTC,LINK,DOGE,BCH: funding $0.000000, 33 carried, 0 settled late
+day 4, unpublished none: funding $1.595549, 0 carried, 33 settled late
+
+=== complete: exit 0 (as expected)
+/tmp/tmp7si09ive/complete0.json: 5 rows
+rebalance           journal  old rule all hours     venue  logged rates
+2026-10-13T00:05     0.6823    0.4811    0.6756    0.6823  PASS: 3 exchanges, rates match, 0 carried, 0 settled late
+2026-10-14T00:05     0.6082    0.4974    0.6986    0.7053  PASS: 3 exchanges, rates match, 6 carried, 0 settled late
+2026-10-15T00:05     0.0000    0.5137    0.7216    0.7283  PASS: 3 exchanges, rates match, 27 carried, 0 settled late
+2026-10-16T00:05     1.5955    0.5432    0.7632    0.7701  PASS: 3 exchanges, rates match, 0 carried, 33 settled late
+TOTAL                2.8861    2.0353    2.8591    2.8861
+windows of fixed-code rows: charged in the row + settled later vs Delta's rule (tolerance $0.01)
+  2026-10-13T00:05  charged 0.682328 (late 0.000000)  Delta's rule 0.682328  PASS
+  2026-10-14T00:05  charged 0.705328 (late 0.097110)  Delta's rule 0.705328  PASS
+  2026-10-15T00:05  charged 0.728328 (late 0.728328)  Delta's rule 0.728328  PASS
+  2026-10-16T00:05  charged 0.770111 (late 0.000000)  Delta's rule 0.770111  PASS
+
+=== cut before the recovery: exit 0 (as expected)
+/tmp/tmp7si09ive/cut_before_the_recovery0.json: 4 rows
+rebalance           journal  old rule all hours     venue  logged rates
+2026-10-13T00:05     0.6823    0.4811    0.6756    0.6823  PASS: 3 exchanges, rates match, 0 carried, 0 settled late
+2026-10-14T00:05     0.6082    0.4974    0.6986    0.7053  PASS: 3 exchanges, rates match, 6 carried, 0 settled late
+2026-10-15T00:05     0.0000    0.5137    0.7216    0.7283  PASS: 3 exchanges, rates match, 27 carried, 0 settled late
+TOTAL                1.2905    1.4921    2.0959    2.1160
+windows of fixed-code rows: charged in the row + settled later vs Delta's rule (tolerance $0.01)
+  2026-10-13T00:05  charged 0.682328 (late 0.000000)  Delta's rule 0.682328  PASS
+  2026-10-14T00:05  charged 0.608218 (late 0.000000)  Delta's rule 0.705328  PENDING (rates not published yet)
+  2026-10-15T00:05  charged 0.000000 (late 0.000000)  Delta's rule 0.728328  PENDING (rates not published yet)
+
+=== tampered: wrong late rate: exit 1 (as expected)
+/tmp/tmp7si09ive/tampered1.json: 5 rows
+rebalance           journal  old rule all hours     venue  logged rates
+2026-10-13T00:05     0.6823    0.4811    0.6756    0.6823  PASS: 3 exchanges, rates match, 0 carried, 0 settled late
+2026-10-14T00:05     0.6082    0.4974    0.6986    0.7053  PASS: 3 exchanges, rates match, 6 carried, 0 settled late
+2026-10-15T00:05     0.0000    0.5137    0.7216    0.7283  PASS: 3 exchanges, rates match, 27 carried, 0 settled late
+2026-10-16T00:05     1.5955    0.5432    0.7632    0.7701  FAIL: 3 exchanges, rates match, 0 carried, 33 settled late, LATE RATES WRONG
+TOTAL                2.8861    2.0353    2.8591    2.8861
+windows of fixed-code rows: charged in the row + settled later vs Delta's rule (tolerance $0.01)
+  2026-10-13T00:05  charged 0.682328 (late 0.000000)  Delta's rule 0.682328  PASS
+  2026-10-14T00:05  charged 0.705328 (late 0.097110)  Delta's rule 0.705328  PASS
+  2026-10-15T00:05  charged 0.728328 (late 0.728328)  Delta's rule 0.728328  PASS
+  2026-10-16T00:05  charged 0.770111 (late 0.000000)  Delta's rule 0.770111  PASS
+
+=== tampered: a missing rate never carried: exit 1 (as expected)
+/tmp/tmp7si09ive/tampered1.json: 5 rows
+rebalance           journal  old rule all hours     venue  logged rates
+2026-10-13T00:05     0.6823    0.4811    0.6756    0.6823  PASS: 3 exchanges, rates match, 0 carried, 0 settled late
+2026-10-14T00:05     0.6082    0.4974    0.6986    0.7053  FAIL: 3 exchanges, rates match, 3 carried, 0 settled late, NOT CARRIED [('BTC', 1791878400), ('BTC', 1791907200), ('BTC', 1791936000)]
+2026-10-15T00:05     0.0000    0.5137    0.7216    0.7283  PASS: 3 exchanges, rates match, 27 carried, 0 settled late
+2026-10-16T00:05     1.5955    0.5432    0.7632    0.7701  PASS: 3 exchanges, rates match, 0 carried, 33 settled late
+TOTAL                2.8861    2.0353    2.8591    2.8861
+windows of fixed-code rows: charged in the row + settled later vs Delta's rule (tolerance $0.01)
+  2026-10-13T00:05  charged 0.682328 (late 0.000000)  Delta's rule 0.682328  PASS
+  2026-10-14T00:05  charged 0.705328 (late 0.097110)  Delta's rule 0.705328  PASS
+  2026-10-15T00:05  charged 0.728328 (late 0.728328)  Delta's rule 0.728328  PASS
+  2026-10-16T00:05  charged 0.770111 (late 0.000000)  Delta's rule 0.770111  PASS

@@ -1,0 +1,19 @@
+exchange      inventory       mark   booked $   starts $     ends $  closer
+10-20 16:00    no live-bot log at that time
+10-21 00:00    no live-bot log at that time
+10-21 08:00    no live-bot log at that time
+10-21 16:00    no live-bot log at that time
+10-22 00:00         600   0.225026   0.014644   0.014623   0.015833  start (rel err starts 0.1%, ends 8.1%)
+10-22 08:00         -19   0.217338  -0.001397  -0.001396  -0.000447  start (rel err starts 0.0%, ends 68.0%)
+10-22 16:00        -545   0.213912  -0.021664  -0.021650  -0.039419  start (rel err starts 0.1%, ends 82.0%)
+10-23 00:00        -137   0.212134  -0.010190  -0.010184  -0.005397  start (rel err starts 0.1%, ends 47.0%)
+10-23 08:00         102   0.216024   0.003691   0.003725   0.007721  start (rel err starts 0.9%, ends 109.2%)
+10-24 00:00        -600   0.210764  -0.059881  -0.059824  -0.027875  start (rel err starts 0.1%, ends 53.4%)
+10-24 08:00         117   0.208589   0.007445   0.007439   0.011545  start (rel err starts 0.1%, ends 55.1%)
+10-25 00:00        -201   0.208050  -0.006033  -0.006028  -0.017748  start (rel err starts 0.1%, ends 194.2%)
+10-25 08:00        -590   0.205662  -0.019464  -0.019445  -0.017492  start (rel err starts 0.1%, ends 10.1%)
+10-25 16:00          44   0.205436   0.002691   0.002689   0.001449  start (rel err starts 0.1%, ends 46.2%)
+10-26 00:00         533   0.203973   0.032863   0.032835   0.032336  start (rel err starts 0.1%, ends 1.6%)
+10-26 08:00        -401   0.202236  -0.019457  -0.019436  -0.024493  start (rel err starts 0.1%, ends 25.9%)
+10-26 16:00         401   0.206312   0.019468   0.019446   0.019827  start (rel err starts 0.1%, ends 1.8%)
+the candle stamped at the exchange is closer on 13, the one before it on 0

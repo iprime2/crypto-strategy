@@ -1,0 +1,11 @@
+# funding_audit.py on the fixed trader's first rows, live candles fetched 2026-10-26T19:10Z
+
+fixed_daily_rows_2026-10-26T1905Z.json: 2 rows
+rebalance           journal  old rule all hours     venue  logged rates
+2026-10-26T19:05     0.0383    0.0281    0.0302    0.0383  PASS: 2 exchanges, rates match, journal - venue +0.00e+00 $
+TOTAL                0.0383    0.0281    0.0302    0.0383
+
+fixed_weekly_rows_2026-10-26T1905Z.json: 2 rows
+rebalance           journal  old rule all hours     venue  logged rates
+2026-10-26T19:05     0.0064    0.0046    0.0088    0.0064  PASS: 2 exchanges, rates match, journal - venue +0.00e+00 $
+TOTAL                0.0064    0.0046    0.0088    0.0064

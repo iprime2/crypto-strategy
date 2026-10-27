@@ -1,0 +1,28 @@
+
+=== local_snaps_2026-10-27.json: 28 snapshots, 26 23:52:35 to 27 00:19:35 UTC
+distinct candles seen 297; candles whose value changed after first seen: 0
+empty answers retried: 26 over 252 requests
+00:00 UTC 27 Oct candle: first seen, value; ticker funding_rate in the last snapshot before 00:00
+  ADA   first seen 27 00:00:35 (+36 s)  value -0.02413033  ticker before 00:00 -0.024242475112464065
+  BCH   first seen 27 00:00:35 (+36 s)  value 0.01000000  ticker before 00:00 0.010000000000000002
+  BNB   first seen 27 00:00:35 (+36 s)  value 0.01000000  ticker before 00:00 0.010000000000000002
+  BTC   first seen 27 00:00:35 (+36 s)  value 0.01000000  ticker before 00:00 0.010000000000000002
+  DOGE  first seen 27 00:00:35 (+36 s)  value 0.02141555  ticker before 00:00 0.021330895776504395
+  ETH   first seen 27 00:00:35 (+36 s)  value 0.00918557  ticker before 00:00 0.009213353014474004
+  LINK  first seen 27 00:00:35 (+36 s)  value 0.01000000  ticker before 00:00 0.01
+  LTC   first seen 27 00:00:35 (+36 s)  value 0.01530821  ticker before 00:00 0.015303128127200166
+  XRP   first seen 27 00:00:35 (+36 s)  value 0.01000000  ticker before 00:00 0.010000000000000002
+
+=== vm_snaps_2026-10-27.json: 28 snapshots, 26 23:52:37 to 27 00:19:37 UTC
+distinct candles seen 297; candles whose value changed after first seen: 0
+empty answers retried: 33 over 252 requests
+00:00 UTC 27 Oct candle: first seen, value; ticker funding_rate in the last snapshot before 00:00
+  ADA   first seen 27 00:00:37 (+37 s)  value -0.02413033  ticker before 00:00 -0.024242475112464065
+  BCH   first seen 27 00:00:37 (+37 s)  value 0.01000000  ticker before 00:00 0.010000000000000002
+  BNB   first seen 27 00:00:37 (+37 s)  value 0.01000000  ticker before 00:00 0.010000000000000002
+  BTC   first seen 27 00:00:37 (+37 s)  value 0.01000000  ticker before 00:00 0.010000000000000002
+  DOGE  first seen 27 00:00:37 (+37 s)  value 0.02141555  ticker before 00:00 0.021330895776504395
+  ETH   first seen 27 00:00:37 (+37 s)  value 0.00918557  ticker before 00:00 0.009214607457482003
+  LINK  first seen 27 00:00:37 (+37 s)  value 0.01000000  ticker before 00:00 0.01
+  LTC   first seen 27 00:00:37 (+37 s)  value 0.01530821  ticker before 00:00 0.015303128127200166
+  XRP   first seen 27 00:00:37 (+37 s)  value 0.01000000  ticker before 00:00 0.010000000000000002

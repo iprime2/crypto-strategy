@@ -4,9 +4,13 @@
 Once per UTC day, after the 00:00 close (or once per ISO week with --weekly, on the first run after the
 Monday 00:00 UTC close): compute the backtest's long-only target weights from Delta daily closes, size them
 off paper equity in whole contracts, and fill the difference as taker orders walked through Delta's live L2
-book, so slippage is measured rather than assumed. Funding is charged from Delta's FUNDING:<sym> rates. A
-"model" equity holds the rule's unrounded weights between the same rebalances (mid to mid) with the
-backtest's modelled costs, so the two can be compared. Public data only: no API keys, no orders. Safe to
+book, so slippage is measured rather than assumed. Funding is charged at every 8-hourly exchange the
+position was held through, at Delta's FUNDING:<sym> rate for that exchange, and each journal row records the
+window, the exchanges and the rates it charged (funding_window, funding_exchanges, funding_rates). A rate Delta
+has not published yet does not hold up the rebalance: it is carried forward (funding_pending) and booked at a
+later rebalance once published (funding_late). A "model"
+equity holds the rule's unrounded weights between the same rebalances (mid to mid) with the backtest's modelled
+costs, so the two can be compared. Public data only: no API keys, no orders. Safe to
 run hourly; it rebalances at most once per day (or week) and exits non-zero when data is missing, so the
 next run retries. A state directory remembers its settings and refuses a run with different ones.
 
@@ -31,6 +35,8 @@ import trend_backtest as tb
 STATE_DIR = Path(__file__).resolve().parent.parent / "artifacts" / "trend" / "paper"
 MODEL_COST = (tb.TAKER_BPS + tb.SLIPPAGE_BPS) / 1e4  # the backtest's cost per unit of turnover
 DEFAULT_CONFIG = {"weekly": False, "target_vol": tb.TARGET_VOL, "band": 0.0}  # the daily book, as before
+FUNDING_EVERY = 8 * 3600  # Delta India exchanges funding at 00:00, 08:00 and 16:00 UTC
+FUNDING_TRIES = 5
 
 
 def due(state: dict, today: dt.date, weekly: bool) -> bool:
@@ -83,14 +89,89 @@ def fetch_book(coin: str) -> tuple[list, list]:
     return side(r["buy"]), side(r["sell"])
 
 
-def fetch_funding(since: int, until: int) -> dict[str, float]:
-    """Funding per unit of notional paid by a long over [since, until): hourly rates in % per 8 h."""
-    out = {}
+def funding_exchanges(since: int, until: int) -> list[int]:
+    """The funding exchanges a position held from `since` to `until` (unix seconds) takes part in: every 8-hour
+    stamp after `since`, up to and including `until` (a run at 00:05 has been through the 00:00 exchange)."""
+    return list(range((since // FUNDING_EVERY + 1) * FUNDING_EVERY, until + 1, FUNDING_EVERY))
+
+
+def fetch_stamps(coin: str, stamps: set[int], until: int) -> dict[int, float]:
+    """The published FUNDING:<coin>USD rate (% per 8 h) of each requested exchange stamp, asked again while any is
+    missing. A stamp Delta still does not return after FUNDING_TRIES asks is left out."""
+    got: dict[int, float] = {}
+    if not stamps:
+        return got
+    for attempt in range(FUNDING_TRIES):
+        if attempt:
+            time.sleep(attempt)
+        for s in range(min(stamps), until + 1, 1999 * 3600):  # pages under the per-request candle cap
+            for r in fetch(f"{tb.DELTA}/v2/history/candles?resolution=1h&symbol=FUNDING:{coin}USD"
+                           f"&start={s}&end={min(s + 1999 * 3600, until)}"):
+                got[r["time"]] = float(r["close"])
+        if stamps <= got.keys():
+            break
+    return {e: got[e] for e in stamps if e in got}
+
+
+def fetch_funding(since: int, until: int, pending: list | tuple = ()) -> dict:
+    """The rate (% per 8 h) of each funding exchange in (since, until], per coin: the FUNDING:<sym> hourly candle
+    stamped at the exchange, which is the rate Delta's ledger charges there (checked against the live ADA book's
+    funding entries, 22-26 Oct 2026). Also the rates of the carried-forward `pending` exchanges now published.
+    Quirks of the candles endpoint: a FUNDING series starts at the first 8-hour stamp at or after `start`, not at
+    the first hour (26 Oct 2026), about one answer in ten is an empty list (26-27 Oct), and from at least 08:37 UTC
+    on 27 Oct every FUNDING series answered empty (an outage). Until 2026-10-26 this function summed hourly candles from `since`
+    / 8, so a daily window charged the 08:00 and 16:00 exchanges, 1/8 of the 00:00 one, and zero for a coin that
+    answered empty. Now a missing stamp is asked again and, if still missing, returned as None for step() to carry
+    forward, so neither a wrong number nor a skipped rebalance results.
+    Returns {"since", "until", "exchanges": [unix s], "rates": {coin: [% per 8 h or None, one per exchange]},
+    "late_rates": {coin: {stamp: % per 8 h}} for the pending stamps now published}."""
+    exchanges = funding_exchanges(since, until)
+    carried: dict[str, set[int]] = {}
+    for p in pending:
+        carried.setdefault(p["coin"], set()).add(p["stamp"])
+    rates, late = {}, {}
     for c in tb.COINS:
-        rates = []
-        for s in range(since, until, 1999 * 3600):
-            rates += fetch(f"{tb.DELTA}/v2/history/candles?resolution=1h&symbol=FUNDING:{c}USD&start={s}&end={min(s + 1999 * 3600, until)}")
-        out[c] = sum(float(r["close"]) for r in rates if since <= r["time"] < until) / 100 / 8
+        got = fetch_stamps(c, set(exchanges) | carried.get(c, set()), until)
+        rates[c] = [got.get(e) for e in exchanges]
+        if carried.get(c):
+            late[c] = {e: got[e] for e in carried[c] if e in got}
+    return {"since": since, "until": until, "exchanges": exchanges, "rates": rates, "late_rates": late}
+
+
+def funding_owed(detail: dict | None) -> dict[str, float]:
+    """Funding per unit of notional paid by a long over the window, from the published rates only (a missing one
+    is carried forward by step()): the exchanges' rates summed, % -> fraction."""
+    return {c: sum(x for x in r if x is not None) / 100 for c, r in detail["rates"].items()} if detail else {}
+
+
+def settle_pending(pending: list, late_rates: dict) -> tuple[list, float, float, list]:
+    """Book the carried-forward coin-exchanges whose rate is now published, each at the paper notional and model
+    weight it applied to. Pure. Returns (settled entries for the journal, paper $, model fraction, still pending)."""
+    settled, paid, model, left = [], 0.0, 0.0, []
+    for p in pending:
+        rate = late_rates.get(p["coin"], {}).get(p["stamp"])
+        if rate is None:
+            left.append(p)
+            continue
+        amount = p["notional"] * rate / 100
+        settled.append({**p, "rate": rate, "amount": amount})
+        paid += amount
+        model += p["weight"] * rate / 100
+    return settled, paid, model, left
+
+
+def new_pending(detail: dict | None, pos: dict, model_w: dict, mids: dict, cvals: dict) -> list:
+    """This window's coin-exchanges with no published rate, carried forward with the paper notional held over the
+    window (at this rebalance's mid, as for the booked ones) and the model's weight."""
+    out = []
+    if not detail:
+        return out
+    for c, rates in detail["rates"].items():
+        notional, weight = pos.get(c, 0) * cvals[c] * mids[c], model_w.get(c, 0.0)
+        if not notional and not weight:
+            continue
+        out += [{"window": [detail["since"], detail["until"]], "coin": c, "stamp": e, "notional": notional, "weight": weight}
+                for e, r in zip(detail["exchanges"], rates) if r is None]
     return out
 
 
@@ -111,7 +192,8 @@ def walk_book(levels: list[tuple[float, float]], qty: float) -> float:
 def init_state(capital: float, now: dt.datetime, config: dict | None = None) -> dict:
     return {"started": now.isoformat(), "capital": capital, "cash": capital, "positions": {},
             "model_equity": capital, "model_weights": {}, "model_mids": {}, "signal_day": None,
-            "last_rebalance": None, "last_rebalance_ts": None, "config": dict(config or DEFAULT_CONFIG)}
+            "last_rebalance": None, "last_rebalance_ts": None, "config": dict(config or DEFAULT_CONFIG),
+            "funding_pending": []}
 
 
 def equity(state: dict, mids: dict, cvals: dict) -> float:
@@ -136,9 +218,10 @@ def plan_orders(pos: dict, w: dict, eq: float, mids: dict, cvals: dict, band: fl
     return plan, skipped
 
 
-def mark(state: dict, closes: dict, books: dict, funding: dict, cvals: dict, now: dt.datetime, target_vol: float) -> dict:
+def mark(state: dict, closes: dict, books: dict, funding: dict, cvals: dict, now: dt.datetime, target_vol: float,
+         late_paid: float = 0.0) -> dict:
     """What a rebalance at `now` sees, without changing anything: the signal day (yesterday's close), mids,
-    funding owed since the last rebalance, equity after that funding, and the rule's weights."""
+    funding owed since the last rebalance plus carried funding settled now, equity after it, and the weights."""
     signal_day = now.date() - dt.timedelta(1)
     missing = [c for c in tb.COINS if signal_day not in closes.get(c, {})]
     if missing:
@@ -146,26 +229,34 @@ def mark(state: dict, closes: dict, books: dict, funding: dict, cvals: dict, now
     mids = {c: (books[c][0][0][0] + books[c][1][0][0]) / 2 for c in tb.COINS}
     pos = state["positions"]
     # Funding over the holding period (positions were constant since the last rebalance).
-    fund_paid = sum(q * cvals[c] * mids[c] * funding.get(c, 0.0) for c, q in pos.items())
+    fund_paid = sum(q * cvals[c] * mids[c] * funding.get(c, 0.0) for c, q in pos.items()) + late_paid
     eq = equity(state, mids, cvals) - fund_paid
     w = tb.target_weights(closes, signal_day, tb.LOOKS, tb.VOL_WIN, target_vol, long_only=True)
     return {"signal_day": signal_day, "mids": mids, "funding": fund_paid, "equity": eq, "weights": w}
 
 
 def order_list(state: dict, closes: dict, books: dict, funding: dict, cvals: dict, now: dt.datetime, *,
-               target_vol: float = tb.TARGET_VOL, band: float = 0.0) -> dict:
+               target_vol: float = tb.TARGET_VOL, band: float = 0.0, funding_detail: dict | None = None) -> dict:
     """The orders a rebalance at `now` would send, from the same sizing as step(). Read-only."""
-    m = mark(state, closes, books, funding, cvals, now, target_vol)
+    late_paid = settle_pending(state.get("funding_pending", []), (funding_detail or {}).get("late_rates", {}))[1]
+    m = mark(state, closes, books, funding, cvals, now, target_vol, late_paid)
     plan, skipped = plan_orders(state["positions"], m["weights"], m["equity"], m["mids"], cvals, band)
-    return {**m, "plan": plan, "skipped": skipped}
+    unpublished = len(new_pending(funding_detail, state["positions"], state["model_weights"], m["mids"], cvals))
+    return {**m, "plan": plan, "skipped": skipped, "unpublished": unpublished}
 
 
 def step(state: dict, closes: dict, books: dict, funding: dict, cvals: dict, now: dt.datetime, *,
-         target_vol: float = tb.TARGET_VOL, band: float = 0.0) -> dict:
-    """One rebalance on fetched data (no I/O). Mutates `state`, returns the journal record."""
-    m = mark(state, closes, books, funding, cvals, now, target_vol)
+         target_vol: float = tb.TARGET_VOL, band: float = 0.0, funding_detail: dict | None = None) -> dict:
+    """One rebalance on fetched data (no I/O). Mutates `state`, returns the journal record. `funding` is
+    funding_owed(funding_detail); the detail (window, exchanges, rates) is written to the record for audit.
+    Exchanges whose rate is missing are carried forward in state["funding_pending"]; carried ones whose rate is now
+    in funding_detail["late_rates"] are booked here (cash and model) and listed in the record's funding_late."""
+    settled, late_paid, late_model, still = settle_pending(state.get("funding_pending", []),
+                                                           (funding_detail or {}).get("late_rates", {}))
+    m = mark(state, closes, books, funding, cvals, now, target_vol, late_paid)
     signal_day, mids, fund_paid, eq_before, w = m["signal_day"], m["mids"], m["funding"], m["equity"], m["weights"]
     pos = state["positions"]
+    carried = new_pending(funding_detail, pos, state["model_weights"], mids, cvals)  # before trades change pos
     state["cash"] -= fund_paid
 
     plan, skipped = plan_orders(pos, w, eq_before, mids, cvals, band)
@@ -193,12 +284,16 @@ def step(state: dict, closes: dict, books: dict, funding: dict, cvals: dict, now
     r = sum(x * (mids[c] / prev_mids[c] - 1) for c, x in prev_w.items() if c in prev_mids)
     r -= sum(x * funding.get(c, 0.0) for c, x in prev_w.items())
     r -= sum(abs(w.get(c, 0.0) - prev_w.get(c, 0.0)) for c in tb.COINS) * MODEL_COST
-    state["model_equity"] *= 1 + r
+    state["model_equity"] *= (1 + r) * (1 - late_model)
 
-    state.update(model_weights=w, model_mids=mids, signal_day=signal_day.isoformat(),
+    state.update(model_weights=w, model_mids=mids, signal_day=signal_day.isoformat(), funding_pending=still + carried,
                  last_rebalance=now.date().isoformat(), last_rebalance_ts=int(now.timestamp()))
     return {"time": now.isoformat(), "signal_day": signal_day.isoformat(), "equity_before": eq_before,
             "equity": eq_after, "model_equity": state["model_equity"], "cash": state["cash"], "funding": fund_paid,
+            "funding_window": [funding_detail["since"], funding_detail["until"]] if funding_detail else None,
+            "funding_exchanges": funding_detail["exchanges"] if funding_detail else [],
+            "funding_rates": funding_detail["rates"] if funding_detail else {},
+            "funding_late": settled, "funding_pending": list(state["funding_pending"]),
             "fees": fees, "orders": orders, "skipped": skipped, "weights": w, "positions": dict(pos), "mids": mids,
             "values": {c: q * cvals[c] * mids[c] for c, q in pos.items()},
             "gross": sum(abs(q) * cvals[c] * mids[c] for c, q in pos.items()) / eq_after}
@@ -250,6 +345,8 @@ def print_order_list(listed: dict, config: dict, now: dt.datetime) -> None:
     print(f"{now:%Y-%m-%d %H:%M} UTC  signal {sd} ({sd:%A} close)  equity ${listed['equity']:,.2f} after "
           f"${listed['funding']:.2f} funding  target vol {config['target_vol']:.2f}  band {config['band']:.0%}"
           f"{'  weekly' if config['weekly'] else ''}")
+    if listed.get("unpublished"):
+        print(f"funding for {listed['unpublished']} coin-exchanges is not published yet: carried, booked at a later rebalance")
     print(f"{'coin':<5} {'held':>6} {'target':>7} {'trade':>6} {'notional':>10} {'mid':>12}")
     for r in listed["plan"]:
         print(f"{r['coin']:<5} {r['held']:>6} {r['target']:>7} {r['contracts']:>+6} {r['notional']:>10,.2f} {listed['mids'][r['coin']]:>12,.4f}")
@@ -280,15 +377,18 @@ def main() -> None:
     if not args.orders_only and not due(state, now.date(), args.weekly):
         print(f"already rebalanced for {'the week of ' if args.weekly else ''}{state['last_rebalance']} UTC")
         return
+    since = state["last_rebalance_ts"]
+    # Funding first: its retries can take a while, and the book snapshot the fills walk should be fresh.
+    detail = fetch_funding(since, int(now.timestamp()), state.get("funding_pending", [])) if since else None
+    funding = funding_owed(detail)
     cvals = tb.contract_values()
     closes = fetch_closes(now.date())
     books = {c: fetch_book(c) for c in tb.COINS}
-    since = state["last_rebalance_ts"]
-    funding = fetch_funding(since, int(now.timestamp())) if since else {}
     if args.orders_only:
-        print_order_list(order_list(state, closes, books, funding, cvals, now, target_vol=args.target_vol, band=args.band), config, now)
+        print_order_list(order_list(state, closes, books, funding, cvals, now, target_vol=args.target_vol, band=args.band,
+                                    funding_detail=detail), config, now)
         return
-    rec = step(state, closes, books, funding, cvals, now, target_vol=args.target_vol, band=args.band)
+    rec = step(state, closes, books, funding, cvals, now, target_vol=args.target_vol, band=args.band, funding_detail=detail)
     args.state_dir.mkdir(parents=True, exist_ok=True)
     with open(args.state_dir / "journal.jsonl", "a") as f:
         f.write(json.dumps(rec) + "\n")
@@ -298,7 +398,9 @@ def main() -> None:
     held = ", ".join(f"{c} {q:+d}" for c, q in sorted(rec["positions"].items())) or "flat"
     print(f"{now:%Y-%m-%d %H:%M} UTC  signal {rec['signal_day']}  equity ${rec['equity']:,.2f}  "
           f"model ${rec['model_equity']:,.2f}  orders {len(rec['orders'])}  skipped {len(rec['skipped'])}  "
-          f"fees ${rec['fees']:.2f}  funding ${rec['funding']:.2f}  gross {rec['gross']:.2f}x  holding {held}")
+          f"fees ${rec['fees']:.2f}  funding ${rec['funding']:.2f}  gross {rec['gross']:.2f}x  holding {held}"
+          + (f"  funding carried forward: {len(rec['funding_pending'])} coin-exchanges not published yet"
+             if rec["funding_pending"] else ""))
 
 
 if __name__ == "__main__":

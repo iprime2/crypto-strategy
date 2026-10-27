@@ -1,0 +1,155 @@
+[
+ {
+  "exchange": 1792512000,
+  "booked_ms": 1792512200032.806,
+  "amount_usd": 0.00615134,
+  "inventory": null,
+  "mark": null,
+  "log_ts": null,
+  "run": null
+ },
+ {
+  "exchange": 1792540800,
+  "booked_ms": 1792540866702.897,
+  "amount_usd": -0.0051472,
+  "inventory": null,
+  "mark": null,
+  "log_ts": null,
+  "run": null
+ },
+ {
+  "exchange": 1792569600,
+  "booked_ms": 1792569635021.02,
+  "amount_usd": 0.00734919,
+  "inventory": null,
+  "mark": null,
+  "log_ts": null,
+  "run": null
+ },
+ {
+  "exchange": 1792598400,
+  "booked_ms": 1792598572044.307,
+  "amount_usd": -0.00107464,
+  "inventory": null,
+  "mark": null,
+  "log_ts": null,
+  "run": null
+ },
+ {
+  "exchange": 1792627200,
+  "booked_ms": 1792627259553.7988,
+  "amount_usd": 0.01464363,
+  "inventory": 600.0,
+  "mark": 0.22502603,
+  "log_ts": 1792627199.698199,
+  "run": "20261021T170240Z"
+ },
+ {
+  "exchange": 1792656000,
+  "booked_ms": 1792656118936.292,
+  "amount_usd": -0.00139666,
+  "inventory": -19.0,
+  "mark": 0.21733782,
+  "log_ts": 1792655999.686844,
+  "run": "20261021T170240Z"
+ },
+ {
+  "exchange": 1792684800,
+  "booked_ms": 1792684834773.103,
+  "amount_usd": -0.0216639,
+  "inventory": -545.0,
+  "mark": 0.21391183,
+  "log_ts": 1792684799.746468,
+  "run": "20261021T170240Z"
+ },
+ {
+  "exchange": 1792713600,
+  "booked_ms": 1792714194002.779,
+  "amount_usd": -0.01018999,
+  "inventory": -137.0,
+  "mark": 0.21213437,
+  "log_ts": 1792713599.819206,
+  "run": "20261021T170240Z"
+ },
+ {
+  "exchange": 1792742400,
+  "booked_ms": 1792742723874.5562,
+  "amount_usd": 0.00369067,
+  "inventory": 102.0,
+  "mark": 0.2160235,
+  "log_ts": 1792742399.953647,
+  "run": "20261021T170240Z"
+ },
+ {
+  "exchange": 1792800000,
+  "booked_ms": 1792800594006.011,
+  "amount_usd": -0.05988088,
+  "inventory": -600.0,
+  "mark": 0.21076384,
+  "log_ts": 1792799999.725358,
+  "run": "20261021T170240Z"
+ },
+ {
+  "exchange": 1792828800,
+  "booked_ms": 1792828856449.508,
+  "amount_usd": 0.00744486,
+  "inventory": 117.0,
+  "mark": 0.20858894,
+  "log_ts": 1792828799.660038,
+  "run": "20261024T055444Z"
+ },
+ {
+  "exchange": 1792886400,
+  "booked_ms": 1792886994002.422,
+  "amount_usd": -0.00603252,
+  "inventory": -201.0,
+  "mark": 0.20805029,
+  "log_ts": 1792886399.991833,
+  "run": "20261024T055444Z"
+ },
+ {
+  "exchange": 1792915200,
+  "booked_ms": 1792915240932.836,
+  "amount_usd": -0.01946366,
+  "inventory": -590.0,
+  "mark": 0.20566158,
+  "log_ts": 1792915199.849254,
+  "run": "20261024T055444Z"
+ },
+ {
+  "exchange": 1792944000,
+  "booked_ms": 1792944291340.5261,
+  "amount_usd": 0.00269144,
+  "inventory": 44.0,
+  "mark": 0.20543588,
+  "log_ts": 1792943999.931188,
+  "run": "20261024T055444Z"
+ },
+ {
+  "exchange": 1792972800,
+  "booked_ms": 1792972836849.5532,
+  "amount_usd": 0.0328629,
+  "inventory": 533.0,
+  "mark": 0.20397263,
+  "log_ts": 1792972799.759304,
+  "run": "20261025T183625Z"
+ },
+ {
+  "exchange": 1793001600,
+  "booked_ms": 1793001625146.776,
+  "amount_usd": -0.01945681,
+  "inventory": -401.0,
+  "mark": 0.20223557,
+  "log_ts": 1793001599.766893,
+  "run": "20261025T183625Z"
+ },
+ {
+  "exchange": 1793030400,
+  "booked_ms": 1793030752932.574,
+  "amount_usd": 0.01946804,
+  "inventory": 401.0,
+  "mark": 0.20631153,
+  "log_ts": 1793030399.931092,
+  "run": "20261025T183625Z"
+ }
+]

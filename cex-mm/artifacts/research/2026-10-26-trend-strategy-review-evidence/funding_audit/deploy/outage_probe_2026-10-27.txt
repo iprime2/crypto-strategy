@@ -1,0 +1,9 @@
+BTC daily window (since 27 00:05:30)     ->  0 candles after 4 retries, body {"success": true, "result": []}
+BTC weekly window (since 26 00:05:14)    ->  0 candles after 4 retries, body {"success": true, "result": []}
+BTC start on a stamp (26 00:00)          ->  0 candles after 4 retries, body {"success": true, "result": []}
+BTC 30 h back on a stamp                 ->  0 candles after 4 retries, body {"success": true, "result": []}
+ETH daily window (since 27 00:05:30)     ->  0 candles after 4 retries, body {"success": true, "result": []}
+ETH weekly window (since 26 00:05:14)    ->  0 candles after 4 retries, body {"success": true, "result": []}
+ETH start on a stamp (26 00:00)          ->  0 candles after 4 retries, body {"success": true, "result": []}
+ETH 30 h back on a stamp                 ->  0 candles after 4 retries, body {"success": true, "result": []}
+now 27 08:41:16
