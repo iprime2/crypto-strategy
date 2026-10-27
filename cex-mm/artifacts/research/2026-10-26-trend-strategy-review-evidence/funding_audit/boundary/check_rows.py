@@ -8,7 +8,7 @@ import json
 X = 8 * 3600
 UTC = dt.timezone.utc
 CV = json.load(open("../candles_2026-10-26T1835Z.json"))["cvals"]
-snaps = [json.loads(x) for x in open("local_snaps_2026-10-27.jsonl") if x.strip()]
+snaps = json.load(open("local_snaps_2026-10-27.json"))
 ts = lambda s: int(dt.datetime.fromisoformat(s).timestamp())  # noqa: E731
 
 

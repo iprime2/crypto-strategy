@@ -2,7 +2,7 @@
 """Offline: did any FUNDING candle change value after it first appeared, and when does the candle of a new 8-hour
 block appear? Reads snapshot_loop.py output (one or more JSONL files) and, optionally, a later re-fetch to diff.
 
-    python3 analyze.py local_snaps_2026-10-27.jsonl vm_snaps_2026-10-27.jsonl [--refetch LATER.jsonl]
+    python3 analyze.py local_snaps_2026-10-27.json vm_snaps_2026-10-27.json [--refetch LATER.jsonl]
 
 For each file: candles seen, candles whose value ever changed between snapshots (the provisional-value test), when
 the 00:00 UTC 27 Oct candle first appeared per coin, and the tickers' funding_rate just before 00:00 against that
@@ -15,7 +15,10 @@ hm = lambda t: dt.datetime.fromtimestamp(t, UTC).strftime("%d %H:%M:%S")  # noqa
 
 
 def load(path):
-    return [s for s in (json.loads(x) for x in open(path) if x.strip()) if "candles" in s]
+    """A JSON array of snapshots (as committed) or the loop's raw JSONL output."""
+    text = open(path).read().strip()
+    rows = json.loads(text) if text.startswith("[") else [json.loads(x) for x in text.splitlines() if x.strip()]
+    return [s for s in rows if "candles" in s]
 
 
 def analyse(path):

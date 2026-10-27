@@ -35,7 +35,8 @@ Why `trend_paper.py` journaled $0.3533 of funding for the daily book over 18 int
 The forward test of the provisional-value hypothesis, and the first old-code and fixed-code rows side by side.
 
 - **Method.** `snapshot_loop.py` fetched the nine coins' FUNDING candles and the tickers' `funding_rate` once a minute from 26 Oct 23:52 to 27 Oct 00:20 UTC. It ran here and, piped over ssh, on the VM, printing to stdout only, so nothing was written or started there. `analyze.py` reads the snapshots.
-- **No candle is provisional.** No candle changed value after it first appeared, in either series. The 00:00 candle appeared in the first snapshot after the exchange, 36 s after it here and 37 s on the VM, already at its final value. The hypothesis is refuted going forward as well as for the 19 past fetches.
+- **No candle is provisional.** Each side took 28 snapshots and saw 297 distinct candles, and none changed value after it first appeared (`analyze.txt`). The 00:00 candle appeared in the first snapshot after the exchange, 36 s after it here and 37 s on the VM, already at its final value. The last snapshots from here and from the VM are identical. The hypothesis is refuted going forward as well as for the 19 past fetches.
+- **Empty answers, again.** 21 of 252 requests here (8.3 %) and 27 of 252 on the VM (10.7 %) first came back empty. Every one recovered within 3 retries, inside the fixed code's 5 tries.
 - **The ticker is not the settled rate.** The tickers' `funding_rate` just before 00:00 is a running estimate. For DOGE it was 0.021331 % against the settled 0.021416 %, so it cannot replace the candle.
 - **The VM's 00:05:29 row, old code** (`vm_daily_rows_2026-10-27T0005Z.json`). It booked $0.041004601854, equal to the old rule to every digit (`check_rows.txt`). Delta's rule gives $0.059051, so this one interval is $0.018 short. The weekly book was not due.
 - **The fixed code, from the same starting state.** It ran on a scratch copy of the 26 Oct 00:05 state, as the VM's run did, and booked $0.059055 (`fixed_daily_rows_2026-10-27T0005Z.json`). Its logged rates equal the published candles of the three exchanges it held through, and the total equals Delta's rule exactly. A scratch weekly book, set due by hand on the copy only, gives the same result. `funding_audit.py` passes both on a fresh fetch (`audit_rows_2026-10-27.txt`).
@@ -54,5 +55,8 @@ The forward test of the provisional-value hypothesis, and the first old-code and
 | `vm_daily_journal_2026-10-26.json`, `vm_weekly_journal_2026-10-26.json` | The two journals as on the VM on 26 Oct 18:50 UTC (JSON arrays; `*.jsonl` is gitignored here) |
 | `venue_funding_ada.json` | The ADAUSD wallet ledger's funding entries (time and amount only) with the bot's last logged inventory and mark before each exchange |
 | `fixed_*_rows_2026-10-26T1905Z.json`, `audit_fixed_rows.txt`, `audit_vm_journals.txt` | The fixed code's first rows and the audits |
+| `boundary/snapshot_loop.py` → `local_snaps_2026-10-27.json`, `vm_snaps_2026-10-27.json` | The minute-by-minute snapshots across the 27 Oct 00:00 exchange, here and on the VM |
+| `boundary/analyze.py` → `analyze.txt` | Candles that changed after first appearing, when the new block appeared, and `--refetch` for the 24 h diff |
+| `boundary/check_rows.py` → `check_rows.txt`, `boundary/audit_rows_2026-10-27.txt` | The VM's 27 Oct 00:05 row (old code) and the fixed code's rows from the same starting state, checked offline and by `funding_audit.py` |
 
 Run everything from this folder. The offline scripts need only the files here.
