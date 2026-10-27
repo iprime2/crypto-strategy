@@ -32,8 +32,11 @@ from __future__ import annotations
 import argparse
 import bisect
 import collections
+import dataclasses
 import glob
 import gzip
+import heapq
+import itertools
 import json
 import math
 import os
@@ -204,6 +207,7 @@ class SimConfig:
     loop_ms: float
     scalper_window_min: float = 0.0  # Delta Scalper Offer window; 0 = not simulated
     scalper_match: str = "fifo"  # fifo | flat, see ScalperOffer
+    cancel_first: tuple[float, float] | None = None  # (cancel ms, place ms), simulate_events only; None = edit
 
 
 @dataclass
@@ -370,6 +374,164 @@ def simulate(samples: list[Sample], trades: list[Trade], tick: float, cv: float,
     return res
 
 
+def simulate_events(samples: list[Sample], trades: list[Trade], tick: float, cv: float, cfg: SimConfig) -> SimResult:
+    """Event engine for `--cancel-first`: each call lands after its own delay.
+
+    The bot decides on each sample from the price it last asked for (not the venue's), and a side with a call
+    in flight takes no new decision until it lands (the loop waits on its order calls). Places, edits and
+    pulls land after `latency_ms`. With `cfg.cancel_first = (c, p)`, a requote against the quote (the bid must
+    go down, the ask up) cancels after c ms and places the new price after c + p ms; a requote toward the
+    market stays an edit. An edit or cancel of an order that filled out first does nothing, and a fill that
+    empties a side lets the bot place again one loop later. Fills, fees and markouts are as in `simulate`.
+    """
+    res = SimResult()
+    if not samples:
+        return res
+    ref_px = samples[len(samples) // 2].fair
+    qty = max(1.0, round(cfg.quote_usd / (ref_px * cv)))
+    max_inv = qty * cfg.max_inv_orders
+    offer = ScalperOffer(cfg.scalper_window_min * 60_000, cfg.scalper_match) if cfg.scalper_window_min > 0 else None
+    res.offer = offer is not None
+    # Venue: the live order per side (+1 bid, -1 ask) and its id.
+    price: dict[int, float | None] = {1: None, -1: None}
+    remaining = {1: 0.0, -1: 0.0}
+    live_id = {1: 0, -1: 0}
+    # Bot: the price and id of the order it believes it has (live or in flight), when its call lands, and
+    # when a fill last emptied the side.
+    want: dict[int, float | None] = {1: None, -1: None}
+    want_id = {1: 0, -1: 0}
+    busy_until = {1: 0.0, -1: 0.0}
+    emptied_at: dict[int, float | None] = {1: None, -1: None}
+    ids = itertools.count(1)
+    cancelled: set[int] = set()  # ids a cancel took off before they filled out
+    events: list[tuple[float, int, int, str, int, float | None, int]] = []  # (t, seq, side, kind, id, px, old id)
+    seq = itertools.count()
+    inv = 0.0
+    alive_until = 0.0
+    last_sample: Sample | None = None
+    last_acc: float | None = None
+    si = 0
+
+    def push(t: float, side: int, kind: str, oid: int, px: float | None = None, old: int = 0) -> None:
+        heapq.heappush(events, (t, next(seq), side, kind, oid, px, old))
+
+    def account(to: float) -> None:
+        nonlocal last_acc
+        if last_acc is not None and last_sample is not None:
+            dt = max(0.0, min(to, alive_until) - last_acc)
+            if price[1] and price[-1] and remaining[1] > 0 and remaining[-1] > 0:
+                res.quoted_ms += dt
+                if price[1] > last_sample.book_bid or price[-1] < last_sample.book_ask:
+                    res.inside_ms += dt
+        last_acc = to
+
+    def land(ev: tuple[float, int, int, str, int, float | None, int]) -> None:
+        _, _, side, kind, oid, px, old = ev
+        if kind == "place" or (kind == "replace" and old in cancelled):
+            live_id[side], price[side], remaining[side] = oid, px, qty
+        elif kind == "edit" and live_id[side] == oid and remaining[side] > 0:
+            price[side], remaining[side] = px, qty  # an edit re-arms the full size, as in `simulate`
+        elif kind == "cancel" and live_id[side] == oid:
+            if remaining[side] > 0:
+                cancelled.add(oid)
+            price[side], remaining[side] = None, 0.0
+
+    def decide(s: Sample) -> None:
+        nonlocal alive_until, last_sample
+        tb, ta = targets(s, cfg, tick)
+        for side, tgt in ((1, tb), (-1, ta)):
+            if s.ts < busy_until[side]:
+                continue
+            if tgt is None:
+                if want[side] is not None:
+                    push(s.ts + cfg.latency_ms, side, "cancel", want_id[side])
+                    want[side] = None
+                    busy_until[side] = s.ts + cfg.latency_ms
+                continue
+            if want[side] is None:
+                if emptied_at[side] is not None and s.ts < emptied_at[side] + cfg.loop_ms:
+                    continue
+                want[side], want_id[side], emptied_at[side] = tgt, next(ids), None
+                push(s.ts + cfg.latency_ms, side, "place", want_id[side], tgt)
+                busy_until[side] = s.ts + cfg.latency_ms
+                continue
+            if abs(tgt - want[side]) / tgt * 1e4 <= cfg.requote_tol_bps:
+                continue
+            against = tgt < want[side] if side == 1 else tgt > want[side]
+            if cfg.cancel_first is not None and against:
+                c, p = cfg.cancel_first
+                old = want_id[side]
+                push(s.ts + c, side, "cancel", old)
+                want[side], want_id[side] = tgt, next(ids)
+                push(s.ts + c + p, side, "replace", want_id[side], tgt, old)
+                busy_until[side] = s.ts + c + p
+            else:
+                push(s.ts + cfg.latency_ms, side, "edit", want_id[side], tgt)
+                want[side] = tgt
+                busy_until[side] = s.ts + cfg.latency_ms
+        alive_until = s.ts + cfg.latency_ms + cfg.max_gap_ms
+        last_sample = s
+
+    def advance(to_ms: float) -> None:
+        nonlocal si
+        while True:
+            t_s = samples[si].ts if si < len(samples) else float("inf")
+            t_e = events[0][0] if events else float("inf")
+            if min(t_s, t_e) > to_ms or min(t_s, t_e) == float("inf"):
+                return
+            if t_e <= t_s:  # a call landing at the same moment is visible to that sample
+                account(t_e)
+                land(heapq.heappop(events))
+            else:
+                account(t_s)
+                decide(samples[si])
+                si += 1
+
+    for t in trades:
+        advance(t.ts)
+        if last_sample is None or t.ts > alive_until:
+            continue
+        side = -t.aggressor  # aggressive sell (-1) hits our bid (+1)
+        px = price[side]
+        if px is None or remaining[side] <= 0:
+            continue
+        through = (t.price < px) if side == 1 else (t.price > px)
+        at = abs(t.price - px) < tick / 2
+        if not (through or (cfg.rule == "touch" and at)):
+            continue
+        q = min(remaining[side], t.size)
+        if side * inv >= 0:  # adding to (or opening) a position
+            q = min(q, max_inv - abs(inv))
+        if q <= 0:
+            continue
+        notional = q * cv * px
+        s = last_sample
+        free = offer.free_qty(t.ts, inv, side, q) if offer else 0.0
+        res.fills.append(
+            Fill(
+                ts=t.ts,
+                side=side,
+                price=px,
+                qty=q,
+                notional=notional,
+                fee=notional * cfg.fee_bps / 1e4,
+                mid=(s.book_bid + s.book_ask) / 2,
+                fair=s.fair,
+                fee_offer=(q - free) * cv * px * cfg.fee_bps / 1e4 if offer else None,
+                free_qty=free,
+            )
+        )
+        inv += side * q
+        remaining[side] -= q
+        if remaining[side] <= 0:
+            want[side], emptied_at[side] = None, t.ts
+    advance(float("inf"))
+    account(samples[-1].ts)
+    res.span_ms = samples[-1].ts - samples[0].ts
+    res.final_inv = inv
+    return res
+
+
 # ---------------------------------------------------------------- reporting
 
 class MidSeries:
@@ -441,6 +603,28 @@ def summarize(res: SimResult, mids: MidSeries, cv: float) -> dict:
     return out
 
 
+def pnl60_usd(res: SimResult, mids: MidSeries) -> float:
+    """Dollars behind net60: notional x (capture + 60 s markout) - fee, over the fills `summarize` scores."""
+    total = 0.0
+    for f in res.fills:
+        m = [mids.at(f.ts + h * 1000) for h in HORIZONS]
+        if None not in m:
+            m60 = m[HORIZONS.index(60)]
+            total += f.notional * (f.side * (f.mid - f.price) / f.price + f.side * (m60 - f.mid) / f.mid) - f.fee
+    return total
+
+
+def cancel_first_spec(text: str) -> tuple[float, float]:
+    """`CANCEL_MS:PLACE_MS`, e.g. 70:600."""
+    try:
+        c, p = (float(x) for x in text.split(":"))
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"expected CANCEL_MS:PLACE_MS, got {text!r}") from None
+    if c < 0 or p < 0:
+        raise argparse.ArgumentTypeError(f"delays must be >= 0, got {text!r}")
+    return c, p
+
+
 def verdict(s: dict, min_fills: int, target: float) -> str:
     if s["scored"] < min_fills:
         return f"CONTINUE ({s['scored']}/{min_fills} fills)"
@@ -474,6 +658,11 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument(
         "--scalper-match", choices=["fifo", "flat"], default="fifo",
         help="pair closes with opens first-in-first-out (fifo) or by position age since flat (flat, stricter)",
+    )
+    ap.add_argument(
+        "--cancel-first", type=cancel_first_spec, metavar="CANCEL_MS:PLACE_MS",
+        help="after each row, add the event engine twice: requotes by edit (--latency-ms), and cancel-first "
+        "(a requote against the quote cancels after CANCEL_MS and places after CANCEL_MS + PLACE_MS)",
     )
     args = ap.parse_args(argv)
     offer_on = args.scalper_window_min > 0
@@ -522,7 +711,23 @@ def main(argv: list[str] | None = None) -> None:
         print(header)
 
         def row(label: str, cfg: SimConfig) -> None:
-            s = summarize(simulate(samples, tape, tick, cv, cfg), mids, cv)
+            show(label, summarize(simulate(samples, tape, tick, cv, cfg), mids, cv))
+            if args.cancel_first is None:
+                return
+            pair = []
+            for lab, cf in ((f"  edit {cfg.latency_ms:.0f}ms", None),
+                            ("  cancel-first {:g}+{:g}".format(*args.cancel_first), args.cancel_first)):
+                res = simulate_events(samples, tape, tick, cv, dataclasses.replace(cfg, cancel_first=cf))
+                s = summarize(res, mids, cv)
+                show(lab, s)
+                pair.append((s, pnl60_usd(res, mids)))
+            (e, e60), (c, c60) = pair
+            print(
+                f"{'':24s}cancel-first vs edit: fills {c['scored']} vs {e['scored']}, net60 {c['net60']:+.2f} vs "
+                f"{e['net60']:+.2f} bps, PnL60 ${c60:+.2f} vs ${e60:+.2f}"
+            )
+
+        def show(label: str, s: dict) -> None:
             print(
                 f"{label:22s} {s['fills']:6d} {s['fills_per_day']:6.0f} {s['usd_per_day']:8,.0f} "
                 f"{s['uptime']:5.0%} {s['inside']:5.0%} {s['capture']:6.2f} "
@@ -556,6 +761,13 @@ def main(argv: list[str] | None = None) -> None:
             f"Scalper Offer: {args.scalper_window_min:g} min window, {args.scalper_match} matching. Columns after "
             f"'|' price the same fills with closing legs inside the window fee-free (opening legs pay); free% = "
             f"share of fill notional that was a free closing leg. The verdict ignores the offer."
+        )
+    if args.cancel_first is not None:
+        c, p = args.cancel_first
+        print(
+            f"Cancel-first: under each row, the event engine (decisions from the price last asked for, no new call "
+            f"while one is in flight) with every requote an edit landing after {args.latency_ms:g} ms, then with a "
+            f"requote against the quote cancelled after {c:g} ms and placed after {c + p:g} ms. PnL60 = net60 in dollars."
         )
 
 

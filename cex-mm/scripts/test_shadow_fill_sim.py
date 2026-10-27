@@ -187,6 +187,89 @@ class ScalperOfferSummary(unittest.TestCase):
         self.assertEqual((s["fee_offer"], s["free_share"], s["pnl_total_offer"]), (0.0, 0.0, 0.0))
 
 
+def ev_config(cancel_first: tuple[float, float] | None = None, latency: float = 700.0) -> sim.SimConfig:
+    return sim.SimConfig(
+        latency_ms=latency,
+        half_spread_bps=None,
+        rule="strict",
+        quote_usd=200.0,  # 2 contracts per quote at price 100
+        max_inv_orders=3,
+        fee_bps=FEE_BPS,
+        requote_tol_bps=3.0,
+        max_gap_ms=1e12,
+        loop_ms=400.0,
+        cancel_first=cancel_first,
+    )
+
+
+def quotes(*rows: tuple[float, float, float]) -> list[sim.Sample]:
+    """(ms, our bid, our ask) -> samples; the Delta book sits a point outside our quotes."""
+    return [
+        sim.Sample(ts=t, fair=(b + a) / 2, bid=b, ask=a, place_bid=True, place_ask=True,
+                   regime=0, book_bid=b - 1, book_ask=a + 1, binance_mid=0.0)
+        for t, b, a in rows
+    ]
+
+
+def tape(*rows: tuple[float, int, float, float]) -> list[sim.Trade]:
+    """(ms, our side hit, price, contracts) -> trades."""
+    return [sim.Trade(ts=t, price=p, size=q, aggressor=-side) for t, side, p, q in rows]
+
+
+class CancelFirst(unittest.TestCase):
+    """The event engine: edits land after --latency-ms; cancel-first takes an adverse quote off sooner."""
+
+    def fills(self, samples, trades, cancel_first=None):
+        res = sim.simulate_events(samples, trades, tick=0.5, cv=1.0, cfg=ev_config(cancel_first))
+        return [(f.ts, f.side, f.price, f.qty) for f in res.fills]
+
+    # The fair falls at 1 s: the bid should go 99 -> 97 (adverse), the ask 101 -> 99 (toward the market).
+    FALL = quotes((0, 99, 101), (1000, 97, 99))
+
+    def test_edit_leaves_the_stale_bid_until_the_edit_lands(self):
+        trades = tape((1300, BUY, 98.0, 1), (1800, BUY, 96.5, 1))
+        self.assertEqual(self.fills(self.FALL, trades), [(1300, BUY, 99, 1), (1800, BUY, 97, 1)])
+
+    def test_cancel_first_pulls_the_stale_bid_after_the_cancel(self):
+        # Cancel lands at 1070, the new bid at 1670: the 1300 sell finds no bid, the 1800 one fills at 97.
+        trades = tape((1050, BUY, 98.0, 1), (1300, BUY, 98.0, 1), (1650, BUY, 96.5, 1), (1800, BUY, 96.5, 1))
+        self.assertEqual(
+            self.fills(self.FALL, trades, cancel_first=(70.0, 600.0)),
+            [(1050, BUY, 99, 1), (1800, BUY, 97, 1)],
+        )
+
+    def test_move_toward_the_market_keeps_the_edit(self):
+        # The ask improves 101 -> 99 by edit in both modes: still 101 at 1650, 99 from 1700.
+        trades = tape((1650, SELL, 100.0, 1), (1750, SELL, 100.0, 1))
+        for cf in (None, (70.0, 600.0)):
+            self.assertEqual(self.fills(self.FALL, trades, cf), [(1750, SELL, 99, 1)], cf)
+
+    def test_quote_filled_out_before_the_cancel_lands_is_not_replaced(self):
+        # The bid fills out (2 contracts) at 1050, before the 1070 cancel: no replace at 1670. The bot
+        # places again on the first sample a loop after the fill (2000), landing at 2700.
+        samples = quotes((0, 99, 101), (1000, 97, 99), (2000, 97, 99))
+        trades = tape((1050, BUY, 98.0, 2), (1700, BUY, 96.5, 1), (2500, BUY, 96.0, 1), (2800, BUY, 96.0, 1))
+        self.assertEqual(
+            self.fills(samples, trades, cancel_first=(70.0, 600.0)),
+            [(1050, BUY, 99, 2), (2800, BUY, 97, 1)],
+        )
+
+    def test_no_new_decision_while_a_call_is_in_flight(self):
+        # Placed at 0 (lands 700): the 400 sample waits, the 800 one edits 99 -> 97 (lands 1500).
+        samples = quotes((0, 99, 101), (400, 98, 101), (800, 97, 101))
+        trades = tape((1200, BUY, 97.5, 1), (1600, BUY, 96.5, 1))
+        self.assertEqual(self.fills(samples, trades), [(1200, BUY, 99, 1), (1600, BUY, 97, 1)])
+
+    def test_side_switched_off_is_pulled_after_the_latency(self):
+        samples = quotes((0, 99, 101), (1000, 99, 101))
+        samples[1].place_bid = False
+        trades = tape((1500, BUY, 98.0, 1), (1800, BUY, 98.0, 1))
+        self.assertEqual(self.fills(samples, trades), [(1500, BUY, 99, 1)])
+
+    def test_no_samples_no_fills(self):
+        self.assertEqual(self.fills([], tape((10, BUY, 98.0, 1))), [])
+
+
 class EndToEnd(unittest.TestCase):
     """A run dir in the recorder's formats: dry-run.log.gz (MM_METRICS lines) + delta_mainnet_public_<day>.jsonl."""
 
@@ -250,6 +333,27 @@ class EndToEnd(unittest.TestCase):
         self.assertEqual(bot_on[0:3], ["bot", "quotes", "20ms"])
         self.assertEqual(bot_on[3], "6")
         self.assertIn("50%", rows_on[0])
+
+    def test_cli_cancel_first_adds_two_rows_per_config(self):
+        off = self.report()
+        on = self.report("--cancel-first", "10:15")
+        self.assertEqual(len([r for r in off if r.startswith(("bot quotes", "fair +/-"))]), 2)
+        self.assertNotIn("cancel-first", "\n".join(off).lower())
+        rows = [r for r in on if r.startswith(("bot quotes", "fair +/-", "  edit", "  cancel"))]
+        self.assertEqual(
+            [r[:22].rstrip() for r in rows],
+            ["bot quotes 20ms", "  edit 20ms", "  cancel-first 10+15",
+             "fair +/- 5bps", "  edit 20ms", "  cancel-first 10+15"],
+        )
+        self.assertEqual(sum("cancel-first vs edit:" in r for r in on), 2)
+        self.assertTrue(any(r.startswith("Cancel-first:") for r in on))
+        # A flat market never moves a quote, so the bot-quote rows of both engines fill alike.
+        self.assertEqual({r[22:].split()[0] for r in rows[:3]}, {"6"})
+
+    def test_cli_cancel_first_rejects_bad_spec(self):
+        for bad in ("70", "70:", "a:600", "-5:600"):
+            with self.assertRaises(SystemExit, msg=bad), contextlib.redirect_stderr(io.StringIO()):
+                self.report("--cancel-first", bad)
 
 
 if __name__ == "__main__":
