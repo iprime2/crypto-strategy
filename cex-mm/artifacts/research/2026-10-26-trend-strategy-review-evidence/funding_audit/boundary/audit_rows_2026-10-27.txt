@@ -1,0 +1,17 @@
+# funding_audit.py on the 27 Oct 00:05 rows, live candles fetched 2026-10-27T00:06Z
+
+vm_daily_rows_2026-10-27T0005Z.json: 2 rows
+rebalance           journal  old rule all hours     venue  logged rates
+2026-10-27T00:05     0.0410    0.0410    0.0431    0.0591  -
+TOTAL                0.0410    0.0410    0.0431    0.0591
+
+fixed_daily_rows_2026-10-27T0005Z.json: 2 rows
+rebalance           journal  old rule all hours     venue  logged rates
+2026-10-27T00:05     0.0591    0.0410    0.0431    0.0591  PASS: 3 exchanges, rates match, journal - venue +6.94e-18 $
+TOTAL                0.0591    0.0410    0.0431    0.0591
+
+fixed_weekly_rows_2026-10-27T0005Z.json: 2 rows
+rebalance           journal  old rule all hours     venue  logged rates
+2026-10-27T00:05     0.0102    0.0069    0.0111    0.0102  PASS: 3 exchanges, rates match, journal - venue +0.00e+00 $
+TOTAL                0.0102    0.0069    0.0111    0.0102
+exit 0

@@ -30,6 +30,17 @@ Why `trend_paper.py` journaled $0.3533 of funding for the daily book over 18 int
 - The fixed code's first rows ran on scratch copies of both books' state on 26 Oct at 19:05 UTC (`fixed_*_rows_2026-10-26T1905Z.json`). Both match an independent recompute from published candles to $0.00 (`audit_fixed_rows.txt`).
 - The VM still runs the old code. Deploying the fix needs the owner's go-ahead.
 
+## Boundary check across the 00:00 UTC exchange, 27 Oct (`boundary/`)
+
+The forward test of the provisional-value hypothesis, and the first old-code and fixed-code rows side by side.
+
+- **Method.** `snapshot_loop.py` fetched the nine coins' FUNDING candles and the tickers' `funding_rate` once a minute from 26 Oct 23:52 to 27 Oct 00:20 UTC. It ran here and, piped over ssh, on the VM, printing to stdout only, so nothing was written or started there. `analyze.py` reads the snapshots.
+- **No candle is provisional.** No candle changed value after it first appeared, in either series. The 00:00 candle appeared in the first snapshot after the exchange, 36 s after it here and 37 s on the VM, already at its final value. The hypothesis is refuted going forward as well as for the 19 past fetches.
+- **The ticker is not the settled rate.** The tickers' `funding_rate` just before 00:00 is a running estimate. For DOGE it was 0.021331 % against the settled 0.021416 %, so it cannot replace the candle.
+- **The VM's 00:05:29 row, old code** (`vm_daily_rows_2026-10-27T0005Z.json`). It booked $0.041004601854, equal to the old rule to every digit (`check_rows.txt`). Delta's rule gives $0.059051, so this one interval is $0.018 short. The weekly book was not due.
+- **The fixed code, from the same starting state.** It ran on a scratch copy of the 26 Oct 00:05 state, as the VM's run did, and booked $0.059055 (`fixed_daily_rows_2026-10-27T0005Z.json`). Its logged rates equal the published candles of the three exchanges it held through, and the total equals Delta's rule exactly. A scratch weekly book, set due by hand on the copy only, gives the same result. `funding_audit.py` passes both on a fresh fetch (`audit_rows_2026-10-27.txt`).
+- **Still open.** The 24 h re-fetch at 00:06 UTC on 28 Oct will be diffed against the last snapshot with `analyze.py --refetch`.
+
 ## Files
 
 | File | What |

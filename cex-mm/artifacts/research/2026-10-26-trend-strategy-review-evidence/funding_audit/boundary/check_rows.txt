@@ -1,0 +1,12 @@
+
+VM daily book, old code (deployed 2711fca): window 26 00:05:13 -> 27 00:05:29 UTC, exchanges ['26 08:00:00', '26 16:00:00', '27 00:00:00'], candles from the 27 00:04:35 snapshot
+  journal +0.041004601854   old rule +0.041004601854   Delta's rule +0.059050719351
+  journal - old rule +0.00e+00 $ (relative 0.0e+00); journal - Delta's rule -0.0180 $
+
+Scratch daily book, fixed code, same starting state: window 26 00:05:13 -> 27 00:05:22 UTC, exchanges ['26 08:00:00', '26 16:00:00', '27 00:00:00'], candles from the 27 00:04:35 snapshot
+  journal +0.059055239469   old rule +0.041007721972   Delta's rule +0.059055239469
+  logged exchanges and rates equal the published candles: True; journal - Delta's rule +0.00e+00 $
+
+Scratch weekly book, fixed code (scratch state set due; the VM's weekly book was not due): window 26 00:05:13 -> 27 00:05:33 UTC, exchanges ['26 08:00:00', '26 16:00:00', '27 00:00:00'], candles from the 27 00:04:35 snapshot
+  journal +0.010151494199   old rule +0.006880101545   Delta's rule +0.010151494199
+  logged exchanges and rates equal the published candles: True; journal - Delta's rule -1.73e-18 $
