@@ -25,7 +25,7 @@ Why `trend_paper.py` journaled $0.3533 of funding for the daily book over 18 int
 
 - One rate per exchange in (last rebalance, now], read from the candle stamped at that exchange.
 - The request starts at last rebalance + 1 s, and pages are keyed by candle time, so nothing is dropped or counted twice.
-- A coin missing a stamp is asked again, up to 5 times. If a rate is still missing, the run fails and the hourly timer retries. The old code booked zero instead.
+- A coin missing a stamp is asked again, up to 5 times. A rate still missing is carried forward and booked at a later rebalance once Delta publishes it. The rebalance itself goes ahead (see Deploy). The old code booked zero instead.
 - Every journal row records `funding_window` ([since, until], unix s), `funding_exchanges` (unix s) and `funding_rates` (coin → % per 8 h, one per exchange).
 - The fixed code's first rows ran on scratch copies of both books' state on 26 Oct at 19:05 UTC (`fixed_*_rows_2026-10-26T1905Z.json`). Both match an independent recompute from published candles to $0.00 (`audit_fixed_rows.txt`).
 - Deployed to the VM on 27 Oct at 08:36 UTC at the owner's request. See Deploy below.
@@ -42,7 +42,7 @@ The forward test of the provisional-value hypothesis, and the first old-code and
 - **The fixed code, from the same starting state.** It ran on a scratch copy of the 26 Oct 00:05 state, as the VM's run did, and booked $0.059055 (`fixed_daily_rows_2026-10-27T0005Z.json`). Its logged rates equal the published candles of the three exchanges it held through, and the total equals Delta's rule exactly. A scratch weekly book, set due by hand on the copy only, gives the same result. `funding_audit.py` passes both on a fresh fetch (`audit_rows_2026-10-27.txt`).
 - **Still open.** The 24 h re-fetch at 00:06 UTC on 28 Oct will be diffed against the last snapshot with `analyze.py --refetch`.
 
-## Deploy, 27 Oct 08:36 UTC (`deploy/`)
+## Deploy, 27 Oct 08:36 UTC, and carry-forward at 09:28 UTC (`deploy/`)
 
 - **What changed on the VM.** In `~/crypto-strategy`, `git fetch origin claude/keen-johnson-vo3h35`, then `git checkout FETCH_HEAD -- cex-mm/scripts/trend_paper.py cex-mm/scripts/test_trend_paper.py` (commit `8b156ba`). The checkout stays on main at `2711fca` with those two files modified. No unit, timer or bot was started, stopped or restarted.
 - **Checks.** The deployed file's md5 equals the tested one (`a0930c7b…`). The 16 tests and the self-test pass on the VM's Python 3.12.
@@ -51,7 +51,14 @@ The forward test of the provisional-value hypothesis, and the first old-code and
 - **Smoke test found a Delta outage.** `--orders-only` on both books writes nothing, and the state and journal hashes were unchanged after it. Both runs refused with "no FUNDING:BTCUSD rate … after 5 tries".
   - From some time after 00:20 UTC on 27 Oct, Delta's candles endpoint answers `{"success": true, "result": []}` for every `FUNDING:<sym>` request. That covers all nine coins, resolutions 1h and 1d, and any date range back to 7 Oct, from both this sandbox and the VM.
   - Price and `MARK:` candles answer normally, as does the tickers' `funding_rate` (`deploy/outage_probe_2026-10-27.txt`, made with `deploy/probe_funding_outage.py`).
-  - The fixed code fails the run rather than book zero, as designed. If the outage lasts past 28 Oct 00:05, the daily rebalance waits until the series returns, and the hourly timer retries. The old code would have rebalanced on time and silently booked zero funding.
+  - The code deployed at 08:36 failed the run rather than book zero. Through an outage it would have held every rebalance until the series returned, while the old code would have rebalanced on time and silently booked zero funding.
+- **Carry-forward, redeployed 09:23 and 09:28 UTC (owner's option 2).** The owner chose to rebalance on time and settle funding later.
+  - A coin-exchange whose rate is still unpublished after 5 asks is logged as null in `funding_rates`. It is carried in the state's and the row's `funding_pending`, with the paper notional (contracts × contract value × the rebalance mid, as for booked funding) and the model weight it applied to.
+  - The next rebalance fetches those stamps along with its own window, books any now published (cash and model equity), and lists them in `funding_late`. Funding is now fetched before the order books, so its retries cannot make the fill snapshot stale.
+  - Deployed as `eb24c3b` at 09:23:39, then `da1e277` at 09:28:30, which only adds the order-list line naming carried funding. The method is the same single-file checkout, with nothing restarted. All 21 tests and the self-test pass on the VM.
+  - The smoke test, still during the outage, now gives both order lists. The daily book carries 3 coin-exchanges and the weekly 16, and the state and journal hashes are unchanged.
+  - `funding_audit.py` now checks the new fields and reports each window's eventual charge against Delta's rule, or PENDING while unpublished.
+  - `deploy/carry_forward_qa.py` → `carry_forward_qa.txt` runs a normal day, two coins unpublished, all unpublished and a recovery through the real `step()`. Every window ends up charged exactly Delta's rule ($2.8861 in total), a journal cut mid-outage shows PENDING, and two tampered journals FAIL.
 
 ## Files
 
@@ -68,6 +75,7 @@ The forward test of the provisional-value hypothesis, and the first old-code and
 | `fixed_*_rows_2026-10-26T1905Z.json`, `audit_fixed_rows.txt`, `audit_vm_journals.txt` | The fixed code's first rows and the audits |
 | `boundary/snapshot_loop.py` → `local_snaps_2026-10-27.json`, `vm_snaps_2026-10-27.json` | The minute-by-minute snapshots across the 27 Oct 00:00 exchange, here and on the VM |
 | `boundary/analyze.py` → `analyze.txt` | Candles that changed after first appearing, when the new block appeared, and `--refetch` for the 24 h diff |
+| `deploy/probe_funding_outage.py` → `outage_probe_2026-10-27.txt`; `deploy/carry_forward_qa.py` → `carry_forward_qa.txt` | The FUNDING outage seen at the first deploy; the carry-forward QA through `step()` and `funding_audit.py` |
 | `boundary/check_rows.py` → `check_rows.txt`, `boundary/audit_rows_2026-10-27.txt` | The VM's 27 Oct 00:05 row (old code) and the fixed code's rows from the same starting state, checked offline and by `funding_audit.py` |
 
 Run everything from this folder. The offline scripts need only the files here.
