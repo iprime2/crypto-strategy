@@ -26,6 +26,8 @@ and PnL with the offer, and free% = share of fill notional that was a free closi
     python3 scripts/shadow_fill_sim.py --run-dir artifacts/shadow/<run>
     python3 scripts/shadow_fill_sim.py --run-dir artifacts/shadow/<run> --sweep 3,4,5,6,8 --latencies 0,300,1000
     python3 scripts/shadow_fill_sim.py --run-dir artifacts/shadow/<run> --sweep 5 --scalper-window-min 15
+    python3 scripts/shadow_fill_sim.py --run-dir artifacts/shadow/<run> --sweep 6 --latency-ms 700 \
+        --cancel-first 70:600 --since-utc 2026-10-27T09:30:00Z
 """
 from __future__ import annotations
 
@@ -33,6 +35,7 @@ import argparse
 import bisect
 import collections
 import dataclasses
+import datetime
 import glob
 import gzip
 import heapq
@@ -625,6 +628,17 @@ def cancel_first_spec(text: str) -> tuple[float, float]:
     return c, p
 
 
+def utc_ms(text: str) -> float:
+    """ISO time (`2026-10-27T09:30:00Z`; no zone means UTC) -> epoch ms."""
+    try:
+        t = datetime.datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"expected an ISO time like 2026-10-27T09:30:00Z, got {text!r}") from None
+    if t.tzinfo is None:
+        t = t.replace(tzinfo=datetime.timezone.utc)
+    return t.timestamp() * 1000
+
+
 def verdict(s: dict, min_fills: int, target: float) -> str:
     if s["scored"] < min_fills:
         return f"CONTINUE ({s['scored']}/{min_fills} fills)"
@@ -664,6 +678,11 @@ def main(argv: list[str] | None = None) -> None:
         help="after each row, add the event engine twice: requotes by edit (--latency-ms), and cancel-first "
         "(a requote against the quote cancels after CANCEL_MS and places after CANCEL_MS + PLACE_MS)",
     )
+    ap.add_argument(
+        "--since-utc", type=utc_ms, metavar="TIME",
+        help="use only quotes and trades received at or after this UTC time (e.g. 2026-10-27T09:30:00Z), "
+        "to test on data recorded after a rule was written",
+    )
     args = ap.parse_args(argv)
     offer_on = args.scalper_window_min > 0
 
@@ -671,6 +690,9 @@ def main(argv: list[str] | None = None) -> None:
     trade_paths = sorted(glob.glob(os.path.join(args.run_dir, "delta_mainnet_public_*.jsonl")))
     metrics = load_metrics(metric_paths)
     trades = load_trades(trade_paths)
+    if args.since_utc is not None:
+        metrics = {k: v for k, v in ((k, [s for s in v if s.ts >= args.since_utc]) for k, v in metrics.items()) if v}
+        trades = {k: [t for t in v if t.ts >= args.since_utc] for k, v in trades.items()}
     if not metrics:
         raise SystemExit(f"no MM_METRICS samples in {metric_paths}")
 
@@ -762,6 +784,9 @@ def main(argv: list[str] | None = None) -> None:
             f"'|' price the same fills with closing legs inside the window fee-free (opening legs pay); free% = "
             f"share of fill notional that was a free closing leg. The verdict ignores the offer."
         )
+    if args.since_utc is not None:
+        since = datetime.datetime.fromtimestamp(args.since_utc / 1000, datetime.timezone.utc)
+        print(f"Window: from {since:%Y-%m-%d %H:%M:%S} UTC (quotes and trades received earlier are left out).")
     if args.cancel_first is not None:
         c, p = args.cancel_first
         print(

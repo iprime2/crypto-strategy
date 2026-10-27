@@ -9,6 +9,7 @@ contract value 1, so a buy costs 99 * 2.12 / 1e4 per contract in fees and a sell
 from __future__ import annotations
 
 import contextlib
+import datetime
 import gzip
 import io
 import json
@@ -349,6 +350,32 @@ class EndToEnd(unittest.TestCase):
         self.assertTrue(any(r.startswith("Cancel-first:") for r in on))
         # A flat market never moves a quote, so the bot-quote rows of both engines fill alike.
         self.assertEqual({r[22:].split()[0] for r in rows[:3]}, {"6"})
+
+    def iso(self, sec: float) -> str:
+        return datetime.datetime.fromtimestamp((self.T0 + sec * 1000) / 1000, datetime.timezone.utc).isoformat()
+
+    def test_since_utc_drops_earlier_quotes_and_trades(self):
+        full = [r for r in self.report() if r.startswith("bot quotes")][0]
+        late = self.report("--since-utc", self.iso(50).replace("+00:00", "Z"))
+        bot = [r for r in late if r.startswith("bot quotes")][0]
+        self.assertEqual(full.split()[3], "6")
+        self.assertEqual(bot.split()[3], "3")  # the trades at 100, 300 and 310 s
+        self.assertIn("650 samples", "\n".join(late))
+        self.assertTrue(any(r.startswith("Window: from 2026-") and "UTC" in r for r in late))
+        self.assertFalse(any(r.startswith("Window:") for r in self.report()))
+
+    def test_since_utc_naive_time_is_utc(self):
+        bot = [r for r in self.report("--since-utc", self.iso(50)[:19]) if r.startswith("bot quotes")][0]
+        self.assertEqual(bot.split()[3], "3")
+
+    def test_since_utc_after_all_data_exits(self):
+        with self.assertRaises(SystemExit) as cm:
+            self.report("--since-utc", self.iso(10_000))
+        self.assertIn("no MM_METRICS samples", str(cm.exception))
+
+    def test_since_utc_rejects_bad_time(self):
+        with self.assertRaises(SystemExit), contextlib.redirect_stderr(io.StringIO()):
+            self.report("--since-utc", "yesterday")
 
     def test_cli_cancel_first_rejects_bad_spec(self):
         for bad in ("70", "70:", "a:600", "-5:600"):
