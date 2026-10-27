@@ -2,9 +2,12 @@
 """Tests for trend_paper.py: python3 -m unittest test_trend_paper (from cex-mm/scripts)."""
 from __future__ import annotations
 
+import copy
 import datetime as dt
+import json
 import os
 import sys
+import tempfile
 import unittest
 from unittest import mock
 from urllib.parse import parse_qs, urlparse
@@ -35,14 +38,16 @@ class FakeFunding:
     8-hour stamp at or after `start` (not at the first hour), ends at the last candle at or before `end`, and the
     endpoint sometimes answers an empty list. `rate(coin, stamp)` gives each exchange's rate in % per 8 h."""
 
-    def __init__(self, rate, empty=()):
-        self.rate, self.empty, self.calls = rate, list(empty), []
+    def __init__(self, rate, empty=(), down=()):
+        self.rate, self.empty, self.down, self.calls = rate, list(empty), set(down), []
 
     def __call__(self, url: str):
         q = parse_qs(urlparse(url).query)
         coin = q["symbol"][0].removeprefix("FUNDING:").removesuffix("USD")
         start, end = int(q["start"][0]), int(q["end"][0])
         self.calls.append((coin, start, end))
+        if coin in self.down:  # an outage: this series answers [] every time (as on 27 Oct 2026, all coins)
+            return []
         if coin in self.empty:
             self.empty.remove(coin)  # one empty answer per listed occurrence
             return []
@@ -68,9 +73,9 @@ class Funding(unittest.TestCase):
         self.assertEqual(tp.funding_exchanges(T(2026, 10, 8, 16, 37), T(2026, 10, 9, 0, 5)), [T(2026, 10, 9)])
         self.assertEqual(len(tp.funding_exchanges(T(2026, 10, 19, 0, 5), T(2026, 10, 26, 0, 5))), 21)
 
-    def fetched(self, fake, since, until):
+    def fetched(self, fake, since, until, pending=()):
         with mock.patch.object(tp, "fetch", fake), mock.patch.object(tp.time, "sleep"):
-            return tp.fetch_funding(since, until)
+            return tp.fetch_funding(since, until, pending)
 
     def test_each_exchange_charged_once_at_its_own_rate(self):
         # The bug of 8-26 Oct 2026: asking from 00:05 returns nothing before 08:00, so the old sum of hourly candles
@@ -103,17 +108,27 @@ class Funding(unittest.TestCase):
         self.assertEqual(got["rates"]["DOGE"], [block_rate("DOGE", s) for s in got["exchanges"]])
         self.assertEqual(sum(1 for c, *_ in fake.calls if c == "LTC"), 3)
 
-    def test_a_rate_still_missing_fails_the_run(self):
-        # Exit non-zero (the hourly timer retries) rather than journal a funding line that is silently short.
-        fake = FakeFunding(block_rate, empty=["BNB"] * 50)
-        with self.assertRaisesRegex(RuntimeError, "FUNDING:BNBUSD"):
-            self.fetched(fake, T(2026, 10, 25, 0, 5), T(2026, 10, 26, 0, 5))
+    def test_a_rate_still_missing_is_reported_missing_not_zero(self):
+        # An outage (all FUNDING series empty on 27 Oct 2026 from some time after 00:20 UTC) must neither book zero
+        # nor stop the rebalance: the stamp comes back as None, for step() to carry forward.
+        fake = FakeFunding(block_rate, down=["BNB"])
+        got = self.fetched(fake, T(2026, 10, 25, 0, 5), T(2026, 10, 26, 0, 5))
+        self.assertEqual(got["rates"]["BNB"], [None, None, None])
+        self.assertEqual(got["rates"]["BTC"], [block_rate("BTC", s) for s in got["exchanges"]])
+        self.assertEqual(sum(1 for c, *_ in fake.calls if c == "BNB"), tp.FUNDING_TRIES)
+        self.assertEqual(tp.funding_owed(got)["BNB"], 0.0)  # nothing booked now; step() carries it forward
+
+    def test_pending_stamps_are_fetched_with_the_window(self):
+        pending = [{"window": [1, 2], "coin": "ETH", "stamp": T(2026, 10, 24, 16), "notional": 10.0, "weight": 0.1}]
+        got = self.fetched(FakeFunding(block_rate), T(2026, 10, 25, 0, 5), T(2026, 10, 26, 0, 5), pending)
+        self.assertEqual(got["late_rates"], {"ETH": {T(2026, 10, 24, 16): block_rate("ETH", T(2026, 10, 24, 16))}})
 
     def test_journal_row_carries_what_it_charged_and_recomputes(self):
         closes, books, cvals = synthetic(NOW)
         s = tp.init_state(5000.0, NOW)
         rec0 = tp.step(s, closes, books, {}, cvals, NOW)
         self.assertEqual((rec0["funding_window"], rec0["funding_exchanges"], rec0["funding_rates"]), (None, [], {}))
+        self.assertEqual((rec0["funding_late"], rec0["funding_pending"]), ([], []))
         nxt = NOW + dt.timedelta(1)
         for c in tb.COINS:
             closes[c][nxt.date() - dt.timedelta(1)] = closes[c][NOW.date() - dt.timedelta(1)]
@@ -127,6 +142,138 @@ class Funding(unittest.TestCase):
         redo = sum(q * cvals[c] * rec["mids"][c] * sum(rec["funding_rates"][c]) / 100 for c, q in held.items())
         self.assertGreater(rec["funding"], 0)
         self.assertAlmostEqual(rec["funding"], redo, places=12)
+        self.assertEqual((rec["funding_late"], rec["funding_pending"], s["funding_pending"]), ([], [], []))
+
+
+class CarryForward(unittest.TestCase):
+    """Funding Delta has not published yet is carried forward and booked at a later rebalance; the rebalance itself
+    never waits for it (owner's choice, 27 Oct 2026)."""
+
+    def fetched(self, fake, since, until, pending=()):
+        with mock.patch.object(tp, "fetch", fake), mock.patch.object(tp.time, "sleep"):
+            return tp.fetch_funding(since, until, pending)
+
+    def book(self):
+        closes, books, cvals = synthetic(NOW)
+        s = tp.init_state(5000.0, NOW)
+        tp.step(s, closes, books, {}, cvals, NOW)
+        return s, closes, books, cvals
+
+    def next_day(self, closes, when):
+        for c in tb.COINS:
+            closes[c][when.date() - dt.timedelta(1)] = closes[c][NOW.date() - dt.timedelta(1)]
+
+    @staticmethod
+    def owed(rec, held, cvals, rates):
+        """What Delta's rule charges for one window: held notional at the rebalance mids x the exchanges' rates."""
+        return sum(q * cvals[c] * rec["mids"][c] * sum(rates[c]) / 100 for c, q in held.items())
+
+    def test_outage_rebalances_on_time_and_settles_later(self):
+        s, closes, books, cvals = self.book()
+        held1, w1 = dict(s["positions"]), dict(s["model_weights"])
+        d1 = NOW + dt.timedelta(1)
+        self.next_day(closes, d1)
+        det1 = self.fetched(FakeFunding(block_rate, down=["BTC", "ETH"]), s["last_rebalance_ts"], int(d1.timestamp()))
+        rec1 = tp.step(s, closes, books, tp.funding_owed(det1), cvals, d1, funding_detail=det1)
+        self.assertEqual(s["last_rebalance"], d1.date().isoformat())  # the rebalance happened on time
+        # Booked now: the coins whose rates were published. Carried: BTC and ETH, one entry per coin-exchange.
+        booked = sum(q * cvals[c] * rec1["mids"][c] * sum(det1["rates"][c]) / 100 for c, q in held1.items() if c not in ("BTC", "ETH"))
+        self.assertAlmostEqual(rec1["funding"], booked, places=12)
+        pend = rec1["funding_pending"]
+        self.assertEqual(sorted((p["coin"], p["stamp"]) for p in pend), sorted((c, e) for c in ("BTC", "ETH") for e in det1["exchanges"]))
+        for p in pend:
+            self.assertEqual(p["window"], [det1["since"], det1["until"]])
+            self.assertAlmostEqual(p["notional"], held1[p["coin"]] * cvals[p["coin"]] * rec1["mids"][p["coin"]], places=12)
+            self.assertEqual(p["weight"], w1[p["coin"]])
+        self.assertEqual(s["funding_pending"], pend)
+        self.assertIsNone(rec1["funding_rates"]["BTC"][0])
+
+        # The series is back: the next rebalance books its own window and everything carried.
+        held2 = dict(s["positions"])
+        d2 = d1 + dt.timedelta(1)
+        self.next_day(closes, d2)
+        det2 = self.fetched(FakeFunding(block_rate), s["last_rebalance_ts"], int(d2.timestamp()), s["funding_pending"])
+        rec2 = tp.step(s, closes, books, tp.funding_owed(det2), cvals, d2, funding_detail=det2)
+        self.assertEqual(s["funding_pending"], [])
+        self.assertEqual(rec2["funding_pending"], [])
+        self.assertEqual(len(rec2["funding_late"]), len(pend))
+        for x in rec2["funding_late"]:
+            self.assertEqual(x["rate"], block_rate(x["coin"], x["stamp"]))
+            self.assertAlmostEqual(x["amount"], x["notional"] * x["rate"] / 100, places=15)
+        own = self.owed(rec2, held2, cvals, det2["rates"])
+        self.assertAlmostEqual(rec2["funding"], own + sum(x["amount"] for x in rec2["funding_late"]), places=12)
+        # Across the two rows, each window is charged exactly what Delta's rule says, just later for the first.
+        full1 = {c: [block_rate(c, e) for e in det1["exchanges"]] for c in tb.COINS}
+        self.assertAlmostEqual(rec1["funding"] + rec2["funding"], self.owed(rec1, held1, cvals, full1) + own, places=12)
+
+    def test_settling_charges_the_model_its_carried_funding(self):
+        s, closes, books, cvals = self.book()
+        d1 = NOW + dt.timedelta(1)
+        self.next_day(closes, d1)
+        det1 = self.fetched(FakeFunding(block_rate, down=tb.COINS), s["last_rebalance_ts"], int(d1.timestamp()))
+        tp.step(s, closes, books, tp.funding_owed(det1), cvals, d1, funding_detail=det1)
+        self.assertTrue(s["funding_pending"])
+        d2 = d1 + dt.timedelta(1)
+        self.next_day(closes, d2)
+        det2 = self.fetched(FakeFunding(block_rate), s["last_rebalance_ts"], int(d2.timestamp()), s["funding_pending"])
+        still_down = {**det2, "late_rates": {}}
+        a, b = copy.deepcopy(s), copy.deepcopy(s)
+        ra = tp.step(a, closes, books, tp.funding_owed(det2), cvals, d2, funding_detail=det2)
+        rb = tp.step(b, closes, books, tp.funding_owed(det2), cvals, d2, funding_detail=still_down)
+        late_paid = sum(p["notional"] * block_rate(p["coin"], p["stamp"]) / 100 for p in s["funding_pending"])
+        late_model = sum(p["weight"] * block_rate(p["coin"], p["stamp"]) / 100 for p in s["funding_pending"])
+        self.assertGreater(late_model, 0)
+        self.assertAlmostEqual(ra["funding"] - rb["funding"], late_paid, places=12)
+        self.assertAlmostEqual(a["model_equity"] / b["model_equity"], 1 - late_model, places=12)
+        self.assertEqual(b["funding_pending"], s["funding_pending"])  # still unpublished: still carried
+
+    def test_order_list_counts_settlement_but_changes_nothing(self):
+        s, closes, books, cvals = self.book()
+        s["funding_pending"] = [{"window": [1, 2], "coin": "BTC", "stamp": T(2026, 10, 11, 16), "notional": 50.0, "weight": 0.05}]
+        before = copy.deepcopy(s)
+        det = {"since": s["last_rebalance_ts"], "until": s["last_rebalance_ts"], "exchanges": [], "rates": {},
+               "late_rates": {"BTC": {T(2026, 10, 11, 16): 0.01}}}
+        listed = tp.order_list(s, closes, books, {}, cvals, NOW, funding_detail=det)
+        self.assertEqual(s, before)
+        self.assertAlmostEqual(listed["funding"], 50.0 * 0.01 / 100, places=15)
+
+    def test_main_rebalances_through_an_outage_and_fetches_funding_before_books(self):
+        now = dt.datetime.now(dt.timezone.utc)
+        closes, books, cvals = synthetic(now)
+        with tempfile.TemporaryDirectory() as tmp:
+            s = tp.init_state(5000.0, now - dt.timedelta(1))
+            tp.step(s, closes, books, {}, cvals, now - dt.timedelta(1))  # held since yesterday
+            state_path = os.path.join(tmp, "state.json")
+            with open(state_path, "w") as f:
+                f.write(json.dumps(s))
+            calls = []
+            real_fetch_funding = tp.fetch_funding
+
+            def spy_funding(*a):
+                calls.append("funding")
+                return real_fetch_funding(*a)
+
+            def spy_book(c):
+                calls.append("book")
+                return books[c]
+
+            argv = ["trend_paper.py", "--state-dir", tmp]
+            with mock.patch.object(sys, "argv", argv), mock.patch.object(tp, "fetch", FakeFunding(block_rate, down=tb.COINS)), \
+                    mock.patch.object(tp.time, "sleep"), mock.patch.object(tp, "fetch_funding", spy_funding), \
+                    mock.patch.object(tp, "fetch_book", spy_book), mock.patch.object(tp, "fetch_closes", lambda d: closes), \
+                    mock.patch.object(tb, "contract_values", lambda: cvals), mock.patch("builtins.print"):
+                tp.main()
+            self.assertEqual(calls[0], "funding")
+            self.assertTrue(all(x == "book" for x in calls[1:]) and len(calls) == 1 + len(tb.COINS))
+            with open(os.path.join(tmp, "journal.jsonl")) as f:
+                rows = [json.loads(x) for x in f]
+            with open(state_path) as f:
+                state = json.load(f)
+            self.assertEqual(state["last_rebalance"], now.date().isoformat())
+            self.assertEqual(rows[-1]["funding"], 0.0)
+            self.assertEqual(len(rows[-1]["funding_pending"]), len(s["positions"]) * len(rows[-1]["funding_exchanges"])
+                             + sum(1 for c, x in s["model_weights"].items() if x and c not in s["positions"]) * len(rows[-1]["funding_exchanges"]))
+            self.assertEqual(state["funding_pending"], rows[-1]["funding_pending"])
 
 
 class Due(unittest.TestCase):

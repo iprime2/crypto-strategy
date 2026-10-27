@@ -8,8 +8,10 @@ For every rebalance after the first it recomputes the funding the book owed over
   all hours        hourly candles with since <= t < until, summed / 8 (the 26 Oct review's recompute)
   venue rule       one rate per funding exchange in (since, until]: the candle stamped at 00:00, 08:00 or 16:00
                    UTC, which is what Delta's ledger charges (matched 13 of 13 live ADA funding entries, 22-26 Oct)
-A row that logs funding_rates (written since the 2026-10-26 fix) must also log exactly the published rates, and its
-funding must equal the venue rule within --tol dollars.
+A row that logs funding_rates (written since the 2026-10-26 fix) must log exactly the published rates (null for one
+not published at run time, which must then be carried in its funding_pending), its late settlements (funding_late)
+must use the published rates, and its funding must equal what it booked plus what it settled. Each such row's window
+must end up charged Delta's rule within --tol dollars, or still be pending.
 
     python3 funding_audit.py JOURNAL [JOURNAL ...] [--candles DUMP.json] [--save DUMP.json] [--tol 0.01]
 
@@ -69,8 +71,12 @@ def rules(by: dict[int, float], since: int, until: int) -> dict[str, float]:
 
 
 def audit(rows: list[dict], candles: dict, cvals: dict, tol: float, label: str) -> bool:
+    """Per row: the three rules, and for a fixed-code row (it logs funding_rates) the checks below. Then, per
+    window of a fixed-code row, what was eventually charged for it (booked in its own row plus any carried
+    coin-exchange settled later, funding_late) against Delta's rule."""
     ok = True
     tot = {"journal": 0.0, "old": 0.0, "all": 0.0, "venue": 0.0}
+    windows: dict[tuple, dict] = {}
     print(f"\n{label}: {len(rows)} rows")
     print(f"{'rebalance':<17}{'journal':>10}{'old rule':>10}{'all hours':>10}{'venue':>10}  logged rates")
     for p, r in zip(rows, rows[1:]):
@@ -85,15 +91,48 @@ def audit(rows: list[dict], candles: dict, cvals: dict, tol: float, label: str) 
         if "funding_rates" in r:
             stamps = r["funding_exchanges"]
             want = list(range((since // X + 1) * X, until + 1, X))
-            bad = [c for c, rs in r["funding_rates"].items() if rs != [candles[c].get(e) for e in stamps]]
-            gap = r["funding"] - per["venue"]
-            good = stamps == want and not bad and abs(gap) <= tol
+            # Logged rates must be the published ones; a null (not published at run time) must be carried forward
+            # in this row's funding_pending when the paper book held the coin.
+            bad = [c for c, rs in r["funding_rates"].items()
+                   if len(rs) != len(stamps) or any(x is not None and x != candles[c].get(e) for x, e in zip(rs, stamps))]
+            carried = {(x["coin"], x["stamp"]) for x in r.get("funding_pending", []) if x["window"] == [since, until]}
+            uncarried = [(c, e) for c, rs in r["funding_rates"].items() for x, e in zip(rs, stamps)
+                         if x is None and p["positions"].get(c) and (c, e) not in carried]
+            booked = sum(q * cvals[c] * r["mids"][c] * sum(x for x in r["funding_rates"][c] if x is not None) / 100
+                         for c, q in p["positions"].items())
+            late = r.get("funding_late", [])
+            late_bad = [x for x in late if x["rate"] != candles[x["coin"]].get(x["stamp"])
+                        or abs(x["amount"] - x["notional"] * x["rate"] / 100) > 1e-12]
+            identity = abs(r["funding"] - booked - sum(x["amount"] for x in late)) <= 1e-9
+            windows.setdefault((since, until), {}).update(booked=booked, venue=per["venue"], row=r["time"][:16])
+            for x in late:
+                w = windows.setdefault(tuple(x["window"]), {})
+                w["late"] = w.get("late", 0.0) + x["amount"]
+            good = stamps == want and not bad and not uncarried and not late_bad and identity
             ok &= good
-            note = f"{'PASS' if good else 'FAIL'}: {len(stamps)} exchanges, rates {'match' if not bad else 'differ for ' + ','.join(bad)}, journal - venue {gap:+.2e} $"
+            note = (f"{'PASS' if good else 'FAIL'}: {len(stamps)} exchanges, rates {'match' if not bad else 'differ for ' + ','.join(bad)}"
+                    f", {len(carried)} carried, {len(late)} settled late{', LATE RATES WRONG' if late_bad else ''}"
+                    f"{', NOT CARRIED ' + str(uncarried) if uncarried else ''}{'' if identity else ', funding != booked + late'}")
         for k in tot:
             tot[k] += r["funding"] if k == "journal" else per[k]
         print(f"{r['time'][:16]:<17}{r['funding']:>10.4f}{per['old']:>10.4f}{per['all']:>10.4f}{per['venue']:>10.4f}  {note}")
     print(f"{'TOTAL':<17}{tot['journal']:>10.4f}{tot['old']:>10.4f}{tot['all']:>10.4f}{tot['venue']:>10.4f}")
+    if windows:
+        still = {tuple(x["window"]) for x in rows[-1].get("funding_pending", [])}
+        print(f"windows of fixed-code rows: charged in the row + settled later vs Delta's rule (tolerance ${tol})")
+        for w, d in sorted(windows.items()):
+            if "booked" not in d:
+                continue  # a window from before this journal copy
+            charged = d["booked"] + d.get("late", 0.0)
+            if w in still:
+                status = "PENDING (rates not published yet)"
+            elif d["venue"] != d["venue"]:
+                status = "UNKNOWN (candles missing)"
+                ok = False
+            else:
+                status = "PASS" if abs(charged - d["venue"]) <= tol else "FAIL"
+                ok &= status == "PASS"
+            print(f"  {d['row']}  charged {charged:.6f} (late {d.get('late', 0.0):.6f})  Delta's rule {d['venue']:.6f}  {status}")
     return ok
 
 
