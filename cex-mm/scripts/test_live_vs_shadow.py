@@ -11,6 +11,7 @@ import io
 import json
 import os
 import re
+import shutil
 import sys
 import tempfile
 import tracemalloc
@@ -21,6 +22,14 @@ from unittest import mock
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import live_vs_shadow as lvs  # noqa: E402
 import shadow_fill_sim as sim  # noqa: E402
+
+
+def tmpdir(test: unittest.TestCase) -> Path:
+    """A fresh temp directory, removed when `test` ends (pass or fail)."""
+    d = Path(tempfile.mkdtemp())
+    test.addCleanup(shutil.rmtree, d, ignore_errors=True)
+    return d
+
 
 T0 = 1_791_800_000_000.0  # ms, local clock
 
@@ -47,8 +56,7 @@ def fill_row(ts_iso: str, side: str, price: str, size="200", role: str = "maker"
 
 class EnvValue(unittest.TestCase):
     def write(self, text: str) -> Path:
-        d = tempfile.mkdtemp()
-        p = Path(d) / ".env"
+        p = tmpdir(self) / ".env"
         p.write_text(text)
         return p
 
@@ -137,7 +145,7 @@ class FetchFills(unittest.TestCase):
 
 class Samples(unittest.TestCase):
     def test_filters_symbol_and_window_and_compacts_unchanged_samples(self):
-        d = Path(tempfile.mkdtemp())
+        d = tmpdir(self)
         lines = [metrics_line(T0 + i * 400) for i in range(10)]  # unchanged quotes, 400 ms apart
         lines.insert(3, metrics_line(T0 + 1000, symbol="KITEUSDT"))
         lines.append(metrics_line(T0 + 4100, bid=99.95))  # a change is always kept
@@ -153,7 +161,7 @@ class Samples(unittest.TestCase):
         self.assertEqual(len(full), 11)
 
     def test_clock_offset_is_the_median_recv_minus_exchange(self):
-        d = Path(tempfile.mkdtemp())
+        d = tmpdir(self)
         p = d / "delta_mainnet_public_20261012.jsonl"
         p.write_text("".join(trade_line(T0 + i, T0 + i - off, 100, 1, True) for i, off in enumerate([900, 1000, 5000])))
         self.assertEqual(lvs.clock_offset_ms([str(p)], "ADAUSD", T0 - 10, T0 + 10), 1000)
@@ -201,7 +209,7 @@ class QuoteStats(unittest.TestCase):
         self.assertEqual(inside, 1200)
 
     def test_live_span_falls_back_to_a_full_scan(self):
-        d = Path(tempfile.mkdtemp())
+        d = tmpdir(self)
         p = d / "bot.log"
         p.write_text(metrics_line(T0, inventory=200) + metrics_line(T0 + 1000) + "WARN stale book\n" * 50)
         with mock.patch.object(lvs, "TAIL_BYTES", 100):
@@ -210,7 +218,7 @@ class QuoteStats(unittest.TestCase):
 
     def test_live_span_streams_a_gzipped_log(self):
         # A finished run's log is gzipped and cannot seek: reading it whole hit MemoryError under the VM's cap.
-        d = Path(tempfile.mkdtemp())
+        d = tmpdir(self)
         p = d / "bot.log.gz"
         with gzip.open(p, "wt") as f:
             f.write(metrics_line(T0, inventory=200) + "WARN stale book\n" * 400_000 + metrics_line(T0 + 1000))
@@ -254,7 +262,7 @@ def iso(ms: float) -> str:
 
 class Compare(unittest.TestCase):
     def test_real_fills_vs_the_pre_live_baseline_on_both_references(self):
-        live, shadow = write_runs(Path(tempfile.mkdtemp()))
+        live, shadow = write_runs(tmpdir(self))
         # Two real maker fills (local = exchange + 1 s), plus ones that must not count.
         rows = [fill_row(iso(T0 + 9000), "buy", "99.9", size="2", commission=str(99.9 * 2 * 2.12e-4), fid="a"),
                 fill_row(iso(T0 + 29_000), "sell", "100.1", size="2", commission=str(100.1 * 2 * 2.12e-4), fid="b"),
@@ -300,7 +308,7 @@ class Compare(unittest.TestCase):
         self.assertAlmostEqual(real["pnl_bps"], (0.4 - 400 * 2.12e-4) / 400 * 1e4, places=6)
 
     def test_a_partial_window_says_so_and_reports_the_inventory_there(self):
-        live, shadow = write_runs(Path(tempfile.mkdtemp()))
+        live, shadow = write_runs(tmpdir(self))
         logp = live / "bot.log"
         logp.write_text(logp.read_text().replace('"inventory":0.0', '"inventory":200.0'))
         rows = [fill_row(iso(T0 + 9000), "buy", "99.9", size="2", fid="early"),
@@ -315,7 +323,7 @@ class Compare(unittest.TestCase):
         self.assertIn("[this window only", lvs.format_table(out))
 
     def test_without_a_binance_mid_the_b_columns_are_marked_unavailable(self):
-        live, shadow = write_runs(Path(tempfile.mkdtemp()))
+        live, shadow = write_runs(tmpdir(self))
         sl = shadow / "dry-run.log"
         sl.write_text(re.sub(r'"binance_mid":[0-9.]+', '"binance_mid":null', sl.read_text()))
         out = lvs.compare(live, [shadow], [], latencies=[300], tick=0.05, cv=1.0)
@@ -346,7 +354,7 @@ class Compare(unittest.TestCase):
         self.assertIsNone(ref.at(T0 + 2 * stale_s * 1000))  # frozen, though a sample exists at that time
 
     def test_stop_rule_counts_fills_the_shadow_missed_marked_at_the_live_mid(self):
-        live, shadow = write_runs(Path(tempfile.mkdtemp()))
+        live, shadow = write_runs(tmpdir(self))
         sl = shadow / "dry-run.log"  # the shadow goes down 5 min into the live run
         sl.write_text("".join(l for l in sl.read_text().splitlines(keepends=True)
                               if json.loads(l[l.index("{"):])["ts_ms"] < T0 + 300_000))
@@ -359,7 +367,7 @@ class Compare(unittest.TestCase):
         self.assertAlmostEqual(out["stop"]["pnl_usd"], 2 * (100 - 99.9) + 2 * (100 - 99.0), places=9)
 
     def test_baseline_skips_time_another_live_run_was_quoting(self):
-        base = Path(tempfile.mkdtemp())
+        base = tmpdir(self)
         live, shadow = write_runs(base)
         other = live.parent / "20261012T070000Z"  # an earlier live run that stopped 30 min before this one
         other.mkdir()
@@ -369,7 +377,7 @@ class Compare(unittest.TestCase):
         self.assertGreaterEqual(out["baseline"]["t0"], T0 - 1_801_000 + 15_000 + 300_000)
 
     def test_baseline_uses_only_the_shadow_run_checked_at_start(self):
-        base = Path(tempfile.mkdtemp())
+        base = tmpdir(self)
         live, shadow = write_runs(base)
         newer = shadow.parent / "20261012T075500Z"  # another run over the same hour, with its own tape
         newer.mkdir()
@@ -382,7 +390,7 @@ class Compare(unittest.TestCase):
         self.assertEqual(out["baseline"]["tape_trades"], 164)
 
     def test_no_baseline_when_the_shadow_started_with_the_live_run(self):
-        live, shadow = write_runs(Path(tempfile.mkdtemp()))
+        live, shadow = write_runs(tmpdir(self))
         sl = shadow / "dry-run.log"
         sl.write_text("".join(l for l in sl.read_text().splitlines(keepends=True)
                               if json.loads(l[l.index("{"):])["ts_ms"] >= T0 - 60_000))
@@ -392,7 +400,7 @@ class Compare(unittest.TestCase):
         self.assertIn("no baseline", lvs.format_table(out))
 
     def test_main_offline_prints_the_table_and_json(self):
-        base = Path(tempfile.mkdtemp())
+        base = tmpdir(self)
         live, shadow = write_runs(base)
         (live / "fills.json").write_text("[]")
         buf = io.StringIO()
@@ -409,7 +417,7 @@ class Compare(unittest.TestCase):
         self.assertEqual(json.loads(buf.getvalue())["rows"]["real"]["fills"], 0)
 
     def test_offline_needs_fills_json_and_ends_the_window_at_its_time(self):
-        live, shadow = write_runs(Path(tempfile.mkdtemp()))
+        live, shadow = write_runs(tmpdir(self))
         with mock.patch.object(lvs.sim, "product_meta", return_value=(0.05, 1.0)), \
                 contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as cm:
             lvs.main(["--live-dir", str(live), "--shadow-dir", str(shadow), "--offline"])
@@ -419,7 +427,7 @@ class Compare(unittest.TestCase):
         self.assertLessEqual(out["rows"]["real"]["uptime"], 1.0)
 
     def test_a_capped_fetch_still_saves_what_it_got(self):
-        live, shadow = write_runs(Path(tempfile.mkdtemp()))
+        live, shadow = write_runs(tmpdir(self))
         env = live.parent / ".env"
         env.write_text("DELTA_MAINNET_API_KEY=k\nDELTA_MAINNET_API_SECRET=s\n")
         partial = [fill_row(iso(T0 + 9000), "buy", "99.9", size="2", fid="p1")]
@@ -431,7 +439,7 @@ class Compare(unittest.TestCase):
         self.assertEqual([r["id"] for r in json.loads((live / "fills.json").read_text())], ["p1"])
 
     def test_shadow_runs_are_picked_by_overlap_with_the_live_window(self):
-        base = Path(tempfile.mkdtemp())
+        base = tmpdir(self)
         sh = base / "shadow"
         for name in ["20261006T161427Z", "20261012T075609Z", "20261013T000000Z"]:
             (sh / name).mkdir(parents=True)
