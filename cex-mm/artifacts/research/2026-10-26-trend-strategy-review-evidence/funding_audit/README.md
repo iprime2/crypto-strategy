@@ -28,7 +28,7 @@ Why `trend_paper.py` journaled $0.3533 of funding for the daily book over 18 int
 - A coin missing a stamp is asked again, up to 5 times. If a rate is still missing, the run fails and the hourly timer retries. The old code booked zero instead.
 - Every journal row records `funding_window` ([since, until], unix s), `funding_exchanges` (unix s) and `funding_rates` (coin → % per 8 h, one per exchange).
 - The fixed code's first rows ran on scratch copies of both books' state on 26 Oct at 19:05 UTC (`fixed_*_rows_2026-10-26T1905Z.json`). Both match an independent recompute from published candles to $0.00 (`audit_fixed_rows.txt`).
-- The VM still runs the old code. Deploying the fix needs the owner's go-ahead.
+- Deployed to the VM on 27 Oct at 08:36 UTC at the owner's request. See Deploy below.
 
 ## Boundary check across the 00:00 UTC exchange, 27 Oct (`boundary/`)
 
@@ -41,6 +41,17 @@ The forward test of the provisional-value hypothesis, and the first old-code and
 - **The VM's 00:05:29 row, old code** (`vm_daily_rows_2026-10-27T0005Z.json`). It booked $0.041004601854, equal to the old rule to every digit (`check_rows.txt`). Delta's rule gives $0.059051, so this one interval is $0.018 short. The weekly book was not due.
 - **The fixed code, from the same starting state.** It ran on a scratch copy of the 26 Oct 00:05 state, as the VM's run did, and booked $0.059055 (`fixed_daily_rows_2026-10-27T0005Z.json`). Its logged rates equal the published candles of the three exchanges it held through, and the total equals Delta's rule exactly. A scratch weekly book, set due by hand on the copy only, gives the same result. `funding_audit.py` passes both on a fresh fetch (`audit_rows_2026-10-27.txt`).
 - **Still open.** The 24 h re-fetch at 00:06 UTC on 28 Oct will be diffed against the last snapshot with `analyze.py --refetch`.
+
+## Deploy, 27 Oct 08:36 UTC (`deploy/`)
+
+- **What changed on the VM.** In `~/crypto-strategy`, `git fetch origin claude/keen-johnson-vo3h35`, then `git checkout FETCH_HEAD -- cex-mm/scripts/trend_paper.py cex-mm/scripts/test_trend_paper.py` (commit `8b156ba`). The checkout stays on main at `2711fca` with those two files modified. No unit, timer or bot was started, stopped or restarted.
+- **Checks.** The deployed file's md5 equals the tested one (`a0930c7b…`). The 16 tests and the self-test pass on the VM's Python 3.12.
+- **When it takes effect.** The hourly runs only print "already rebalanced" until a rebalance is due, and they fetch no funding. The first fixed live row is the daily book's at 28 Oct 00:05, and the weekly book's at 2 Nov 00:05.
+- **Rollback.** Run `git checkout HEAD -- cex-mm/scripts/trend_paper.py cex-mm/scripts/test_trend_paper.py` in `~/crypto-strategy`. After this PR merges, a plain `git pull` on main brings the same content.
+- **Smoke test found a Delta outage.** `--orders-only` on both books writes nothing, and the state and journal hashes were unchanged after it. Both runs refused with "no FUNDING:BTCUSD rate … after 5 tries".
+  - From some time after 00:20 UTC on 27 Oct, Delta's candles endpoint answers `{"success": true, "result": []}` for every `FUNDING:<sym>` request. That covers all nine coins, resolutions 1h and 1d, and any date range back to 7 Oct, from both this sandbox and the VM.
+  - Price and `MARK:` candles answer normally, as does the tickers' `funding_rate` (`deploy/outage_probe_2026-10-27.txt`, made with `deploy/probe_funding_outage.py`).
+  - The fixed code fails the run rather than book zero, as designed. If the outage lasts past 28 Oct 00:05, the daily rebalance waits until the series returns, and the hourly timer retries. The old code would have rebalanced on time and silently booked zero funding.
 
 ## Files
 
