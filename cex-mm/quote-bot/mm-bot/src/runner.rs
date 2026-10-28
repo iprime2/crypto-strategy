@@ -16,7 +16,7 @@ use mm_core::{
 use crate::exchange::QuotingRest;
 use crate::markout::MarkoutRuntime;
 use crate::oms::{
-    contracts_of, first_call, gone_after_cancel, left_after_edit, place_price, FillApplied, FillEvent, FirstCall, LiveQuotes,
+    contracts_of, first_call, gone_after_cancel, place_price, FillApplied, FillEvent, FirstCall, LiveQuotes,
     OmsState, QuoteSide, Settled, SETTLE_PATIENCE,
 };
 use crate::account::{AccountConfig, AccountFlags};
@@ -1642,8 +1642,22 @@ async fn run_symbol_loop(
         let queue_front_frac = env_f64_for_symbol(&symbol, "MM_QUEUE_MAX_FRONT_FRAC", 0.9);
         let bid_px = place_price(QuoteSide::Bid, plan.bid, inventory < 0.0, top.best_bid, top.best_ask, top.bid_qty, bid_qty, tick, queue_front_frac);
         let ask_px = place_price(QuoteSide::Ask, plan.ask, inventory > 0.0, top.best_bid, top.best_ask, top.ask_qty, ask_qty, tick, queue_front_frac);
-        let bid = SideOrder { side: QuoteSide::Bid, quoted: plan.place_bid, target: plan.bid, qty: bid_qty, link: format!("mm-{symbol}-bid-{ts}") };
-        let ask = SideOrder { side: QuoteSide::Ask, quoted: plan.place_ask, target: plan.ask, qty: ask_qty, link: format!("mm-{symbol}-ask-{ts}") };
+        let bid = SideOrder {
+            side: QuoteSide::Bid,
+            quoted: plan.place_bid,
+            target: plan.bid,
+            qty: bid_qty,
+            edit_qty: oms.live.edit_qty(QuoteSide::Bid, bid_qty, contract_value),
+            link: format!("mm-{symbol}-bid-{ts}"),
+        };
+        let ask = SideOrder {
+            side: QuoteSide::Ask,
+            quoted: plan.place_ask,
+            target: plan.ask,
+            qty: ask_qty,
+            edit_qty: oms.live.edit_qty(QuoteSide::Ask, ask_qty, contract_value),
+            link: format!("mm-{symbol}-ask-{ts}"),
+        };
 
         // Both sides' first calls at once; then the fallbacks of failed ones, one after the other (`FirstCall`).
         let bid_call = first_call(need_bid, oms.live.bid_id, plan.place_bid, top.best_ask > 0.0 && plan.bid >= top.best_ask, edits_by_id, bid_px);
@@ -1702,7 +1716,11 @@ struct SideOrder {
     side: QuoteSide,
     quoted: bool,
     target: f64,
+    /// Size wanted resting.
     qty: f64,
+    /// Size an edit of the resting order sends: its filled part plus `qty` (Delta counts an edit's size as the
+    /// order's total; `oms::edit_size`).
+    edit_qty: f64,
     link: String,
 }
 
@@ -1741,7 +1759,7 @@ async fn first_venue_call(r: &QuotingRest, symbol: &str, call: FirstCall, order:
     let result = match call {
         FirstCall::Nothing => return None,
         FirstCall::Pull(id) => r.cancel_order(symbol, id).await.map(|()| None),
-        FirstCall::Edit(id) => r.edit_post_only(symbol, id, order.qty, order.target).await.map(|()| None),
+        FirstCall::Edit(id) => r.edit_post_only(symbol, id, order.edit_qty, order.target).await.map(|()| None),
         FirstCall::Place(price) => r.place_limit_post_only(symbol, order.venue_side(), order.qty, price, &order.link).await,
     };
     Some(Answered { result, ms: started.elapsed().as_millis() as u64 })
@@ -1772,19 +1790,9 @@ fn book_answer(
             if answer.result.is_err() {
                 return Some(Fallback::PullAfterEdit(id));
             }
-            let left = match order.side {
-                QuoteSide::Bid => {
-                    live.bid = Some(order.target);
-                    live.bid_left
-                }
-                QuoteSide::Ask => {
-                    live.ask = Some(order.target);
-                    live.ask_left
-                }
-            };
-            live.set_left(order.side, left_after_edit(left, contracts_of(order.qty, contract_value)));
+            live.track_edited(order.side, order.target, contracts_of(order.qty, contract_value));
             *need = false;
-            tracing::info!(target: "MM_ORDER", %symbol, side, price = order.target, qty = order.qty, ms, "edited post-only");
+            tracing::info!(target: "MM_ORDER", %symbol, side, price = order.target, qty = order.qty, ms, total = order.edit_qty, "edited post-only");
             None
         }
         FirstCall::Place(price) => {
@@ -1792,17 +1800,7 @@ fn book_answer(
             match answer.result {
                 Ok(id) => {
                     risk.reject_count = risk.reject_count.saturating_sub(2);
-                    match order.side {
-                        QuoteSide::Bid => {
-                            live.bid = Some(price);
-                            live.bid_id = id;
-                        }
-                        QuoteSide::Ask => {
-                            live.ask = Some(price);
-                            live.ask_id = id;
-                        }
-                    }
-                    live.set_left(order.side, contracts_of(order.qty, contract_value));
+                    live.track_placed(order.side, id, price, contracts_of(order.qty, contract_value));
                     crate::oems::post_order(&order.link, symbol, side, price, order.qty, false, None);
                     tracing::info!(target: "MM_ORDER", %symbol, side, price, qty = order.qty, ms, "placed post-only");
                 }

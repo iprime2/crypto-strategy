@@ -40,6 +40,10 @@ pub struct LiveQuotes {
     /// edit, decremented by fills; None when not known, and then fills never settle the side.
     pub bid_left: Option<i64>,
     pub ask_left: Option<i64>,
+    /// Contracts of the resting order already filled, from the fills feed: an edit asks for these plus the
+    /// contracts wanted resting (`edit_size`).
+    pub bid_filled: i64,
+    pub ask_filled: i64,
     /// When the fills said the side's quote was done while the venue had not yet shown it closed. While set,
     /// the loop asks the venue again each loop (`awaiting_venue`).
     pub bid_done_at: Option<Instant>,
@@ -101,14 +105,14 @@ pub fn contracts_of(qty_base: f64, contract_value: f64) -> Option<i64> {
     (n >= 1.0).then_some(n as i64)
 }
 
-/// Tracked remainder after an edit to `new` contracts. Whether Delta's edit size is the order's total or its
-/// unfilled size is not verified, so a quote that already part-filled keeps the smaller figure: a low guess
-/// only costs a venue check once the fills reach it, a high one would leave a filled side unquoted.
-pub fn left_after_edit(before: Option<i64>, new: Option<i64>) -> Option<i64> {
-    match (before, new) {
-        (Some(b), Some(n)) if b > 0 => Some(b.min(n)),
-        _ => new,
-    }
+/// Contracts to send in an edit so that `wanted` rest. Delta takes an edit's size as the order's total, filled
+/// part included: on 28 Oct 2026 bid 1636567899 of 200 with 27 filled, edited to 200, kept 173 unfilled. Until
+/// then the bot sent only the contracts it wanted resting, so a part-filled quote rested short by its filled
+/// part (11-12% of the size quoted, 25-28 Oct), and an edit down to the filled part left nothing to rest: Delta
+/// cancelled the order ("no_position_left_for_reduce_only", on an order that was not reduce-only) and never
+/// answered, which held the loop for the 3 s timeout (all 10 unanswered edits, 26-28 Oct 2026).
+pub fn edit_size(wanted: i64, filled: i64) -> i64 {
+    wanted + filled.max(0)
 }
 
 /// Whether the venue's order state means the order no longer rests.
@@ -214,6 +218,7 @@ impl LiveQuotes {
         self.bid = None;
         self.bid_id = None;
         self.bid_left = None;
+        self.bid_filled = 0;
         self.bid_done_at = None;
     }
 
@@ -221,6 +226,7 @@ impl LiveQuotes {
         self.ask = None;
         self.ask_id = None;
         self.ask_left = None;
+        self.ask_filled = 0;
         self.ask_done_at = None;
     }
 
@@ -229,6 +235,50 @@ impl LiveQuotes {
         let (l, done_at) = self.track_mut(side);
         *l = left;
         *done_at = None;
+    }
+
+    /// A new order the venue accepted on the side: nothing of it has filled yet.
+    pub fn track_placed(&mut self, side: QuoteSide, id: Option<u64>, price: f64, left: Option<i64>) {
+        match side {
+            QuoteSide::Bid => {
+                self.bid = Some(price);
+                self.bid_id = id;
+                self.bid_filled = 0;
+            }
+            QuoteSide::Ask => {
+                self.ask = Some(price);
+                self.ask_id = id;
+                self.ask_filled = 0;
+            }
+        }
+        self.set_left(side, left);
+    }
+
+    /// An edit the venue accepted: the order now rests at `price` with `left` contracts unfilled, since the edit
+    /// asked for its filled part plus these (`edit_qty`). Fills that land later run it down as usual.
+    pub fn track_edited(&mut self, side: QuoteSide, price: f64, left: Option<i64>) {
+        match side {
+            QuoteSide::Bid => self.bid = Some(price),
+            QuoteSide::Ask => self.ask = Some(price),
+        }
+        self.set_left(side, left);
+    }
+
+    /// Contracts of the side's resting order already filled, as far as the fills feed has told us.
+    pub fn filled(&self, side: QuoteSide) -> i64 {
+        match side {
+            QuoteSide::Bid => self.bid_filled,
+            QuoteSide::Ask => self.ask_filled,
+        }
+    }
+
+    /// Size, in base units for `mm-delta`, to send in an edit of the side's order so that `qty` rests
+    /// (`edit_size`). A size below one contract is sent as it is: the venue refuses it either way.
+    pub fn edit_qty(&self, side: QuoteSide, qty: f64, contract_value: f64) -> f64 {
+        match contracts_of(qty, contract_value) {
+            Some(n) => edit_size(n, self.filled(side)) as f64 * contract_value,
+            None => qty,
+        }
     }
 
     /// The order to ask the venue about again: the side's quote the fills say is done, not yet shown closed.
@@ -273,6 +323,10 @@ impl LiveQuotes {
         } else {
             return FillApplied::Unknown;
         };
+        match side {
+            QuoteSide::Bid => self.bid_filled += ev.contracts,
+            QuoteSide::Ask => self.ask_filled += ev.contracts,
+        }
         let (left, done_at) = self.track_mut(side);
         let Some(n) = left.as_mut() else {
             return FillApplied::Partial { side, left: None };
@@ -558,15 +612,55 @@ mod tests {
     }
 
     #[test]
-    fn an_edit_keeps_the_smaller_remainder() {
-        // 50 of 200 filled, edited at 200: the venue may count the 50 (150 left) or not (200 left). Keep 150.
-        assert_eq!(left_after_edit(Some(150), Some(200)), Some(150));
-        // The clip shrank the quote below what was left.
-        assert_eq!(left_after_edit(Some(200), Some(120)), Some(120));
-        // Nothing tracked before, or a remainder the fills already ran down (the edit proves it still rests).
-        assert_eq!(left_after_edit(None, Some(200)), Some(200));
-        assert_eq!(left_after_edit(Some(0), Some(200)), Some(200));
-        assert_eq!(left_after_edit(Some(150), None), None);
+    fn fills_count_toward_the_resting_orders_filled_part() {
+        let t0 = Instant::now();
+        let mut live = resting(200, 200);
+        live.apply_fill(FillEvent { order_id: 11, contracts: 70 }, t0);
+        live.apply_fill(FillEvent { order_id: 11, contracts: 3 }, t0);
+        assert_eq!((live.filled(QuoteSide::Bid), live.filled(QuoteSide::Ask)), (73, 0));
+        // Fills of other orders, and a size that is not tracked, still count only for their own order.
+        live.apply_fill(FillEvent { order_id: 99, contracts: 50 }, t0);
+        live.ask_left = None;
+        live.apply_fill(FillEvent { order_id: 12, contracts: 5 }, t0);
+        assert_eq!((live.filled(QuoteSide::Bid), live.filled(QuoteSide::Ask)), (73, 5));
+        // A new order on the side, or a cleared side, starts from nothing filled.
+        live.track_placed(QuoteSide::Bid, Some(21), 0.2401, Some(200));
+        assert_eq!((live.bid, live.bid_id, live.bid_left, live.filled(QuoteSide::Bid)), (Some(0.2401), Some(21), Some(200), 0));
+        live.clear_ask();
+        assert_eq!(live.filled(QuoteSide::Ask), 0);
+    }
+
+    #[test]
+    fn an_edit_asks_for_the_filled_part_plus_the_size_wanted_resting() {
+        // Delta takes an edit's size as the order's total: 28 Oct 2026, bid 1636567899 of 200 with 27 filled,
+        // edited to 200, kept 173 unfilled. An edit that asked only for the 73 wanted resting, on a bid that had
+        // filled 73, left nothing: Delta cancelled it and never answered (11:26:44Z, as all 10 unanswered edits).
+        let t0 = Instant::now();
+        let mut live = resting(200, 200);
+        live.apply_fill(FillEvent { order_id: 11, contracts: 70 }, t0);
+        live.apply_fill(FillEvent { order_id: 11, contracts: 3 }, t0);
+        assert_eq!(live.edit_qty(QuoteSide::Bid, 73.0, 1.0), 146.0);
+        assert_eq!(live.edit_qty(QuoteSide::Bid, 200.0, 1.0), 273.0);
+        // Nothing filled: the size wanted, as before.
+        assert_eq!(live.edit_qty(QuoteSide::Ask, 200.0, 1.0), 200.0);
+        // In base units for a contract of 10: 200 contracts wanted, 5 filled, 205 sent.
+        live.apply_fill(FillEvent { order_id: 12, contracts: 5 }, t0);
+        assert_eq!(live.edit_qty(QuoteSide::Ask, 2000.0, 10.0), 2050.0);
+        assert_eq!(edit_size(73, 73), 146);
+    }
+
+    #[test]
+    fn after_an_edit_the_wanted_size_rests_and_the_fills_run_it_down() {
+        let t0 = Instant::now();
+        let mut live = resting(200, 200);
+        live.apply_fill(FillEvent { order_id: 11, contracts: 70 }, t0);
+        // Edited back to 200 resting (270 sent): 200 left, the 70 already filled still count.
+        live.track_edited(QuoteSide::Bid, 0.2399, Some(200));
+        assert_eq!((live.bid, live.bid_id, live.bid_left, live.filled(QuoteSide::Bid)), (Some(0.2399), Some(11), Some(200), 70));
+        assert_eq!(live.awaiting_venue(QuoteSide::Bid), None);
+        assert_eq!(live.apply_fill(FillEvent { order_id: 11, contracts: 150 }, t0), FillApplied::Partial { side: QuoteSide::Bid, left: Some(50) });
+        assert_eq!(live.filled(QuoteSide::Bid), 220);
+        assert_eq!(live.apply_fill(FillEvent { order_id: 11, contracts: 50 }, t0), FillApplied::Filled { side: QuoteSide::Bid });
     }
 
     #[test]
