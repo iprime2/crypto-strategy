@@ -1,0 +1,8 @@
+# analyze.py --refetch boundary/local_refetch_2026-10-28.json
+=== re-fetch at 28 00:09:32 UTC vs the last snapshot of each file
+  local_snaps_2026-10-27.json: 297 common candles, 0 differ
+  vm_snaps_2026-10-27.json: 297 common candles, 0 differ
+# analyze.py --refetch boundary/vm_refetch_2026-10-28.json
+=== re-fetch at 28 00:09:38 UTC vs the last snapshot of each file
+  local_snaps_2026-10-27.json: 297 common candles, 0 differ
+  vm_snaps_2026-10-27.json: 297 common candles, 0 differ

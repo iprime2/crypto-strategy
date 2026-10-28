@@ -2,6 +2,7 @@
 """Snapshot Delta's FUNDING:<sym>USD hourly candles and the tickers' funding_rate for the nine trend coins, once
 every --every seconds until --until (unix s), one JSON line per snapshot on stdout. Public data, no keys, writes no
 file. Run here and, piped over ssh, on the VM:  python3 - --until U < snapshot_loop.py > snaps.jsonl
+A single snapshot from a given time (the 24 h re-fetch):  python3 snapshot_loop.py --until 0 --start T
 
 Each request starts on an 8-hour stamp at least 30 h back, so the endpoint's start truncation cannot cut a block,
 and an empty answer is asked again (up to 6 times; the count is recorded)."""
@@ -17,9 +18,9 @@ def get(url):
     return json.loads(urllib.request.urlopen(req, timeout=30).read())["result"]
 
 
-def snapshot():
+def snapshot(start_at=None):
     t0 = time.time()
-    start = (int(t0) - 30 * 3600) // X * X
+    start = (start_at if start_at is not None else int(t0) - 30 * 3600) // X * X
     out = {"t": t0, "start": start, "candles": {}, "empties": {}, "tickers": {}}
     for c in COINS:
         for k in range(6):
@@ -43,11 +44,12 @@ def snapshot():
 ap = argparse.ArgumentParser()
 ap.add_argument("--until", type=int, required=True)
 ap.add_argument("--every", type=int, default=60)
+ap.add_argument("--start", type=int, help="fetch from this unix time (put on an 8-hour stamp) instead of 30 h back")
 a = ap.parse_args()
 while True:
     t = time.time()
     try:
-        print(json.dumps(snapshot()), flush=True)
+        print(json.dumps(snapshot(a.start)), flush=True)
     except Exception as e:
         print(json.dumps({"t": t, "error": repr(e)}), flush=True)
     if time.time() + a.every > a.until:

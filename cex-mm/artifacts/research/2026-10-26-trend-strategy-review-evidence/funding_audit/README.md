@@ -40,7 +40,7 @@ The forward test of the provisional-value hypothesis, and the first old-code and
 - **The ticker is not the settled rate.** The tickers' `funding_rate` just before 00:00 is a running estimate. For DOGE it was 0.021331 % against the settled 0.021416 %, so it cannot replace the candle.
 - **The VM's 00:05:29 row, old code** (`vm_daily_rows_2026-10-27T0005Z.json`). It booked $0.041004601854, equal to the old rule to every digit (`check_rows.txt`). Delta's rule gives $0.059051, so this one interval is $0.018 short. The weekly book was not due.
 - **The fixed code, from the same starting state.** It ran on a scratch copy of the 26 Oct 00:05 state, as the VM's run did, and booked $0.059055 (`fixed_daily_rows_2026-10-27T0005Z.json`). Its logged rates equal the published candles of the three exchanges it held through, and the total equals Delta's rule exactly. A scratch weekly book, set due by hand on the copy only, gives the same result. `funding_audit.py` passes both on a fresh fetch (`audit_rows_2026-10-27.txt`).
-- **Still open.** The 24 h re-fetch at 00:06 UTC on 28 Oct will be diffed against the last snapshot with `analyze.py --refetch`.
+- **24 h later, nothing had changed.** At 00:09 UTC on 28 Oct, `snapshot_loop.py --start` re-fetched every candle from 25 Oct 16:00 UTC, here and on the VM: 57 per coin, with no gaps and no empty answers. All 297 candles of the 27 Oct snapshots are unchanged, and the two re-fetches match on all 513 candles (`refetch_diff.txt`). The hours of the 27 Oct outage are filled in. The provisional-value hypothesis is refuted for good.
 
 ## Deploy, 27 Oct 08:36 UTC, and carry-forward at 09:28 UTC (`deploy/`)
 
@@ -60,6 +60,13 @@ The forward test of the provisional-value hypothesis, and the first old-code and
   - `funding_audit.py` now checks the new fields and reports each window's eventual charge against Delta's rule, or PENDING while unpublished.
   - `deploy/carry_forward_qa.py` → `carry_forward_qa.txt` runs a normal day, two coins unpublished, all unpublished and a recovery through the real `step()`. Every window ends up charged exactly Delta's rule ($2.8861 in total), a journal cut mid-outage shows PENDING, and two tampered journals FAIL.
 
+## First live row on the fixed code, 28 Oct 00:05 UTC (`live/`)
+
+- **The run.** The VM's daily book rebalanced on time at 00:05:29 on the deployed code (main `439b36c`, `trend_paper.py` md5 `a97cd8ee…`). It placed 4 orders, booked $0.03 of funding, and the unit exited successfully. The weekly book was not due.
+- **Delta's funding data was back.** The row logs the published rate of all three exchanges it held through (27 Oct 08:00, 16:00 and 28 Oct 00:00 UTC), carried nothing forward and settled nothing late. The outage had ended some time between 10:40 UTC on 27 Oct and this run.
+- **It matches Delta's rule exactly.** `funding_audit.py` on a fresh fetch gives PASS: $0.027989 charged against $0.027989 owed (`live/audit_vm_row_2026-10-28.txt`, row in `live/vm_daily_rows_2026-10-28T0005Z.json`). The old code would have booked $0.0175 for the same window, 37 % short.
+- **The Tailscale node is logged out.** This session's node `claude-funding-audit` was logged out at 00:11 UTC on 28 Oct at the owner's request, and its daemon stopped.
+
 ## Files
 
 | File | What |
@@ -74,7 +81,8 @@ The forward test of the provisional-value hypothesis, and the first old-code and
 | `venue_funding_ada.json` | The ADAUSD wallet ledger's funding entries (time and amount only) with the bot's last logged inventory and mark before each exchange |
 | `fixed_*_rows_2026-10-26T1905Z.json`, `audit_fixed_rows.txt`, `audit_vm_journals.txt` | The fixed code's first rows and the audits |
 | `boundary/snapshot_loop.py` → `local_snaps_2026-10-27.json`, `vm_snaps_2026-10-27.json` | The minute-by-minute snapshots across the 27 Oct 00:00 exchange, here and on the VM |
-| `boundary/analyze.py` → `analyze.txt` | Candles that changed after first appearing, when the new block appeared, and `--refetch` for the 24 h diff |
+| `boundary/analyze.py` → `analyze.txt`, `refetch_diff.txt` | Candles that changed after first appearing, when the new block appeared, and the 24 h diff against `local_refetch_2026-10-28.json` and `vm_refetch_2026-10-28.json` |
+| `live/vm_daily_rows_2026-10-28T0005Z.json` → `live/audit_vm_row_2026-10-28.txt` | The VM's first fixed-code row and its audit |
 | `deploy/probe_funding_outage.py` → `outage_probe_2026-10-27.txt`; `deploy/carry_forward_qa.py` → `carry_forward_qa.txt` | The FUNDING outage seen at the first deploy; the carry-forward QA through `step()` and `funding_audit.py` |
 | `boundary/check_rows.py` → `check_rows.txt`, `boundary/audit_rows_2026-10-27.txt` | The VM's 27 Oct 00:05 row (old code) and the fixed code's rows from the same starting state, checked offline and by `funding_audit.py` |
 
