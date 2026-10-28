@@ -1,0 +1,9 @@
+# funding_audit.py on the VM's first fixed-code daily row, live candles fetched 2026-10-28T00:10Z
+
+live/vm_daily_rows_2026-10-28T0005Z.json: 2 rows
+rebalance           journal  old rule all hours     venue  logged rates
+2026-10-28T00:05     0.0280    0.0175    0.0286    0.0280  PASS: 3 exchanges, rates match, 0 carried, 0 settled late
+TOTAL                0.0280    0.0175    0.0286    0.0280
+windows of fixed-code rows: charged in the row + settled later vs Delta's rule (tolerance $0.01)
+  2026-10-28T00:05  charged 0.027989 (late 0.000000)  Delta's rule 0.027989  PASS
+exit 0
