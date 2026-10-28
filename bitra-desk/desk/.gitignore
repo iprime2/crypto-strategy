@@ -1,0 +1,12 @@
+# Secrets and everything the desk writes while it runs (kept on the VM, never in git)
+.env
+.tra-history
+KILL
+PAUSE
+runs/
+data/
+*.parquet
+ledger.jsonl
+__pycache__/
+# fetched series land beside their declarations: sources/<class>/<name>.csv
+sources/*/

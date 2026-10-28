@@ -1,0 +1,59 @@
+# Derivative series this desk reads: dated funding history, open interest, basis. The on-chain
+# analyst reads these beside the chain figures, because they answer the same question from the other
+# side: who is positioned, and who is paying to stay there.
+#
+# This file is for series, for analysis over time. The live funding rate and open interest a cycle
+# decides on come through data.toml, from the venue, with their age attached. Keeping them apart is
+# what stops a stale daily file from standing in for a number that has to be fresh.
+
+# The series here on the traded instrument's asset also reach the technical analyst, as
+# `positioning`: last value, change over the last hour, age, declared state.
+#
+# Free, from the venues themselves, no key, five-minute steps (set `asset`, and the symbol in
+# params, per instrument):
+#   from = "bybit",           id = "account-ratio",                       value = "buyRatio"
+#   from = "binance-futures", id = "takerlongshortRatio",                 value = "buySellRatio"
+#   from = "okx",             id = "contracts/long-short-account-ratio",  value = "1"
+# Paid, with your key in the environment:
+#   from = "coinglass", id = "futures/liquidation/aggregated-history"     (COINGLASS_API_KEY)
+# `tra sources add derivatives NAME --from ... --param symbol=BTCUSDT ...` writes the block and draws
+# its lines from the series' own history.
+
+# Nothing is switched on yet. Uncomment an entry and put the file where it points; the on-chain
+# analyst reads this class beside onchain.toml.
+
+# [[series]]
+# name = "btc_long_short"
+# file = "derivatives/btc_long_short.csv"   # share of accounts long on the venue
+# ts = "date"
+# ts_unit = "iso8601"
+# value = "value"
+# unit = "share"
+# publish_lag = "0s"
+# source = "bybit account-ratio"
+# max_age = "1h"
+# refresh = "5m"
+# asset = "BTC"
+# fetch = { from = "bybit", id = "account-ratio", value = "buyRatio", params = { category = "linear", symbol = "BTCUSDT", period = "5min", limit = "500" } }
+# threshold = { bearish_above = 0.66, bullish_below = 0.55 }   # a crowded long is fuel for a flush
+
+# [[series]]
+# name = "funding_8h"
+# file = "derivatives/funding_8h.csv"   # columns: date,value  (fraction: 0.0001 is one basis point)
+# ts = "date"
+# ts_unit = "iso8601"
+# value = "value"
+# unit = "fraction"
+# publish_lag = "0s"                    # a settled rate is known at settlement
+# source = "your export"
+# threshold = { bearish_above = 0.0005, bullish_below = -0.0002 }
+
+# [[series]]
+# name = "open_interest"
+# file = "derivatives/open_interest.csv"
+# ts = "date"
+# ts_unit = "iso8601"
+# value = "value"
+# unit = "contracts"
+# publish_lag = "15m"                 # one venue stamps it about fifteen minutes back
+# source = "your subscription"

@@ -11,6 +11,8 @@ Research, design, and implementation of **CEX USDT-perp market making** (Bybit-f
 | `.cursor/rules/` | Scope, git, and stack rules for this tree |
 | `.cursor/skills/` | Lead Engineer and CEX-MM delivery skills |
 | `cex-mm/` | Rust bot implementation only (no duplicate plans/skills under `cex-mm/`) |
+| `bitra-desk/` | Sandbox learning desk for the bitra AI-agent framework on its own VM; no orders, no exchange keys |
+| `tools/tailnet_up.sh` | Joins a cloud agent session to the tailnet and writes an ssh config for the VMs |
 | `.cursor/skills/quant-researcher` | `/quant-researcher` — live PnL, risk, experiments |
 | `.cursor/skills/research-desk` | `/research-desk` — short incident check |
 

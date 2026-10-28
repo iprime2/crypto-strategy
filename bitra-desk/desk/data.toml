@@ -1,0 +1,49 @@
+# Where the engine gets each kind of data, in what order, and how fresh it has to be.
+# Agents never read this file and never fetch anything: the engine fetches, writes a snapshot,
+# and the agents read the snapshot. `tra data pull` runs one round of this file.
+#
+# A source name is scheme:target, or `venue`.
+#   venue          the venue this desk trades on ([run].venue_key); its book is the one orders meet,
+#                  the demo or testnet API's book when orders go there. Change venue in strategy.toml
+#                  and every chain that says `venue` follows.
+#   ccxt:<venue>   public endpoints of a named venue through ccxt (pip install '...[ccxt]')
+#   file:data      whatever `tra data get` already wrote into data/, no network, no keys
+#   <your own>      register under the `trading_research_agents.sources` entry point
+#
+# In venue mode the book and the funding have to come from the venue orders go to; a chain that
+# reads them from another venue is refused. Candles may fall back to another venue on purpose:
+# chain = ["venue", "ccxt:binance", "file:data"].
+#
+# Order matters: the first source that answers inside `ttl` wins, and every attempt is written
+# into the snapshot, so a rate limit is visible instead of silent.
+
+[data]
+# Venue instrument names to the symbol a source knows it by. Only needed when the lookup fails.
+symbols = { BTCUSDT = "BTC/USDT:USDT" }
+
+[data.ohlcv]
+# Binance's BTCUSDT perpetual answers when Bybit rate-limits (seen 28 Oct 2026 on the 1d context);
+# the book and funding stay on the venue
+chain = ["venue", "ccxt:binance", "file:data"]
+ttl = "90s"                    # a minute bar plus the time it takes to publish; a longer bar adds its own wait
+interval_s = 60                # for `tra data pull`; a cycle asks for [run].bar_interval_s
+limit = 240                    # and [agents].lookback_bars instead
+on_exhausted = "refuse"        # refuse | use_stale_with_flag
+
+[data.orderbook]
+chain = ["venue"]
+ttl = "10s"                    # the book is the fastest thing here; nothing older is a book
+levels = 25                    # deep enough to walk for the size a decision is about
+
+[data.funding]
+chain = ["venue", "file:data"]
+ttl = "8h"                     # one settlement interval: the rate does not change between them
+
+[data.open_interest]
+chain = ["venue"]
+ttl = "10m"
+# Measured on 2026-09-28: asked plainly, this venue answers with the last hourly bucket, so the
+# figure arrives up to an hour old and a tight ttl refuses by construction. Asked for a finer
+# bucket it answers about two minutes back. `params` is handed to the venue verbatim, keyed by
+# venue, which is where a vendor's own spelling belongs.
+params = { bybit = { intervalTime = "5min" } }
