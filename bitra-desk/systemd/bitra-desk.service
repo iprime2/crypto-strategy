@@ -1,0 +1,19 @@
+# User unit, installed by bitra-desk/setup.sh into ~/.config/systemd/user/.
+[Unit]
+Description=bitra sandbox desk: one AI cycle per hour on BTCUSDT, no orders
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=3600
+StartLimitBurst=5
+
+[Service]
+Type=simple
+WorkingDirectory=%h/bitra/desk
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+# --mode sandbox pins it: even if strategy.toml is edited, this service never sends an order
+ExecStart=%h/.local/bin/tra --plain run --every 1h --mode sandbox
+Restart=on-failure
+RestartSec=120
+
+[Install]
+WantedBy=default.target
