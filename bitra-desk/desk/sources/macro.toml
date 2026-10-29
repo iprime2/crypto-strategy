@@ -84,3 +84,29 @@
 # publish_lag = "14d"                # a monthly print lands about two weeks after the month
 # source = "statistics office"
 # threshold = { bearish_above = 3.0, bullish_below = 2.0 }
+
+[[series]]
+name = "us10y"
+file = "macro/us10y.csv"
+ts = "date"
+ts_unit = "iso8601"
+value = "value"
+unit = ""
+publish_lag = "1d"
+source = "fred DGS10"
+max_age = "5d"
+fetch = { from = "fred", id = "DGS10" }
+threshold = { bearish_above = 4.65, bullish_below = 4.18 }   # the 25th and 75th percentiles of the 248 values to 2026-10-29; yours to move
+
+[[series]]
+name = "usd_broad"
+file = "macro/usd_broad.csv"
+ts = "date"
+ts_unit = "iso8601"
+value = "value"
+unit = ""
+publish_lag = "1d"
+source = "fred DTWEXBGS"
+max_age = "12d"                    # daily values, released weekly (H.10, Mondays): the last value is up to ~10 days old
+fetch = { from = "fred", id = "DTWEXBGS" }
+threshold = { bearish_above = 120.7, bullish_below = 118.7 }   # the 25th and 75th percentiles of the 246 values to 2026-10-29; yours to move

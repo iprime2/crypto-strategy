@@ -49,7 +49,7 @@ ssh -F /tmp/tailnet/ssh_config bitra-desk   # then this
 | Model | Gemini (`gemini-flash-latest`) for every role |
 | Analysts and weights | technical 2.0 (decides), sentiment 1.0, macro 1.0 (read only, move conviction) |
 | Sentiment | Crypto Fear & Greed (alternative.me, daily, no key): bullish above 71, bearish below 50, the 25th/75th percentiles of its last 90 days, read as momentum |
-| Macro | pending a `FRED_API_KEY`: US 10-year yield (`DGS10`) and the broad dollar (`DTWEXBGS`), both read as bearish when high |
+| Macro | FRED (`FRED_API_KEY`): US 10-year yield `DGS10`, bearish above 4.65 and bullish below 4.18; broad dollar `DTWEXBGS`, bearish above 120.7 and bullish below 118.7 (each the 25th/75th percentiles of its last year). The dollar is released weekly, so its `max_age` is 12 days |
 | Cost model | Bybit taker 5.5 bps a side, measured round trip 15.02 bps; refused unless the claimed edge is 2x the round trip |
 | Risk | 50 bps of $10,000 paper equity at the stop; no new entry after a 3% day or a 10% drawdown |
 
