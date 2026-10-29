@@ -1,0 +1,14 @@
+# User unit, installed by bitra-desk/setup.sh. Read-only page on 127.0.0.1:8790; `tailscale serve`
+# publishes it on the tailnet only.
+[Unit]
+Description=bitra-desk dashboard on 127.0.0.1:8790 (read-only)
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 %h/bitra/dashboard/server.py --desk %h/bitra/desk --port 8790
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target

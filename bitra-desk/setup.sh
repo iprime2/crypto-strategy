@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Bootstrap the bitra sandbox desk on an Ubuntu 24.04 host (bitra-desk, ap-south-1).
 # Installs uv and bitra, lays down ~/bitra/desk from this folder's desk/ config, and installs the
-# hourly user service. Never touches ~/bitra/desk/.env (beyond creating it empty), runs/ or the
+# hourly user service, the read-only dashboard (published on the tailnet by `tailscale serve`) and
+# the hourly hindsight timer. Never touches ~/bitra/desk/.env (beyond creating it empty), runs/ or the
 # fetched series under sources/*/. Starts the service only once GEMINI_API_KEY is set.
 # Run as the login user from a copy of this folder; uses sudo for apt and linger. Safe to re-run.
 set -euo pipefail
@@ -28,11 +29,22 @@ if [[ ! -f "$DESK/.env" ]]; then
 fi
 chmod 600 "$DESK/.env"
 cp "$HERE/README.md" "$HOME/bitra/README.md"
+mkdir -p "$HOME/bitra/dashboard"
+cp "$HERE/dashboard/server.py" "$HOME/bitra/dashboard/server.py"
 
 mkdir -p "$HOME/.config/systemd/user"
-cp "$HERE/systemd/bitra-desk.service" "$HOME/.config/systemd/user/bitra-desk.service"
+cp "$HERE"/systemd/*.service "$HERE"/systemd/*.timer "$HOME/.config/systemd/user/"
 sudo loginctl enable-linger "$USER"
 systemctl --user daemon-reload
+
+# The dashboard and the hindsight timer only read the records, so they run whether or not a key is set.
+systemctl --user enable bitra-dashboard bitra-hindsight.timer
+systemctl --user restart bitra-dashboard
+systemctl --user start bitra-hindsight.timer
+if command -v tailscale >/dev/null; then
+  sudo tailscale serve --bg 8790 >/dev/null  # HTTPS on the tailnet only; nothing opens to the internet
+  echo "dashboard: $(tailscale serve status 2>/dev/null | grep -oE 'https://[^ ]+' | head -1)"
+fi
 
 if grep -q '^GEMINI_API_KEY=.' "$DESK/.env"; then
   systemctl --user enable bitra-desk

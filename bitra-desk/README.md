@@ -72,10 +72,22 @@ tar -C bitra-desk -c . | ssh -F /tmp/tailnet/ssh_config bitra-desk \
 Keys (owner, on the VM): `nano ~/bitra/desk/.env`, see `desk/.env.example`. Then
 `cd ~/bitra/desk && tra keys --probe` shows each key as a fingerprint, never its value.
 
+## Dashboard
+
+**https://bitra-desk.taildea8d9.ts.net/**: tailnet only (open it with Tailscale on), read-only, refreshes
+every minute. It shows each hourly cycle (held, refused, would-be trade, error) with its reason, what each
+analyst says now and why, the data series with their age, every would-be trade, the latest
+`tra hindsight`, and Gemini usage by day and model. The same state as JSON is at `/api/state.json`.
+
+`dashboard/server.py` (stdlib only) runs as `bitra-dashboard.service` on 127.0.0.1:8790, and
+`sudo tailscale serve --bg 8790` publishes it; both are set up by `setup.sh`. `bitra-hindsight.timer`
+runs `tra hindsight` at half past each hour so the hindsight section stays current. Tests:
+`python3 -m unittest discover -s bitra-desk/dashboard -p 'test_*.py'`.
+
 ## Operate
 
 ```bash
-systemctl --user status bitra-desk
+systemctl --user status bitra-desk bitra-dashboard bitra-hindsight.timer
 journalctl --user -u bitra-desk -n 80          # each hour's cycle; -f to follow
 cd ~/bitra/desk && tra watch --every 5s        # read-only view of the records
 tra sources show                               # every series, its age, stale or not

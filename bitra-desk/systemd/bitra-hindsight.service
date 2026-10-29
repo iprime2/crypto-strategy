@@ -1,0 +1,12 @@
+# User unit, installed by bitra-desk/setup.sh. Started by bitra-hindsight.timer. Replays every recorded
+# decision on the candles since and writes runs/cycles/hindsight.json for the dashboard; sends nothing.
+[Unit]
+Description=bitra-desk hindsight: replay the desk's decisions (read-only)
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/bitra/desk
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=%h/.local/bin/tra --plain hindsight
+TimeoutStartSec=600
