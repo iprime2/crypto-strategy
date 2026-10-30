@@ -29,18 +29,21 @@ if [[ ! -f "$DESK/.env" ]]; then
 fi
 chmod 600 "$DESK/.env"
 cp "$HERE/README.md" "$HOME/bitra/README.md"
-mkdir -p "$HOME/bitra/dashboard"
+mkdir -p "$HOME/bitra/dashboard" "$HOME/bitra/paper"
 cp "$HERE/dashboard/server.py" "$HOME/bitra/dashboard/server.py"
+cp "$HERE/paper/paper.py" "$HOME/bitra/paper/paper.py"
 
 mkdir -p "$HOME/.config/systemd/user"
 cp "$HERE"/systemd/*.service "$HERE"/systemd/*.timer "$HOME/.config/systemd/user/"
 sudo loginctl enable-linger "$USER"
 systemctl --user daemon-reload
 
-# The dashboard and the hindsight timer only read the records, so they run whether or not a key is set.
-systemctl --user enable bitra-dashboard bitra-hindsight.timer
+# The dashboard and the hindsight and paper timers only read the records (and public candles), so they
+# run whether or not a key is set.
+systemctl --user enable bitra-dashboard bitra-hindsight.timer bitra-paper.timer
 systemctl --user restart bitra-dashboard
-systemctl --user start bitra-hindsight.timer
+systemctl --user start bitra-hindsight.timer bitra-paper.timer
+systemctl --user start bitra-paper.service || echo "paper: first run failed; journalctl --user -u bitra-paper"
 if command -v tailscale >/dev/null; then
   sudo tailscale serve --bg 8790 >/dev/null  # HTTPS on the tailnet only; nothing opens to the internet
   echo "dashboard: $(tailscale serve status 2>/dev/null | grep -oE 'https://[^ ]+' | head -1)"

@@ -50,6 +50,7 @@ jobs:
       - run: python3 --version
       - run: python3 -m unittest discover -s cex-mm/scripts -p 'test_*.py' -v
       - run: python3 -m unittest discover -s bitra-desk/dashboard -p 'test_*.py' -v
+      - run: python3 -m unittest discover -s bitra-desk/paper -p 'test_*.py' -v
 
   security:
     name: Security scan

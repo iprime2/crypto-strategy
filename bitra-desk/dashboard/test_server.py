@@ -110,6 +110,30 @@ class RenderTest(unittest.TestCase):
         self.assertIn("39%", page)  # break-even win rate of the would-be trade
 
 
+class PaperTest(unittest.TestCase):
+    def test_paper_section(self):
+        desk = make_desk(self)
+        pdir = tmpdir(self)
+        trade = {"cycle": "c", "side": "short", "setup": "range_reversion", "size": 0.005, "entry": 81300.0,
+                 "entry_ms": 1793232000000, "stop": 81795.3, "take": 79416.0, "round_trip_bps": 13.0,
+                 "conviction": "0.6", "reason": "<b>x</b>", "exit": 80000.0, "exit_ms": 1793275200000,
+                 "exit_reason": "time limit", "gross_usd": 6.5, "cost_usd": 0.53, "net_usd": 5.97, "net_bps": 146.9}
+        (pdir / "state.json").write_text(json.dumps({
+            "start_equity": 10000, "equity": 10005.97, "realized_usd": 5.97, "unrealized_usd": 0.0,
+            "return_pct": 0.06, "closed": 1, "wins": 1, "losses": 0, "open": None, "trades": [trade],
+            "skipped": [{"cycle": "d", "side": "short", "why": "a short is already open"}],
+            "equity_curve": [[1793275200000, 10005.97]], "hold_hours": 12, "generated_ms": NOW.timestamp() * 1000,
+            "fetch_error": None}))
+        page = server.render(server.build_state(desk, now=NOW, service="active", paper_dir=pdir))
+        for text in ("Paper account", "$10,005.97", "+0.06%", "time limit", "+$5.97", "12 h, net of", "Flat: no position open"):
+            self.assertIn(text, page)
+
+    def test_paper_missing(self):
+        page = server.render(server.build_state(make_desk(self), now=NOW, service="active", paper_dir=tmpdir(self)))
+        self.assertIn("Paper account", page)
+        self.assertIn("Not computed yet", page)
+
+
 class HttpTest(unittest.TestCase):
     def test_routes(self):
         desk = make_desk(self)

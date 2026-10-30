@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """bitra-desk dashboard: the sandbox desk's cycles, analysts, data series, model use and hindsight.
 
-Reads only what `tra run` and `tra hindsight` write under <desk>/runs/cycles; never reads .env.
+Reads only what `tra run` and `tra hindsight` write under <desk>/runs/cycles and the paper account's
+state.json (../paper/paper.py); never reads .env.
 Read-only, stdlib only, binds 127.0.0.1. `tailscale serve` publishes it on the tailnet.
 
     python3 server.py --desk ~/bitra/desk --port 8790     # http://127.0.0.1:8790/
@@ -143,7 +144,8 @@ def service_state(unit: str = "bitra-desk") -> str:
         return "unknown"
 
 
-def build_state(desk: Path, now: datetime | None = None, service: str | None = None) -> dict:
+def build_state(desk: Path, now: datetime | None = None, service: str | None = None,
+                paper_dir: Path | None = None) -> dict:
     now = now or datetime.now(timezone.utc)
     cycles = desk / "runs" / "cycles"
     rows = load_index(cycles)
@@ -198,6 +200,14 @@ def build_state(desk: Path, now: datetime | None = None, service: str | None = N
         except (OSError, json.JSONDecodeError):
             hindsight = None
 
+    paper = None
+    paper_path = (paper_dir or desk.parent / "paper") / "state.json"
+    if paper_path.exists():
+        try:
+            paper = json.loads(paper_path.read_text())
+        except (OSError, json.JSONDecodeError):
+            paper = None
+
     next_pass = (now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1))
     return {
         "now": now,
@@ -214,6 +224,7 @@ def build_state(desk: Path, now: datetime | None = None, service: str | None = N
         "trades": list(reversed(trades)),
         "usage": usage_by_day(read_jsonl(cycles / "usage.jsonl")),
         "hindsight": hindsight,
+        "paper": paper,
     }
 
 
@@ -244,7 +255,7 @@ def ago(at: datetime | None, now: datetime) -> str:
 
 PILL = {"would trade": "go", "refused": "warn", "held": "mute", "error": "bad", "incomplete": "bad",
         "active": "go", "bullish": "go", "risk-on": "go", "bearish": "bad", "risk-off": "bad",
-        "neutral": "mute", "long": "go", "short": "bad"}
+        "neutral": "mute", "long": "go", "short": "bad", "positive": "go", "negative": "bad"}
 
 
 def pill(word: str) -> str:
@@ -278,6 +289,61 @@ background:var(--mute-bg);color:var(--mute)}
 """
 
 
+def ms_time(ms) -> datetime | None:
+    return datetime.fromtimestamp(ms / 1000, tz=timezone.utc) if ms else None
+
+
+def usd(v) -> str:
+    try:
+        x = float(v)
+    except (TypeError, ValueError):
+        return ""
+    return f"{'+' if x >= 0 else '−'}${abs(x):,.2f}"
+
+
+def render_paper(pa: dict | None, now: datetime) -> str:
+    """The would-be trades as one account: one position at a time, the desk's own size and levels."""
+    if not pa:
+        return ("<h2>Paper account</h2><p class='note'>Not computed yet (the paper timer runs at 35 past "
+                "each hour).</p>")
+    out = [f"""<h2>Paper account</h2><p class='note'>The desk's would-be trades taken one at a time, as a real
+account would: entry at the next 5-minute bar, the desk's own size, stop and target, out at either or after
+{e(f"{float(pa.get('hold_hours') or 0):g}")} h, net of the priced round trip. Practice money only; updated
+{e(ago(ms_time(pa.get('generated_ms')), now))}.{' Candle fetch failed: ' + e(pa['fetch_error']) if pa.get('fetch_error') else ''}</p>
+<div class="tiles">
+<div class="tile"><b>${float(pa['equity']):,.2f}</b><span>equity (from ${float(pa['start_equity']):,.0f})</span></div>
+<div class="tile"><b>{float(pa['return_pct']):+.2f}%</b><span>return</span></div>
+<div class="tile"><b>{e(usd(pa['realized_usd']))}</b><span>realized ({pa['closed']} closed: {pa['wins']} won, {pa['losses']} lost)</span></div>
+<div class="tile"><b>{e(usd(pa['unrealized_usd']))}</b><span>unrealized (open position)</span></div>
+<div class="tile"><b>{len(pa.get('skipped') or [])}</b><span>signals skipped (position already open)</span></div>
+</div>"""]
+    o = pa.get("open")
+    out.append("<div class='card' style='margin-top:10px'><table><tr><th>Open position</th><th>Entry</th>"
+               "<th>Mark</th><th>Stop</th><th>Take</th><th>Size</th><th>Unrealized</th><th>Closes by</th></tr>")
+    if o:
+        out.append(f"<tr><td class='nw'>{pill(o['side'])} {e(o.get('setup'))} · {e(t(ms_time(o['entry_ms'])))}</td>"
+                   f"<td class='num'>{o['entry']:.1f}</td><td class='num'>{o['mark']:.1f}</td>"
+                   f"<td class='num'>{o['stop']:.1f}</td><td class='num'>{o['take']:.1f}</td>"
+                   f"<td class='num'>{o['size']} BTC</td><td class='num'>{e(usd(o['unrealized_usd']))}</td>"
+                   f"<td class='nw'>{e(t(ms_time(o['deadline_ms'])))}</td></tr>")
+    else:
+        out.append("<tr><td colspan=8>Flat: no position open.</td></tr>")
+    out.append("</table></div>")
+    out.append("<div class='card' style='margin-top:10px'><table><tr><th>Closed</th><th>Side</th><th>Entry</th>"
+               "<th>Exit</th><th>Why</th><th>Size</th><th>Net</th><th>Equity after</th></tr>")
+    curve = {c[0]: c[1] for c in pa.get("equity_curve") or []}
+    for tr in reversed(pa.get("trades") or []):
+        out.append(f"<tr><td class='nw'>{e(t(ms_time(tr['entry_ms'])))} → {e(t(ms_time(tr['exit_ms']), with_date=False))}</td>"
+                   f"<td>{pill(tr['side'])}</td><td class='num'>{tr['entry']:.1f}</td><td class='num'>{tr['exit']:.1f}</td>"
+                   f"<td class='nw'>{e(tr['exit_reason'])}</td><td class='num'>{tr['size']} BTC</td>"
+                   f"<td class='num'>{e(usd(tr['net_usd']))} ({tr['net_bps']:+.0f} bps)</td>"
+                   f"<td class='num'>${curve.get(tr['exit_ms'], 0):,.2f}</td></tr>")
+    if not pa.get("trades"):
+        out.append("<tr><td colspan=8>No closed trades yet.</td></tr>")
+    out.append("</table></div>")
+    return "".join(out)
+
+
 def render(s: dict) -> str:
     now = s["now"]
     last = s["last_cycle"]
@@ -298,6 +364,8 @@ next pass {e(t(s['next_pass'], with_date=False))} · BTC mid {e(last['mid'] if l
 <div class="tile"><b>{c.get('error (recent)', 0)}</b><span>errors in last {RECENT_CYCLES}</span></div>
 <div class="tile"><b>{u_today.get('calls', 0)}</b><span>model calls today ({u_today.get('errors', 0)} failed)</span></div>
 </div>"""]
+
+    parts.append(render_paper(s.get("paper"), now))
 
     parts.append("<h2>What the analysts say now</h2><div class='card'><table><tr><th>Analyst</th><th>Says</th>"
                  "<th>Why</th><th>Data as of</th></tr>")
@@ -389,14 +457,14 @@ def to_json(s: dict) -> str:
     return json.dumps(s, default=lambda o: o.isoformat() if isinstance(o, datetime) else str(o), indent=1)
 
 
-def make_handler(desk: Path):
+def make_handler(desk: Path, paper_dir: Path | None = None):
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):  # noqa: N802 (http.server's name)
             path = self.path.split("?", 1)[0]
             if path not in ("/", "/api/state.json"):
                 self.send_error(404)
                 return
-            state = build_state(desk)
+            state = build_state(desk, paper_dir=paper_dir)
             if path == "/":
                 body, ctype = render(state).encode(), "text/html; charset=utf-8"
             else:
@@ -417,10 +485,11 @@ def make_handler(desk: Path):
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--desk", type=Path, default=Path.home() / "bitra" / "desk")
+    p.add_argument("--paper", type=Path, default=Path.home() / "bitra" / "paper")
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=8790)
     args = p.parse_args()
-    server = ThreadingHTTPServer((args.host, args.port), make_handler(args.desk.expanduser()))
+    server = ThreadingHTTPServer((args.host, args.port), make_handler(args.desk.expanduser(), args.paper.expanduser()))
     print(f"bitra-desk dashboard on http://{args.host}:{args.port}/ reading {args.desk}", flush=True)
     server.serve_forever()
 

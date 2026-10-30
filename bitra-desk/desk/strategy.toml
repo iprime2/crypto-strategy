@@ -238,10 +238,11 @@ kill_switch = "KILL"               # `tra kill` sets it: flatten and stop; `tra 
 
 [agents]
 provider = "google"
-model = "gemini-flash-latest"
-# Tried in order, same brief, when the model is busy (504/503 on 28 Oct 2026); each free-tier model
-# has its own allowance
-fallback = ["google:gemini-2.5-flash", "google:gemini-3.1-flash-lite"]
+# flash-lite since 30 Oct 2026: it gave 74 of the 78 answers while gemini-flash-latest was first
+# (the free Flash models were busy, and each refusal cost a retry; p90 latency 87 s)
+model = "gemini-3.1-flash-lite"
+# Tried in order, same brief, when the model is busy; each free-tier model has its own allowance
+fallback = ["google:gemini-2.5-flash", "google:gemini-flash-latest"]
 mechanism = "trade the setup the measured regime supports: with a trend, inside a range, or flat"
 lookback_bars = 60
 min_confidence = 0.6

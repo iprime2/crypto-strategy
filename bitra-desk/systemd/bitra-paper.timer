@@ -1,0 +1,10 @@
+# Every 15 minutes, clear of the desk's cycle on the hour, so the open position's mark stays fresh.
+[Unit]
+Description=bitra-desk paper account, every 15 minutes
+
+[Timer]
+OnCalendar=*-*-* *:05,20,35,50:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
