@@ -1,0 +1,10 @@
+# Half past every hour, clear of the desk's cycle on the hour.
+[Unit]
+Description=bitra-desk hindsight, hourly at :30
+
+[Timer]
+OnCalendar=*-*-* *:30:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
