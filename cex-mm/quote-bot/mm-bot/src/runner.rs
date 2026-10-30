@@ -1976,7 +1976,7 @@ async fn after_cancel(r: &QuotingRest, symbol: &str, live: &mut LiveQuotes, side
         let unfilled = state.as_ref().map_or(0, |(_, u)| *u);
         let unseen = live.forget_gone(side, unfilled, Instant::now());
         if unseen > 0 {
-            tracing::warn!(%symbol, ?side, order_id = id, contracts = unseen, venue_state = ?answer, "the venue shows the quote filled but the fills feed never said so; those contracts count toward the position until it catches up");
+            tracing::warn!(%symbol, ?side, order_id = id, contracts = unseen, venue_state = ?answer, "the venue shows the quote filled but no fill for it has reached the loop; those contracts count toward the position until the feed or the venue confirms them");
         }
         return true;
     }

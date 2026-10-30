@@ -339,7 +339,9 @@ impl LiveQuotes {
     /// Contracts the fills feed still expected to rest beyond that filled without the feed saying so: on
     /// 29 Oct 2026 the feed was reconnecting when bid 1640249200 filled, the bot forgot the closed order at
     /// 400 long, bid again and reached 800 against a cap of 600. Those contracts count toward the position
-    /// until the feed or a venue reading catches up (`unseen_contracts`). Returns them.
+    /// until the feed or a venue reading catches up (`unseen_contracts`). Returns them. A fill already on its
+    /// way to the loop (2 of 113 demo fills on 30 Oct 2026, 120-250 ms behind the venue's answer) counts twice
+    /// until the loop takes it, which can only shrink a replacement quote placed in between.
     pub fn forget_gone(&mut self, side: QuoteSide, venue_unfilled: i64, now: Instant) -> i64 {
         let (id, left) = match side {
             QuoteSide::Bid => (self.bid_id, self.bid_left),
