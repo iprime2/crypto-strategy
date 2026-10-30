@@ -1,0 +1,3 @@
+calm    PnL   +4.28  fills  1180  notional $  16,983  +2.52 bp/$
+vol>2x  PnL   -5.98  fills   750  notional $  16,344  -3.66 bp/$
+median hourly vol 61 bps; flatten not included (run ends at 02:03:12Z)

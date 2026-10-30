@@ -17,7 +17,7 @@ use crate::exchange::QuotingRest;
 use crate::markout::MarkoutRuntime;
 use crate::oms::{
     contracts_of, first_call, gone_after_cancel, place_price, FillApplied, FillEvent, FirstCall, LiveQuotes,
-    OmsState, QuoteSide, Settled, SETTLE_PATIENCE,
+    OmsState, QuoteSide, Settled, SETTLE_PATIENCE, UNSEEN_MAX_AGE,
 };
 use crate::account::{AccountConfig, AccountFlags};
 use crate::risk::{
@@ -597,7 +597,8 @@ fn take_venue_read(rx: &mut watch::Receiver<Option<VenuePositionRead>>) -> Optio
 
 /// The venue is the source of truth for the open size, but its REST position trails the fills feed, so a
 /// reading sent before or right after one of our fills is not adopted at once (`VenueReconcile`). Returns the
-/// inventory to quote with and the venue's reading (None when it could not be read).
+/// inventory to quote with, the venue's reading and what the reconcile made of it (both None when it could not
+/// be read).
 fn apply_venue_read(
     read: VenuePositionRead,
     symbol: &str,
@@ -606,17 +607,18 @@ fn apply_venue_read(
     tolerance: f64,
     reconcile: &mut VenueReconcile,
     last_fill: Option<Instant>,
-) -> (f64, Option<f64>) {
+) -> (f64, Option<f64>, Option<VenueReading>) {
     let Some(venue_pos) = read.position else {
-        return (economics_arc.lock().map(|e| e.position).unwrap_or(0.0), None);
+        return (economics_arc.lock().map(|e| e.position).unwrap_or(0.0), None, None);
     };
-    let Ok(mut eco) = economics_arc.lock() else { return (venue_pos, Some(venue_pos)) };
+    let Ok(mut eco) = economics_arc.lock() else { return (venue_pos, Some(venue_pos), None) };
     let bot_pos = eco.position;
-    match reconcile.check_read(bot_pos, venue_pos, tolerance, last_fill, read.sent, Instant::now()) {
-        VenueReading::Agrees => (bot_pos, Some(venue_pos)),
+    let reading = reconcile.check_read(bot_pos, venue_pos, tolerance, last_fill, read.sent, Instant::now());
+    match reading {
+        VenueReading::Agrees => (bot_pos, Some(venue_pos), Some(reading)),
         VenueReading::Deferred => {
             tracing::debug!(%symbol, bot_pos, venue_pos, "venue position trails a fresh fill; kept the bot's count");
-            (bot_pos, Some(venue_pos))
+            (bot_pos, Some(venue_pos), Some(reading))
         }
         VenueReading::Adopt => {
             eco.reconcile_position(venue_pos, tolerance);
@@ -624,8 +626,24 @@ fn apply_venue_read(
                 tracing::warn!(%symbol, ?e, "persist economics after reconcile");
             }
             tracing::info!(%symbol, bot_pos, venue_pos, "inventory reconciled from venue");
-            (venue_pos, Some(venue_pos))
+            (venue_pos, Some(venue_pos), Some(reading))
         }
+    }
+}
+
+/// Unseen fills a venue reading has accounted for (`LiveQuotes::unseen_settled_by_venue`). An adopted reading
+/// sent after the venue showed the order gone holds the fill. One that agrees with the bot's count, which
+/// excludes unseen fills, means the fill was not real or the feed already delivered it, once the reading is
+/// past the reconcile's grace (the venue's REST position trails its fills).
+fn settle_unseen_by_venue(live: &mut LiveQuotes, reading: Option<VenueReading>, sent: Instant, grace: Duration) {
+    match reading {
+        Some(VenueReading::Adopt) => live.unseen_settled_by_venue(sent),
+        Some(VenueReading::Agrees) => {
+            if let Some(t) = sent.checked_sub(grace) {
+                live.unseen_settled_by_venue(t);
+            }
+        }
+        Some(VenueReading::Deferred) | None => {}
     }
 }
 
@@ -958,8 +976,10 @@ async fn run_symbol_loop(
     let reconcile_every = Duration::from_secs_f64(
         env_f64_for_symbol(&symbol, "MM_VENUE_RECONCILE_SEC", 5.0).max(0.5),
     );
+    let reconcile_grace =
+        Duration::from_millis(env_f64_for_symbol(&symbol, "MM_RECONCILE_FILL_GRACE_MS", 3000.0).clamp(0.0, 60_000.0) as u64);
     let mut venue_reconcile = VenueReconcile::new(
-        Duration::from_millis(env_f64_for_symbol(&symbol, "MM_RECONCILE_FILL_GRACE_MS", 3000.0).clamp(0.0, 60_000.0) as u64),
+        reconcile_grace,
         secs_knob(env_f64_for_symbol(&symbol, "MM_RECONCILE_MAX_WAIT_SEC", 15.0), 15.0, 1.0, 600.0),
     );
     // The venue's last reported position. The private fills feed and the reconcile both move the bot's
@@ -979,7 +999,7 @@ async fn run_symbol_loop(
             if use_venue_inventory {
                 // Before the first quote, so the startup read is awaited; later reads come from the poller.
                 let read = read_venue_position(r, &symbol).await;
-                let (inv, venue) =
+                let (inv, venue, _) =
                     apply_venue_read(read, &symbol, &economics_arc, &economics_path, reconcile_tol, &mut venue_reconcile, None);
                 last_venue_pos = Some(venue.unwrap_or(inv));
                 tracing::info!(%symbol, inventory = inv, "startup venue inventory");
@@ -1033,6 +1053,9 @@ async fn run_symbol_loop(
                     FillApplied::Filled { side } => {
                         tracing::info!(%symbol, ?side, order_id = ev.order_id, contracts = ev.contracts, "fill reached the quote's size");
                         settle_with_venue(rest.as_ref(), &symbol, &mut oms.live, side, ev.order_id).await;
+                    }
+                    FillApplied::CaughtUp { side } => {
+                        tracing::info!(%symbol, ?side, order_id = ev.order_id, contracts = ev.contracts, unseen_left = oms.live.unseen_contracts(), "late fill of a quote the venue had shown filled; no longer counted as unseen");
                     }
                     FillApplied::Unknown => {
                         tracing::debug!(%symbol, order_id = ev.order_id, contracts = ev.contracts, "fill of an order that is not a resting quote");
@@ -1240,8 +1263,10 @@ async fn run_symbol_loop(
         let inventory = if let Some(rx) = venue_rx.as_mut() {
             if let Some(read) = take_venue_read(rx) {
                 let last_fill = last_fill_at.lock().ok().and_then(|t| *t);
-                let (inv, venue) =
+                let sent = read.sent;
+                let (inv, venue, reading) =
                     apply_venue_read(read, &symbol, &economics_arc, &economics_path, reconcile_tol, &mut venue_reconcile, last_fill);
+                settle_unseen_by_venue(&mut oms.live, reading, sent, reconcile_grace);
                 last_venue_pos = Some(venue.unwrap_or(inv));
                 inv
             } else {
@@ -1256,6 +1281,11 @@ async fn run_symbol_loop(
                 .map(|e| e.position)
                 .unwrap_or(0.0)
         };
+        // Fills the venue showed that the feed never delivered are in the real position: quote with them.
+        for u in oms.live.expire_unseen(Instant::now(), UNSEEN_MAX_AGE) {
+            tracing::warn!(%symbol, side = ?u.side, order_id = u.order_id, contracts = u.contracts, "unseen fill confirmed by neither the feed nor the venue reconcile; no longer counted");
+        }
+        let inventory = inventory + oms.live.unseen_contracts() as f64 * contract_value;
 
         let ticker = ticker_rx
             .as_ref()
@@ -1682,7 +1712,8 @@ async fn run_symbol_loop(
         // Sides still to place: pulled because the old price crossed the book, a failed edit, or a cancel-all.
         // A fill can land while the first calls are in flight (a failed edit is often that fill), so the size is
         // clipped again by the position now: the fills feed has updated it by the time the fallbacks answer.
-        let inventory_now = economics_arc.lock().map(|e| e.position).unwrap_or(inventory);
+        let unseen_now = oms.live.unseen_contracts() as f64 * contract_value;
+        let inventory_now = economics_arc.lock().map(|e| e.position + unseen_now).unwrap_or(inventory);
         let resize = |o: &SideOrder| {
             let side_is_sell = o.side == QuoteSide::Ask;
             let q = requote_qty(o.qty, inventory_now, side_is_sell, min_qty, clip_cap, step);
@@ -1942,7 +1973,11 @@ async fn after_cancel(r: &QuotingRest, symbol: &str, live: &mut LiveQuotes, side
     let state = r.order_state(id).await;
     let answer = state.as_ref().ok().map(|(s, _)| s.as_str());
     if gone_after_cancel(false, answer) {
-        live.clear_side(side);
+        let unfilled = state.as_ref().map_or(0, |(_, u)| *u);
+        let unseen = live.forget_gone(side, unfilled, Instant::now());
+        if unseen > 0 {
+            tracing::warn!(%symbol, ?side, order_id = id, contracts = unseen, venue_state = ?answer, "the venue shows the quote filled but no fill for it has reached the loop; those contracts count toward the position until the feed or the venue confirms them");
+        }
         return true;
     }
     tracing::warn!(%symbol, ?side, order_id = id, error = %cancel_err, venue_state = ?answer, "cancel failed and the venue does not say the quote is gone; cancelling all");
@@ -2031,6 +2066,35 @@ fn handle_execution_row(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_venue_reading_settles_unseen_fills_only_when_it_holds_them() {
+        let t0 = Instant::now();
+        let grace = Duration::from_secs(3);
+        let unseen_at = |since: Instant| {
+            let mut live = LiveQuotes { bid_id: Some(11), bid_left: Some(200), bid: Some(0.19), ..Default::default() };
+            live.forget_gone(QuoteSide::Bid, 0, since);
+            live
+        };
+        // Deferred (it trails a fresh fill) or failed: nothing is settled.
+        let mut live = unseen_at(t0);
+        settle_unseen_by_venue(&mut live, Some(VenueReading::Deferred), t0 + Duration::from_secs(10), grace);
+        settle_unseen_by_venue(&mut live, None, t0 + Duration::from_secs(10), grace);
+        assert_eq!(live.unseen_contracts(), 200);
+        // Adopted, but sent before the venue showed the order gone: it may not hold the fill.
+        settle_unseen_by_venue(&mut live, Some(VenueReading::Adopt), t0 - Duration::from_millis(1), grace);
+        assert_eq!(live.unseen_contracts(), 200);
+        // Adopted and sent after: the position now holds it.
+        settle_unseen_by_venue(&mut live, Some(VenueReading::Adopt), t0 + Duration::from_secs(1), grace);
+        assert_eq!(live.unseen_contracts(), 0);
+        // Agreeing with the bot's count, which leaves the unseen fill out: only past the grace, as the venue's
+        // REST position can trail its own fills.
+        let mut live = unseen_at(t0);
+        settle_unseen_by_venue(&mut live, Some(VenueReading::Agrees), t0 + Duration::from_secs(2), grace);
+        assert_eq!(live.unseen_contracts(), 200);
+        settle_unseen_by_venue(&mut live, Some(VenueReading::Agrees), t0 + Duration::from_secs(3), grace);
+        assert_eq!(live.unseen_contracts(), 0);
+    }
 
     #[tokio::test]
     async fn a_live_start_waits_for_the_fills_feed() {
