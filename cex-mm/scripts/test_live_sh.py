@@ -291,7 +291,9 @@ class LiveSh(unittest.TestCase):
         self.start_shadow()
         cfg = self.root / "artifacts" / "shadow" / "current" / "config.txt"
         prof = (self.root / "config" / "dism.env").read_text()
-        cfg.write_text("symbols=ADAUSDT\n" + prof.replace("MM_FIXED_HALF_SPREAD_BPS=5", "MM_FIXED_HALF_SPREAD_BPS=4"))
+        other = re.sub(r"^MM_FIXED_HALF_SPREAD_BPS=.*$", "MM_FIXED_HALF_SPREAD_BPS=98", prof, flags=re.M)
+        self.assertNotEqual(other, prof)
+        cfg.write_text("symbols=ADAUSDT\n" + other)
         r = self.live("start", "--confirm", "START REAL")
         self.assertNotEqual(r.returncode, 0)
         self.assertIn("different MM_ settings", r.stderr)
@@ -347,7 +349,9 @@ class LiveSh(unittest.TestCase):
         self.assertNotIn("DELTA_API_KEY", env)  # nothing else from quote-bot/.env
         self.assertNotIn("DELTA_DEMO_API_KEY", env)
         self.assertNotIn("DELTA_DEMO_API_SECRET", env)
-        self.assertEqual(env["MM_FIXED_HALF_SPREAD_BPS"], "5")  # the profile, not the demo line
+        profile = (self.root / "config" / "dism.env").read_text()
+        spread = re.search(r"^MM_FIXED_HALF_SPREAD_BPS=(\S+)$", profile, re.M).group(1)
+        self.assertEqual(env["MM_FIXED_HALF_SPREAD_BPS"], spread)  # the profile, not the demo line (99)
         self.assertEqual(env["MM_DMS_TTL_MS"], "15000")
         self.assertIn("MM_ORDER=info", env["RUST_LOG"])
         self.assertIn("MM_METRICS=info", env["RUST_LOG"])
