@@ -290,15 +290,16 @@ impl Default for RiskState {
     }
 }
 
-/// The daily loss stop's day is the IST calendar day (00:00 IST = 18:30 UTC), the owner's day.
-const LOSS_DAY_UTC_OFFSET_MIN: i64 = 330;
+/// The daily loss stop's day is the UTC calendar day (00:00 UTC = 05:30 IST), the day Delta's PNL Analytics page
+/// counts (the owner's choice, 30 Oct 2026; the IST day before that).
+const LOSS_DAY_UTC_OFFSET_MIN: i64 = 0;
 
 /// The calendar day of the daily loss stop at `now`.
 pub fn loss_day(now: DateTime<Utc>) -> NaiveDate {
     (now + chrono::Duration::minutes(LOSS_DAY_UTC_OFFSET_MIN)).date_naive()
 }
 
-/// One IST day of the daily loss stop, persisted so a restart keeps the baseline and the halt.
+/// One day of the daily loss stop, persisted so a restart keeps the baseline and the halt.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct DailyLossState {
     pub day: NaiveDate,
@@ -307,7 +308,7 @@ pub struct DailyLossState {
 }
 
 /// Account-wide daily loss stop on venue equity (realized + unrealized, after fees). PnL is equity
-/// minus the first equity read of the IST day. Once breached it stays halted until the next day.
+/// minus the first equity read of the day (`loss_day`). Once breached it stays halted until the next day.
 /// Deposits and withdrawals move equity too: a withdrawal can halt early, a deposit hides losses.
 #[derive(Debug, Clone)]
 pub struct DailyLossGuard {
@@ -599,12 +600,13 @@ mod tests {
     }
 
     #[test]
-    fn the_loss_day_is_the_ist_calendar_day() {
+    fn the_loss_day_is_the_utc_calendar_day() {
+        // Delta's PNL Analytics page counts UTC days (00:00 UTC = 05:30 IST); the stop does too since 30 Oct 2026.
         let at = |s: &str| chrono::DateTime::parse_from_rfc3339(s).unwrap().with_timezone(&chrono::Utc);
-        assert_eq!(loss_day(at("2026-10-27T18:29:59Z")), day(27), "23:59:59 IST is still the 27th");
-        assert_eq!(loss_day(at("2026-10-27T18:30:00Z")), day(28), "00:00 IST starts the 28th");
-        assert_eq!(loss_day(at("2026-10-28T00:00:00Z")), day(28), "05:30 IST, same IST day");
-        assert_eq!(loss_day(at("2026-10-28T18:29:59Z")), day(28));
+        assert_eq!(loss_day(at("2026-10-27T18:30:00Z")), day(27), "00:00 IST no longer starts a day");
+        assert_eq!(loss_day(at("2026-10-27T23:59:59Z")), day(27), "05:29:59 IST is still the 27th");
+        assert_eq!(loss_day(at("2026-10-28T00:00:00Z")), day(28), "00:00 UTC (05:30 IST) starts the 28th");
+        assert_eq!(loss_day(at("2026-10-28T23:59:59Z")), day(28));
     }
 
     #[test]

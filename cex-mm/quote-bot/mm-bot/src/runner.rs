@@ -334,7 +334,7 @@ async fn start_account_guards(
     let guard = DailyLossGuard::new(cfg.daily_loss_limit_usd, crate::account::load_daily_loss(&path));
     if guard.halted_on(crate::risk::loss_day(Utc::now())) {
         anyhow::bail!(
-            "daily loss limit already hit today ({}); quoting stays off until 00:00 IST (18:30 UTC). \
+            "daily loss limit already hit today ({}); quoting stays off until 00:00 UTC (05:30 IST). \
              Delete that file only after reviewing the account.",
             path.display()
         );

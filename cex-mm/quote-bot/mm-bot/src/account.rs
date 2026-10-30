@@ -1,6 +1,6 @@
 //! Account-wide guards for a live Delta run. They set one shared halt flag that every symbol loop
 //! obeys (cancel all, stop quoting, exit):
-//! - daily loss stop on venue equity (`MM_DAILY_LOSS_LIMIT_USD`), persisted per IST day (from 18:30 UTC);
+//! - daily loss stop on venue equity (`MM_DAILY_LOSS_LIMIT_USD`), persisted per UTC day (from 05:30 IST);
 //! - unexpected taker fills (quotes are post-only; only the bot's own reduce-only exit may take);
 //! - Delta's dead man's switch (`MM_DMS_TTL_MS`, armed before quoting): Delta cancels our orders
 //!   if the process or the network stops sending heartbeats.
