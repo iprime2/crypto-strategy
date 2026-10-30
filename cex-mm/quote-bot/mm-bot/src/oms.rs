@@ -48,7 +48,26 @@ pub struct LiveQuotes {
     /// the loop asks the venue again each loop (`awaiting_venue`).
     pub bid_done_at: Option<Instant>,
     pub ask_done_at: Option<Instant>,
+    /// Fills of quotes already forgotten that the venue showed but the fills feed did not deliver: not yet in
+    /// the position, so the loop sizes as if they were (`unseen_contracts`). Kept by `clear`, emptied by the
+    /// feed, a venue reading or `expire_unseen`.
+    pub unseen: Vec<UnseenFill>,
 }
+
+/// Contracts of one of our quotes that the venue shows filled while the fills feed never delivered them.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct UnseenFill {
+    pub order_id: u64,
+    pub side: QuoteSide,
+    pub contracts: i64,
+    /// When the venue showed the order gone: a venue position read sent after this includes the fill.
+    pub since: Instant,
+}
+
+/// How long an unseen fill counts when neither the feed nor a venue reading has caught up. The venue reconcile
+/// adopts a lasting difference within `MM_RECONCILE_MAX_WAIT_SEC` (15 s) plus one read, so this only bounds
+/// an entry nothing ever confirms.
+pub const UNSEEN_MAX_AGE: Duration = Duration::from_secs(60);
 
 /// How long the loop keeps asking the venue about a quote the fills say is done before it believes a venue
 /// that still shows it open. On the 19 Oct 2026 demo QA, 13 of 45 such orders still read "open" about 150 ms
@@ -76,6 +95,9 @@ pub enum FillApplied {
     /// The fills reached the tracked size, so the quote has most likely filled completely. It stays tracked
     /// until the venue says the order is closed (`LiveQuotes::settle`).
     Filled { side: QuoteSide },
+    /// A late fill of a quote already forgotten as filled (`LiveQuotes::forget_gone`): it reaches the position
+    /// through the feed now, so it stops counting as unseen.
+    CaughtUp { side: QuoteSide },
     /// Not one of the resting quotes (an order already replaced or cancelled, a reduce-only exit): ignored.
     Unknown,
 }
@@ -210,8 +232,10 @@ impl LiveQuotes {
         }
     }
 
+    /// Forgets both quotes (a cancel-all), but not the unseen fills they left in the position.
     pub fn clear(&mut self) {
-        *self = Self::default();
+        let unseen = std::mem::take(&mut self.unseen);
+        *self = Self { unseen, ..Self::default() };
     }
 
     pub fn clear_bid(&mut self) {
@@ -311,6 +335,59 @@ impl LiveQuotes {
         }
     }
 
+    /// Forgets a quote the venue shows gone (closed or cancelled) with `venue_unfilled` contracts unfilled.
+    /// Contracts the fills feed still expected to rest beyond that filled without the feed saying so: on
+    /// 29 Oct 2026 the feed was reconnecting when bid 1640249200 filled, the bot forgot the closed order at
+    /// 400 long, bid again and reached 800 against a cap of 600. Those contracts count toward the position
+    /// until the feed or a venue reading catches up (`unseen_contracts`). Returns them.
+    pub fn forget_gone(&mut self, side: QuoteSide, venue_unfilled: i64, now: Instant) -> i64 {
+        let (id, left) = match side {
+            QuoteSide::Bid => (self.bid_id, self.bid_left),
+            QuoteSide::Ask => (self.ask_id, self.ask_left),
+        };
+        let unseen = left.map_or(0, |l| l - venue_unfilled.max(0)).max(0);
+        if let (Some(order_id), true) = (id, unseen > 0) {
+            self.unseen.push(UnseenFill { order_id, side, contracts: unseen, since: now });
+        }
+        self.clear_side(side);
+        unseen
+    }
+
+    /// Contracts the venue showed filled that are not yet in the position: bought positive, sold negative.
+    pub fn unseen_contracts(&self) -> i64 {
+        self.unseen
+            .iter()
+            .map(|u| match u.side {
+                QuoteSide::Bid => u.contracts,
+                QuoteSide::Ask => -u.contracts,
+            })
+            .sum()
+    }
+
+    /// The position now matches a venue reading sent at `sent`: it includes every fill the venue showed
+    /// before then.
+    pub fn unseen_settled_by_venue(&mut self, sent: Instant) {
+        self.unseen.retain(|u| u.since > sent);
+    }
+
+    /// Drops unseen fills older than `max_age` that nothing confirmed, and returns them.
+    pub fn expire_unseen(&mut self, now: Instant, max_age: Duration) -> Vec<UnseenFill> {
+        let (expired, kept) = self.unseen.drain(..).partition(|u| now.saturating_duration_since(u.since) >= max_age);
+        self.unseen = kept;
+        expired
+    }
+
+    /// A late feed fill of an unseen order: it is in the position now. Returns the side it caught up.
+    fn catch_up_unseen(&mut self, ev: FillEvent) -> Option<QuoteSide> {
+        let i = self.unseen.iter().position(|u| u.order_id == ev.order_id)?;
+        let side = self.unseen[i].side;
+        self.unseen[i].contracts -= ev.contracts;
+        if self.unseen[i].contracts <= 0 {
+            self.unseen.remove(i);
+        }
+        Some(side)
+    }
+
     /// Books one fill against the resting quote it belongs to. Fills of any other order change nothing.
     pub fn apply_fill(&mut self, ev: FillEvent, now: Instant) -> FillApplied {
         if ev.contracts <= 0 {
@@ -320,6 +397,8 @@ impl LiveQuotes {
             QuoteSide::Bid
         } else if self.ask_id == Some(ev.order_id) {
             QuoteSide::Ask
+        } else if let Some(side) = self.catch_up_unseen(ev) {
+            return FillApplied::CaughtUp { side };
         } else {
             return FillApplied::Unknown;
         };
@@ -592,6 +671,75 @@ mod tests {
         // After the bid is cleared, a late fill of its id is unknown too.
         live.clear_bid();
         assert_eq!(live.apply_fill(FillEvent { order_id: 11, contracts: 50 }, Instant::now()), FillApplied::Unknown);
+    }
+
+    #[test]
+    fn a_quote_the_venue_shows_filled_without_a_feed_fill_counts_until_the_feed_catches_up() {
+        // 29 Oct 2026 20:48 UTC: the private feed reconnected and never delivered the fill of bid 1640249200
+        // (200). Its edit failed, the venue showed it closed, the bot forgot it at 400 long and bid again: 800
+        // against a cap of 600 until the venue reconcile caught up 13 s later.
+        let t0 = Instant::now();
+        let mut live = resting(200, 200);
+        assert_eq!(live.forget_gone(QuoteSide::Bid, 0, t0), 200);
+        assert_eq!((live.bid, live.bid_id, live.bid_left), (None, None, None));
+        assert_eq!(live.unseen_contracts(), 200);
+        // Long 400 by the feed, so 600 with the unseen fill: no room left for another bid.
+        let position = 400.0 + live.unseen_contracts() as f64;
+        assert_eq!(mm_core::side_order_qty(position, false, 200.0, 1.0, 600.0, 1.0), 0.0);
+        // The feed delivers it late: it reaches the position that way, so it stops counting as unseen.
+        assert_eq!(live.apply_fill(FillEvent { order_id: 11, contracts: 120 }, t0), FillApplied::CaughtUp { side: QuoteSide::Bid });
+        assert_eq!(live.unseen_contracts(), 80);
+        assert_eq!(live.apply_fill(FillEvent { order_id: 11, contracts: 80 }, t0), FillApplied::CaughtUp { side: QuoteSide::Bid });
+        assert!(live.unseen.is_empty());
+        // Nothing left to catch up: another fill of that id is unknown.
+        assert_eq!(live.apply_fill(FillEvent { order_id: 11, contracts: 10 }, t0), FillApplied::Unknown);
+    }
+
+    #[test]
+    fn only_contracts_the_feed_did_not_count_and_the_venue_shows_filled_are_unseen() {
+        let t0 = Instant::now();
+        // The feed counted every fill: nothing unseen.
+        let mut live = resting(200, 200);
+        live.apply_fill(FillEvent { order_id: 12, contracts: 200 }, t0);
+        assert_eq!(live.forget_gone(QuoteSide::Ask, 0, t0), 0);
+        // Cancelled with 150 of the 200 the feed left us expecting still unfilled: 50 bought unseen.
+        assert_eq!(live.forget_gone(QuoteSide::Bid, 150, t0), 50);
+        assert_eq!(live.unseen_contracts(), 50);
+        // An ask sold unseen counts the other way.
+        let mut live = resting(200, 200);
+        assert_eq!(live.forget_gone(QuoteSide::Ask, 0, t0), 200);
+        assert_eq!(live.unseen_contracts(), -200);
+        // A size we never tracked tells us nothing.
+        let mut live = resting(200, 200);
+        live.bid_left = None;
+        assert_eq!(live.forget_gone(QuoteSide::Bid, 0, t0), 0);
+        assert!(live.unseen.is_empty() && live.bid_id.is_none());
+    }
+
+    #[test]
+    fn unseen_fills_survive_a_cancel_all_and_clear_once_a_venue_reading_after_them_is_in_the_position() {
+        let t0 = Instant::now();
+        let mut live = resting(200, 200);
+        live.forget_gone(QuoteSide::Bid, 0, ms(t0, 1_000));
+        // A cancel-all forgets the quotes, not the position they left behind.
+        live.clear();
+        assert_eq!(live.unseen_contracts(), 200);
+        // A reading sent before the venue showed the order closed may not include the fill.
+        live.unseen_settled_by_venue(ms(t0, 999));
+        assert_eq!(live.unseen_contracts(), 200);
+        live.unseen_settled_by_venue(ms(t0, 1_000));
+        assert!(live.unseen.is_empty());
+    }
+
+    #[test]
+    fn an_unseen_fill_nothing_confirms_expires() {
+        let t0 = Instant::now();
+        let mut live = resting(200, 200);
+        live.forget_gone(QuoteSide::Ask, 0, t0);
+        assert!(live.expire_unseen(t0 + UNSEEN_MAX_AGE - Duration::from_millis(1), UNSEEN_MAX_AGE).is_empty());
+        let expired = live.expire_unseen(t0 + UNSEEN_MAX_AGE, UNSEEN_MAX_AGE);
+        assert_eq!(expired.iter().map(|u| (u.order_id, u.side, u.contracts)).collect::<Vec<_>>(), vec![(12, QuoteSide::Ask, 200)]);
+        assert_eq!(live.unseen_contracts(), 0);
     }
 
     #[test]
