@@ -1,0 +1,18 @@
+run fills 1930 (0 taker) + flatten 18 @ 0.1861; inherited position at start -0
+venue (as charged): cash +2.2545  fees 3.9474  start mark 0.20155  PnL -1.69  notional $33,327  PnLbp -0.51
+
+Test 1: real-fill clip replay (gate PnLbp >= +1.0 over >= 300 fills)
+var quote  cap  fills  notional    PnL$  PnLbp      W1      W2  T1
+A     200  600   1928    33,251   -4.99  -1.50   -8.01   -2.75  fail
+B     200  400   1852    31,408   -1.22  -0.39   -5.36   -2.76  fail
+C     200  200   1628    25,864   -1.53  -0.59   -3.97   -2.15  fail
+D     150  300   1852    23,556   -0.92  -0.39   -4.02   -2.07  fail
+E     100  300   1928    16,625   -2.49  -1.50   -4.01   -1.38  fail
+F     100  200   1852    15,704   -0.61  -0.39   -2.68   -1.38  fail
+sanity: variant A replay -4.99 vs Delta ledger (cashflow + commission) -1.69 (diff -3.29; the test is void if |diff| > 1.00); fills as charged -1.69
+
+Real run attribution, $ (capture and 60 s markout against the shadow's anchored fair; holding = the rest, i.e. position revaluation beyond 60 s)
+window                   fills  inv0  inv1   move  @cap   total    capt    mo60    hold    fees
+W1 29 Oct 19:30-21:30Z     136   115   138   -406   19%   -7.52   -0.83   -0.61   -5.75   -0.33
+W2 29 Oct 23:30-01:30Z     182  -200  -400   -264   22%   -2.28    0.34   -1.66   -0.47   -0.50
+whole run                 1930    -0   -18   -742   21%   -1.70   11.58   -4.76   -4.57   -3.95

@@ -1,0 +1,5 @@
+live span: 296186 samples, 4706 trades (7,310,395 contracts), ref 0.19980
+sim A 300 strict fills   821 $  20,444 capt  5.10 mo60   0.01 fee 2.12 net60  2.99 | PnL  -4.90 (-2.40 bp) inv$ -11.00 | Scalper fifo: fee 1.40 PnL  -3.45 (-1.69 bp)
+sim A 300 touch  fills  1864 $  30,227 capt  5.16 mo60  -0.81 fee 2.12 net60  2.23 | PnL   2.82 (+0.93 bp) inv$  -6.38 | Scalper fifo: fee 1.27 PnL   5.40 (+1.79 bp)
+sim A 1000 touch fills  1929 $  31,914 capt  5.32 mo60  -2.67 fee 2.12 net60  0.53 | PnL  -0.04 (-0.01 bp) inv$ -10.25 | Scalper fifo: fee 1.25 PnL   2.73 (+0.86 bp)
+real       fills  1930 $  33,327 capt  4.47 mo60  -2.62 fee 1.18 (as charged; 2.12 list) net60  0.67 as charged, -0.27 at 2.12
