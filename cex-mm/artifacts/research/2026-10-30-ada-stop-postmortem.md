@@ -155,3 +155,45 @@ From `explore_out.txt`. Not pre-registered; this only picks the next candidate.
   - A calm market: 2 h without an abort trip, and ADA hourly vol back under 2× median. At 01:00Z it was 2.7×.
   - The owner's word.
 - **Earliest restart:** 31 Oct about 02:30Z (08:00 IST), if all of the above hold.
+
+## Addendum, 31 Oct 2026: forward test result (PASS)
+
+Evaluated at 02:15Z on 31 Oct against `FORWARD_PREREG.md` (md5 9605df5c), with `shadow_fill_sim.py` at md5 a93c1658 (`forward_eval.py`, output in `forward_out.txt`).
+
+**Data:**
+- Window: 30 Oct 02:03:00Z to 31 Oct 02:09:59Z, 24.1 h.
+- Source: ADA `MM_METRICS` and the Delta public trade tape from three shadow runs:
+  - 20261025T174640Z (to 06:42Z)
+  - 20261030T064228Z (to 10:55Z)
+  - 20261030T105549Z
+- Totals: 214,475 quote samples and 1,973 ADAUSD trades.
+- Where two runs overlap, the earlier run's rows stop at the later run's first row.
+
+**Config:** fair ± 6 bps, quote 200 (ref fair 0.19075), cap 400.
+
+The live bot quoted ADA from 06:43Z, so its own fills are in the tape. The 1.4 bp haircut in gate 1 was set on data of that kind.
+
+| Leg | Fills | Notional | PnL | Spread | Inventory | Fees | bp/$ |
+|---|---|---|---|---|---|---|---|
+| 1000 ms touch, Scalper 15 min fifo (calibrated) | 874 | $17,201 | +$7.99 | +$10.52 | −$0.44 | −$2.10 | **+4.65** |
+| 1000 ms strict, list fee 2.12 | 589 | $14,108 | +$5.21 | +$8.32 | −$0.12 | −$2.99 | **+3.69** |
+| 300 ms strict, list fee 2.12 | 604 | $14,530 | +$5.60 | +$8.17 | +$0.51 | −$3.08 | +3.85 |
+| 300 ms touch, Scalper 15 min fifo | 887 | $17,599 | +$8.50 | +$10.28 | +$0.37 | −$2.15 | +4.83 |
+
+**Gates:**
+1. Calibrated leg ≥ +2.4 bp/$: **PASS** (+4.65).
+2. 1000 ms strict ≥ 0: **PASS** (+3.69).
+3. ≥ 300 fills over ≥ 24 h: **PASS** (874 fills, 24.1 h).
+4. An hour above 2 × 61 bps: **PASS, by a hair.**
+   - 13:00Z on 30 Oct had 122.3 bps against a bar of 122.0.
+   - 15:00Z (119) and 14:00Z (116) fell just under.
+   - The window's median hour was 72 bps.
+   - Nothing like 29 Oct's 20:00Z (4.9×) or 00:00Z (6.2×) occurred, so this test says little about a dump.
+
+**Verdict: PASS.** Keep running on these settings. The stop rule and the $10 UTC-day loss stop still apply.
+
+**Live, same period** (runs 20261030T064303Z and 20261030T105618Z, from 06:43:03Z):
+- 591 fills, $13,034 traded, +$6.44, which is **+4.94 bp/$** (from Delta fills via the live dashboard).
+- Equity went from $330.83 to $337.26.
+- Delta's wallet ledger agrees to the cent: realized +$8.10, fees −$1.56, funding −$0.09.
+- The calibrated leg (+4.65) sat within 0.3 bp of the live figure, against the 1.4 bp it overstated the stopped run by. The windows differ, though: the simulation also covers 02:03–06:43Z, when the live bot was off.
