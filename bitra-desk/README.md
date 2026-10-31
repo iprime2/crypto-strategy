@@ -58,14 +58,26 @@ The desk was made with `tra init desk --profile autonomous --agent google`, then
 Changing a setting mid-experiment splits what `tra hindsight` measures into two populations: freeze
 the config once the first days are in.
 
+## Two desks: the model is the only difference
+
+Since 31 Oct 2026 a second desk, `~/bitra/desk-groq` (`bitra-desk-groq.service`), runs next to the first
+on Groq's `openai/gpt-oss-120b` (falling back to `openai/gpt-oss-20b`), bitra's own most-tested model.
+`setup.sh` builds it from `desk/` and changes only the three `[agents]` lines (`provider`, `model`,
+`fallback`), so market, data, series, rules and costs stay identical and any difference in results is
+the model's. Its `.env` is a link to `~/bitra/desk/.env`, so both desks read one key file. Each desk has
+its own records, `tra hindsight` and paper account (`~/bitra/paper`, `~/bitra/paper-groq`); the dashboard
+sets them side by side under **Model comparison** and shows either in full (`?desk=gemini`, `?desk=groq`).
+On its first forced cycle Groq answered all three roles in 4.9 s, against 40–180 s for Gemini's free tier.
+
 ## Set up or redeploy
 
 From a checkout, copy this folder to the VM and run the script. It installs uv and bitra (pinned,
-`BITRA_VERSION`), writes `desk/` over `~/bitra/desk` (never `.env`, `runs/` or fetched series), and
-installs the user service. It starts the service only once `GEMINI_API_KEY` is set.
+`BITRA_VERSION`, with the google and openai clients), writes `desk/` over `~/bitra/desk` and its Groq
+copy over `~/bitra/desk-groq` (never `.env`, `runs/` or fetched series), and installs the user services.
+It starts each desk only once its key is set (`GEMINI_API_KEY`, `GROQ_API_KEY`).
 
 ```bash
-tar -C bitra-desk -c . | ssh -F /tmp/tailnet/ssh_config bitra-desk \
+tar -C bitra-desk -c . | ssh -F "${TAILNET_DIR:-/tmp/tailnet}/ssh_config" bitra-desk \
   'rm -rf ~/bitra/repo && mkdir -p ~/bitra/repo && tar -C ~/bitra/repo -x && bash ~/bitra/repo/setup.sh'
 ```
 
@@ -102,7 +114,7 @@ at the exact stop or take price, with slippage only as the intent's priced estim
 ## Operate
 
 ```bash
-systemctl --user status bitra-desk bitra-dashboard bitra-hindsight.timer
+systemctl --user status bitra-desk bitra-desk-groq bitra-dashboard bitra-hindsight.timer bitra-paper.timer
 journalctl --user -u bitra-desk -n 80          # each hour's cycle; -f to follow
 cd ~/bitra/desk && tra watch --every 5s        # read-only view of the records
 tra sources show                               # every series, its age, stale or not

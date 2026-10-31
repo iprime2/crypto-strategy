@@ -134,6 +134,49 @@ class PaperTest(unittest.TestCase):
         self.assertIn("Not computed yet", page)
 
 
+class DesksTest(unittest.TestCase):
+    def test_parse_desk(self):
+        g = server.parse_desk("groq=/home/u/bitra/desk-groq")
+        self.assertEqual((g["name"], str(g["paper"]), g["unit"]), ("groq", "/home/u/bitra/paper-groq", "bitra-desk-groq"))
+        d = server.parse_desk("/home/u/bitra/desk")
+        self.assertEqual((d["name"], str(d["paper"]), d["unit"]), ("desk", "/home/u/bitra/paper", "bitra-desk"))
+
+    def test_desk_model_reads_the_agents_table_only(self):
+        desk = tmpdir(self)
+        (desk / "strategy.toml").write_text(
+            '[[channel]]\nname = "taker-taker"\n[agents]\nprovider = "groq"   # the vendor\n'
+            'model = "openai/gpt-oss-120b"\n[agents.roles.x]\nmodel = "other"\n')
+        self.assertEqual(server.desk_model(desk), "groq:openai/gpt-oss-120b")
+        self.assertEqual(server.desk_model(tmpdir(self)), "")
+
+    def test_comparison_and_desk_switch(self):
+        root = tmpdir(self)
+        a, b = make_desk(self), make_desk(self)
+        desks = [{"name": "gemini", "path": a, "paper": root / "pa", "unit": "x"},
+                 {"name": "groq", "path": b, "paper": root / "pb", "unit": "y"}]
+        httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.make_handler(desks))
+        threading.Thread(target=httpd.serve_forever, daemon=True).start()
+        self.addCleanup(httpd.server_close)
+        self.addCleanup(httpd.shutdown)
+        base = f"http://127.0.0.1:{httpd.server_address[1]}"
+        page = urllib.request.urlopen(base + "/").read().decode()
+        self.assertIn("Model comparison", page)
+        self.assertIn("bitra-desk · gemini", page)
+        self.assertIn("<a href='?desk=groq'>groq</a>", page)
+        page = urllib.request.urlopen(base + "/?desk=groq").read().decode()
+        self.assertIn("bitra-desk · groq", page)
+        self.assertIn("<a href='?desk=gemini'>gemini</a>", page)
+        state = json.loads(urllib.request.urlopen(base + "/api/state.json?desk=groq").read())
+        self.assertEqual(state["desk"], str(b))
+        with self.assertRaises(urllib.error.HTTPError) as ctx:
+            urllib.request.urlopen(base + "/?desk=nope")
+        self.assertEqual(ctx.exception.code, 404)
+
+    def test_single_desk_has_no_comparison(self):
+        page = server.render(server.build_state(make_desk(self), now=NOW, service="active"))
+        self.assertNotIn("Model comparison", page)
+
+
 class HttpTest(unittest.TestCase):
     def test_routes(self):
         desk = make_desk(self)
