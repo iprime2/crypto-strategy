@@ -109,10 +109,24 @@ Keys (owner, on the VM): `nano ~/bitra/desk/.env`, see `desk/.env.example`. Then
 
 ## Dashboard
 
-**https://bitra-desk.taildea8d9.ts.net/**: tailnet only (open it with Tailscale on), read-only, refreshes
-every minute. It shows the paper account, each hourly cycle (held, refused, would-be trade, error) with its
-reason, what each analyst says now and why, the data series with their age, every would-be trade, the latest
-`tra hindsight`, and model use by day. The same state as JSON is at `/api/state.json`.
+**https://bitra-desk.taildea8d9.ts.net/**: tailnet only (open it with Tailscale on), read-only. From the top:
+
+- **Model comparison**: one card per desk, ranked by paper equity: return, closed trades won and lost,
+  would-be trades, its latest call and how old it is, its side against the exact reverse (`tra hindsight`),
+  and its model calls today with the estimated spend (Claude at list price; Gemini and Groq are free tiers).
+- **Paper equity**: every desk's paper account on one chart, stepping at each closed trade.
+- **BTCUSDT and the paper trades**: the last 96 h of Bybit 5-minute closes with each desk's paper trades on
+  it (▲ long or ▼ short at the entry, ● at the exit, in the desk's color).
+- **Hour by hour**: the last 48 hours as one row of squares per desk, so the same hour can be compared
+  across models: a would-be trade, a call the desk's rules refused, flat, held (too quiet to ask) or an error.
+  Hover or tap a square for what the model said and why.
+- **The selected desk** (`?desk=gemini`, `groq`, `claude`, or its card or tab): the paper account with its open
+  position and closed trades, what each analyst says now, hindsight, and folded sections for every
+  would-be trade, the recent cycles, the data series and model use by day.
+
+The charts are drawn in the browser from data embedded in the page (no library, nothing fetched from
+elsewhere), with a tooltip on hover or tap. The page refreshes itself every minute while it is open, keeping
+the scroll position and the open sections. The selected desk's state as JSON is at `/api/state.json`.
 
 `dashboard/server.py` (stdlib only) runs as `bitra-dashboard.service` on 127.0.0.1:8790, and
 `sudo tailscale serve --bg 8790` publishes it; both are set up by `setup.sh`. `bitra-hindsight.timer`
