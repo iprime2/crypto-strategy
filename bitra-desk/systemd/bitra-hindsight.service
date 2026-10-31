@@ -9,4 +9,6 @@ Type=oneshot
 WorkingDirectory=%h/bitra/desk
 Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
 ExecStart=%h/.local/bin/tra --plain hindsight
+# the Groq desk; a leading - keeps a failure there from failing the unit
+ExecStart=-/bin/sh -c 'cd %h/bitra/desk-groq && exec %h/.local/bin/tra --plain hindsight'
 TimeoutStartSec=600
