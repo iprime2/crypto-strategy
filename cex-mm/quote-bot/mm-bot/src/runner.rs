@@ -21,8 +21,8 @@ use crate::oms::{
 };
 use crate::account::{AccountConfig, AccountFlags};
 use crate::risk::{
-    counts_toward_reject_kill, BookAge, BookFreeze, BookWatch, DailyLossGuard, FeedHealth, FeedWatch, FrozenBookWatch,
-    VenueReading, VenueReconcile,
+    counts_toward_reject_kill, depth_for_frozen_watch, BookAge, BookFreeze, BookWatch, DailyLossGuard, FeedHealth, FeedWatch,
+    FrozenBookWatch, VenueReading, VenueReconcile,
 };
 use crate::symbols::{env_f64_for_symbol, env_for_symbol, normalize_symbol, resolve_symbols_from_env};
 use mm_core::fair::BasisSource;
@@ -1109,9 +1109,16 @@ async fn run_symbol_loop(
         let binance_fresh = binance_mid > 0.0 && binance_msg_at.is_some_and(|t| t.elapsed() <= binance_stale_after);
 
         // A book that keeps arriving but has stopped changing while Binance moves (17 Oct 2026): pull quotes and
-        // skip the loop, so neither the basis nor OFI, volatility or the fair learn the frozen book.
+        // skip the loop, so neither the basis nor OFI, volatility or the fair learn the frozen book. A fresh ob_l2
+        // book with the same touch counts too, since our own unmoved quotes are often the whole touch.
         let top_now = [top.best_bid, top.best_ask, top.bid_qty, top.ask_qty];
-        match frozen_watch.check(top_now, binance_fresh.then_some(binance_mid), Instant::now()) {
+        let depth_now = depth_rx.as_ref().and_then(|rx| {
+            rx.borrow()
+                .as_deref()
+                .filter(|d| d.received_at.elapsed() <= depth_stale_after)
+                .and_then(|d| depth_for_frozen_watch(top_now, &d.bids, &d.asks))
+        });
+        match frozen_watch.check(top_now, depth_now, binance_fresh.then_some(binance_mid), Instant::now()) {
             BookFreeze::Live => {}
             BookFreeze::Thawed(frozen) => {
                 tracing::info!(%symbol, frozen_ms = frozen.as_millis() as u64, "book fresh again: changing after a freeze");
@@ -1122,6 +1129,7 @@ async fn run_symbol_loop(
                         %symbol,
                         unchanged_ms = unchanged.as_millis() as u64,
                         binance_move_bps,
+                        depth_book = depth_now.is_some(),
                         "stale book: frozen, unchanged while frames arrive — cancel all"
                     );
                     oms.live.clear();

@@ -91,17 +91,22 @@ pub enum BookFreeze {
 /// (ADA +13.5 bps, DUSK +356 bps), so the book never went stale by arrival time; the anchored fair's basis
 /// learned the frozen book and sat 12-18 bps off Delta's mid for ten minutes after it came back.
 ///
-/// The top of book (both prices and sizes) is frozen when it has not changed for `after` and Binance has moved
-/// at least `move_bps` since it last changed, or when it has not changed for `max_after` whatever Binance did
-/// (also covers a stale Binance feed). Over the 15-18 Oct shadow (64 h, four symbols) neither fired outside
-/// the freeze at 30 s / 5 bps / 120 s; the longest unchanged top was 63 s (ADA, Binance one tick away). A zero
-/// duration switches its rule off.
+/// The book (the top's prices and sizes, and the ob_l2 depth book when a fresh one is at hand) is frozen when it
+/// has not changed for `after` and Binance has moved at least `move_bps` since it last changed, or when it has
+/// not changed for `max_after` whatever Binance did (also covers a stale Binance feed). Over the 15-18 Oct shadow
+/// (64 h, four symbols) neither fired outside the freeze at 30 s / 5 bps / 120 s; the longest unchanged top was
+/// 63 s (ADA, Binance one tick away). A zero duration switches its rule off.
+///
+/// The depth book counts because our own quotes are usually the whole touch: on 31 Oct 2026 our bid and ask sat
+/// unmoved at the top for 30-70 s while Binance drifted, the watch cancelled 8-20 times an hour, and each time the
+/// book read fresh 0.4 s later, changed by our own cancel, while the other traders' levels underneath had kept
+/// changing. On 17 Oct the recorder's ob_l2 froze along with ob_l1 and the mark price, so a real freeze still shows.
 #[derive(Debug, Clone)]
 pub struct FrozenBookWatch {
     after: Duration,
     move_bps: f64,
     max_after: Duration,
-    top: Option<[f64; 4]>,
+    top: Option<([f64; 4], Option<u64>)>,
     changed_at: Option<Instant>,
     binance_ref: Option<f64>,
     max_move_bps: f64,
@@ -122,11 +127,13 @@ impl FrozenBookWatch {
         }
     }
 
-    /// `top`: bid, ask, bid size, ask size this loop. `binance_mid`: the Binance mid when it is fresh, else None.
-    pub fn check(&mut self, top: [f64; 4], binance_mid: Option<f64>, now: Instant) -> BookFreeze {
+    /// `top`: bid, ask, bid size, ask size this loop. `depth`: `depth_fingerprint` of a fresh ob_l2 snapshot, else
+    /// None (the top alone then decides). `binance_mid`: the Binance mid when it is fresh, else None.
+    pub fn check(&mut self, top: [f64; 4], depth: Option<u64>, binance_mid: Option<f64>, now: Instant) -> BookFreeze {
         let binance_mid = binance_mid.filter(|b| *b > 0.0);
-        if self.top != Some(top) {
-            self.top = Some(top);
+        let book = (top, depth);
+        if self.top != Some(book) {
+            self.top = Some(book);
             self.changed_at = Some(now);
             self.binance_ref = binance_mid;
             self.max_move_bps = 0.0;
@@ -152,6 +159,29 @@ impl FrozenBookWatch {
         self.frozen_since = Some(now);
         BookFreeze::WentFrozen { unchanged, binance_move_bps: self.max_move_bps }
     }
+}
+
+/// The depth book's say in `FrozenBookWatch`: its fingerprint when its best bid and ask are the L1 top's prices,
+/// else None. The two arrive on separate sockets, so a depth book that disagrees with the top cannot vouch for it:
+/// an `ob_l1` stuck alone while others move the touch is then judged by the top, as before.
+pub fn depth_for_frozen_watch(top: [f64; 4], bids: &[(f64, f64)], asks: &[(f64, f64)]) -> Option<u64> {
+    let same_top = bids.first().map(|l| l.0) == Some(top[0]) && asks.first().map(|l| l.0) == Some(top[1]);
+    same_top.then(|| depth_fingerprint(bids, asks))
+}
+
+/// Every price and size of a depth book, both sides, reduced to one number for `FrozenBookWatch`.
+pub fn depth_fingerprint(bids: &[(f64, f64)], asks: &[(f64, f64)]) -> u64 {
+    use std::hash::{Hash, Hasher};
+    let mut h = std::collections::hash_map::DefaultHasher::new();
+    for (side, levels) in [(0u8, bids), (1u8, asks)] {
+        side.hash(&mut h);
+        levels.len().hash(&mut h);
+        for (px, qty) in levels {
+            px.to_bits().hash(&mut h);
+            qty.to_bits().hash(&mut h);
+        }
+    }
+    h.finish()
 }
 
 /// What the loop should do about the private fills feed on this iteration.
@@ -473,7 +503,7 @@ mod tests {
         let mut w = frozen_watch();
         for i in 0..1_000u64 {
             let top = [TOP[0], TOP[1], TOP[2] + (i % 2) as f64, TOP[3]];
-            assert_eq!(w.check(top, Some(0.2205 * (1.0 + i as f64 * 1e-4)), t0 + ms(400 * i)), BookFreeze::Live);
+            assert_eq!(w.check(top, None, Some(0.2205 * (1.0 + i as f64 * 1e-4)), t0 + ms(400 * i)), BookFreeze::Live);
         }
     }
 
@@ -482,18 +512,18 @@ mod tests {
         // 17 Oct 2026 19:30Z: ob_l1 frames kept arriving with the same book while Binance moved.
         let t0 = Instant::now();
         let mut w = frozen_watch();
-        assert_eq!(w.check(TOP, Some(0.22000), t0), BookFreeze::Live);
-        assert_eq!(w.check(TOP, Some(0.22012), t0 + ms(10_000)), BookFreeze::Live, "5.5 bps, but only 10 s");
-        assert_eq!(w.check(TOP, Some(0.22000), t0 + ms(29_600)), BookFreeze::Live, "Binance back, 29.6 s");
-        match w.check(TOP, Some(0.22000), t0 + ms(30_000)) {
+        assert_eq!(w.check(TOP, None, Some(0.22000), t0), BookFreeze::Live);
+        assert_eq!(w.check(TOP, None, Some(0.22012), t0 + ms(10_000)), BookFreeze::Live, "5.5 bps, but only 10 s");
+        assert_eq!(w.check(TOP, None, Some(0.22000), t0 + ms(29_600)), BookFreeze::Live, "Binance back, 29.6 s");
+        match w.check(TOP, None, Some(0.22000), t0 + ms(30_000)) {
             BookFreeze::WentFrozen { unchanged, binance_move_bps } => {
                 assert_eq!(unchanged, ms(30_000));
                 assert!((binance_move_bps - 5.4545).abs() < 1e-3, "the largest move since the change counts: {binance_move_bps}");
             }
             other => panic!("expected WentFrozen, got {other:?}"),
         }
-        assert_eq!(w.check(TOP, Some(0.22000), t0 + ms(30_400)), BookFreeze::Frozen);
-        assert_eq!(w.check(TOP, None, t0 + ms(900_000)), BookFreeze::Frozen);
+        assert_eq!(w.check(TOP, None, Some(0.22000), t0 + ms(30_400)), BookFreeze::Frozen);
+        assert_eq!(w.check(TOP, None, None, t0 + ms(900_000)), BookFreeze::Frozen);
     }
 
     #[test]
@@ -501,54 +531,121 @@ mod tests {
         // ADA's longest unchanged top outside the freeze over 64 h was 63 s, with Binance one tick (4.4 bps) away.
         let t0 = Instant::now();
         let mut w = frozen_watch();
-        assert_eq!(w.check(TOP, Some(0.22000), t0), BookFreeze::Live);
-        assert_eq!(w.check(TOP, Some(0.22009), t0 + ms(63_200)), BookFreeze::Live, "4.1 bps is under the 5 bps limit");
-        assert_eq!(w.check(TOP, Some(0.22009), t0 + ms(119_600)), BookFreeze::Live);
-        assert!(matches!(w.check(TOP, Some(0.22009), t0 + ms(120_000)), BookFreeze::WentFrozen { .. }));
+        assert_eq!(w.check(TOP, None, Some(0.22000), t0), BookFreeze::Live);
+        assert_eq!(w.check(TOP, None, Some(0.22009), t0 + ms(63_200)), BookFreeze::Live, "4.1 bps is under the 5 bps limit");
+        assert_eq!(w.check(TOP, None, Some(0.22009), t0 + ms(119_600)), BookFreeze::Live);
+        assert!(matches!(w.check(TOP, None, Some(0.22009), t0 + ms(120_000)), BookFreeze::WentFrozen { .. }));
     }
 
     #[test]
     fn the_long_limit_freezes_while_binance_is_stale() {
         let t0 = Instant::now();
         let mut w = frozen_watch();
-        assert_eq!(w.check(TOP, None, t0), BookFreeze::Live);
-        assert_eq!(w.check(TOP, None, t0 + ms(60_000)), BookFreeze::Live, "no Binance mid: no move to measure");
-        assert!(matches!(w.check(TOP, None, t0 + ms(120_000)), BookFreeze::WentFrozen { .. }));
+        assert_eq!(w.check(TOP, None, None, t0), BookFreeze::Live);
+        assert_eq!(w.check(TOP, None, None, t0 + ms(60_000)), BookFreeze::Live, "no Binance mid: no move to measure");
+        assert!(matches!(w.check(TOP, None, None, t0 + ms(120_000)), BookFreeze::WentFrozen { .. }));
     }
 
     #[test]
     fn the_move_counts_from_the_first_fresh_binance_mid_after_the_change() {
         let t0 = Instant::now();
         let mut w = frozen_watch();
-        assert_eq!(w.check(TOP, None, t0), BookFreeze::Live);
-        assert_eq!(w.check(TOP, Some(0.22000), t0 + ms(5_000)), BookFreeze::Live);
-        assert_eq!(w.check(TOP, Some(0.22012), t0 + ms(29_000)), BookFreeze::Live, "5.5 bps at 29 s");
-        assert!(matches!(w.check(TOP, Some(0.22012), t0 + ms(30_000)), BookFreeze::WentFrozen { .. }));
+        assert_eq!(w.check(TOP, None, None, t0), BookFreeze::Live);
+        assert_eq!(w.check(TOP, None, Some(0.22000), t0 + ms(5_000)), BookFreeze::Live);
+        assert_eq!(w.check(TOP, None, Some(0.22012), t0 + ms(29_000)), BookFreeze::Live, "5.5 bps at 29 s");
+        assert!(matches!(w.check(TOP, None, Some(0.22012), t0 + ms(30_000)), BookFreeze::WentFrozen { .. }));
     }
 
     #[test]
     fn a_change_thaws_with_the_frozen_duration_and_resets_the_move() {
         let t0 = Instant::now();
         let mut w = frozen_watch();
-        w.check(TOP, Some(0.22000), t0);
-        w.check(TOP, Some(0.22030), t0 + ms(10_000));
-        assert!(matches!(w.check(TOP, Some(0.22030), t0 + ms(30_000)), BookFreeze::WentFrozen { .. }));
+        w.check(TOP, None, Some(0.22000), t0);
+        w.check(TOP, None, Some(0.22030), t0 + ms(10_000));
+        assert!(matches!(w.check(TOP, None, Some(0.22030), t0 + ms(30_000)), BookFreeze::WentFrozen { .. }));
         let moved = [TOP[0], TOP[1], TOP[2], TOP[3] - 200.0];
-        assert_eq!(w.check(moved, Some(0.22030), t0 + ms(2_648_800)), BookFreeze::Thawed(ms(2_618_800)));
+        assert_eq!(w.check(moved, None, Some(0.22030), t0 + ms(2_648_800)), BookFreeze::Thawed(ms(2_618_800)));
         // The move counts again from the change: Binance where it was is no move, so 30 s more is not frozen.
-        assert_eq!(w.check(moved, Some(0.22030), t0 + ms(2_678_800)), BookFreeze::Live);
+        assert_eq!(w.check(moved, None, Some(0.22030), t0 + ms(2_678_800)), BookFreeze::Live);
+    }
+
+    #[test]
+    fn a_still_touch_over_a_changing_depth_book_is_not_frozen() {
+        // 31 Oct 2026: our own bid and ask were the touch and did not move for 30-70 s while Binance drifted 5 bps;
+        // the other traders' levels underneath kept changing. The guard cancelled 8-20 times an hour and the
+        // book read fresh 0.4 s later, changed by our own cancel.
+        let t0 = Instant::now();
+        let mut w = frozen_watch();
+        for i in 0..400u64 {
+            let depth = Some(depth_fingerprint(&[(0.22020, 200.0), (0.22015, 5_000.0 + (i % 3) as f64)], &[(0.22050, 200.0)]));
+            assert_eq!(w.check(TOP, depth, Some(0.22000 * (1.0 + i as f64 * 1e-5)), t0 + ms(400 * i)), BookFreeze::Live, "loop {i}");
+        }
+    }
+
+    #[test]
+    fn an_unchanged_depth_book_still_freezes_with_the_touch() {
+        // 17 Oct 2026: the recorder's ob_l2 froze along with ob_l1 and the mark price.
+        let t0 = Instant::now();
+        let mut w = frozen_watch();
+        let depth = Some(depth_fingerprint(&[(0.22020, 200.0), (0.22015, 5_000.0)], &[(0.22050, 200.0)]));
+        assert_eq!(w.check(TOP, depth, Some(0.22000), t0), BookFreeze::Live);
+        assert_eq!(w.check(TOP, depth, Some(0.22012), t0 + ms(29_600)), BookFreeze::Live);
+        assert!(matches!(w.check(TOP, depth, Some(0.22012), t0 + ms(30_000)), BookFreeze::WentFrozen { .. }));
+        let moved = Some(depth_fingerprint(&[(0.22020, 200.0), (0.22016, 5_000.0)], &[(0.22050, 200.0)]));
+        assert_eq!(w.check(TOP, moved, Some(0.22012), t0 + ms(30_400)), BookFreeze::Thawed(ms(400)), "a depth change thaws it");
+    }
+
+    #[test]
+    fn a_changing_depth_book_holds_off_the_long_limit_too() {
+        let t0 = Instant::now();
+        let mut w = frozen_watch();
+        for i in 0..400u64 {
+            let depth = Some(depth_fingerprint(&[(0.22015, 5_000.0 + (i % 2) as f64)], &[(0.22050, 200.0)]));
+            assert_eq!(w.check(TOP, depth, None, t0 + ms(400 * i)), BookFreeze::Live, "loop {i}: 160 s with no Binance mid");
+        }
+    }
+
+    #[test]
+    fn without_a_fresh_depth_book_the_touch_alone_decides() {
+        // Depth feed off or stale: the 17 Oct rule as before. Losing the depth book counts as one change.
+        let t0 = Instant::now();
+        let mut w = frozen_watch();
+        let depth = Some(depth_fingerprint(&[(0.22015, 5_000.0)], &[(0.22050, 200.0)]));
+        assert_eq!(w.check(TOP, depth, Some(0.22000), t0), BookFreeze::Live);
+        assert_eq!(w.check(TOP, None, Some(0.22000), t0 + ms(10_000)), BookFreeze::Live);
+        assert_eq!(w.check(TOP, None, Some(0.22012), t0 + ms(39_600)), BookFreeze::Live, "29.6 s since the depth book went");
+        assert!(matches!(w.check(TOP, None, Some(0.22012), t0 + ms(40_000)), BookFreeze::WentFrozen { .. }));
+    }
+
+    #[test]
+    fn the_depth_fingerprint_sees_every_price_and_size() {
+        let base = depth_fingerprint(&[(0.22020, 200.0), (0.22015, 5_000.0)], &[(0.22050, 200.0)]);
+        assert_eq!(base, depth_fingerprint(&[(0.22020, 200.0), (0.22015, 5_000.0)], &[(0.22050, 200.0)]));
+        assert_ne!(base, depth_fingerprint(&[(0.22020, 200.0), (0.22015, 5_001.0)], &[(0.22050, 200.0)]), "a deeper size");
+        assert_ne!(base, depth_fingerprint(&[(0.22020, 200.0), (0.22014, 5_000.0)], &[(0.22050, 200.0)]), "a deeper price");
+        assert_ne!(base, depth_fingerprint(&[(0.22020, 200.0)], &[(0.22015, 5_000.0), (0.22050, 200.0)]), "a level changing sides");
+    }
+
+    #[test]
+    fn the_depth_book_counts_only_when_its_touch_is_the_l1_touch() {
+        let bids = [(TOP[0], 200.0), (0.22015, 5_000.0)];
+        let asks = [(TOP[1], 200.0)];
+        assert_eq!(depth_for_frozen_watch(TOP, &bids, &asks), Some(depth_fingerprint(&bids, &asks)));
+        assert_eq!(depth_for_frozen_watch(TOP, &[(0.22030, 50.0), (TOP[0], 200.0)], &asks), None, "someone bid above the L1 top");
+        assert_eq!(depth_for_frozen_watch(TOP, &bids, &[(0.22049, 10.0)]), None, "a lower offer than the L1 top");
+        assert_eq!(depth_for_frozen_watch(TOP, &[], &asks), None, "an empty side");
     }
 
     #[test]
     fn zero_limits_switch_the_watch_off() {
         let t0 = Instant::now();
         let mut w = FrozenBookWatch::new(Duration::ZERO, 5.0, Duration::ZERO);
-        assert_eq!(w.check(TOP, Some(0.22000), t0), BookFreeze::Live);
-        assert_eq!(w.check(TOP, Some(0.23000), t0 + ms(3_600_000)), BookFreeze::Live);
+        assert_eq!(w.check(TOP, None, Some(0.22000), t0), BookFreeze::Live);
+        assert_eq!(w.check(TOP, None, Some(0.23000), t0 + ms(3_600_000)), BookFreeze::Live);
         let mut w = FrozenBookWatch::new(Duration::ZERO, 5.0, Duration::from_secs(120));
-        w.check(TOP, Some(0.22000), t0);
-        assert_eq!(w.check(TOP, Some(0.23000), t0 + ms(60_000)), BookFreeze::Live, "move rule off");
-        assert!(matches!(w.check(TOP, Some(0.23000), t0 + ms(120_000)), BookFreeze::WentFrozen { .. }));
+        w.check(TOP, None, Some(0.22000), t0);
+        assert_eq!(w.check(TOP, None, Some(0.23000), t0 + ms(60_000)), BookFreeze::Live, "move rule off");
+        assert!(matches!(w.check(TOP, None, Some(0.23000), t0 + ms(120_000)), BookFreeze::WentFrozen { .. }));
     }
 
     #[test]
