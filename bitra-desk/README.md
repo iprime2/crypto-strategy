@@ -51,21 +51,33 @@ ssh -F /tmp/tailnet/ssh_config bitra-desk   # then this
 | Sentiment | Crypto Fear & Greed (alternative.me, daily, no key): bullish above 71, bearish below 50, the 25th/75th percentiles of its last 90 days, read as momentum |
 | Macro | FRED (`FRED_API_KEY`): US 10-year yield `DGS10`, bearish above 4.65 and bullish below 4.18; broad dollar `DTWEXBGS`, bearish above 120.7 and bullish below 118.7 (each the 25th/75th percentiles of its last year). The dollar is released weekly, so its `max_age` is 12 days |
 | Cost model | Bybit taker 5.5 bps a side, measured round trip 15.02 bps; refused unless the claimed edge is 2x the round trip |
-| Risk | 50 bps of $10,000 paper equity at the stop; no new entry after a 3% day or a 10% drawdown |
+| Risk | 50 bps of $1,000 equity at the stop ($5), size cut to fit; no new entry after a 3% day or a 10% drawdown. $1,000 since 31 Oct 2026 (was $10,000), the size of a first real account |
 
 The desk was made with `tra init desk --profile autonomous --agent google`, then changed to 1h bars,
 4h/1d context, a 12-bar hold, a 1h cooldown, the two series above and their conviction weights.
 Changing a setting mid-experiment splits what `tra hindsight` measures into two populations: freeze
 the config once the first days are in.
 
+## Two desks: the model is the only difference
+
+Since 31 Oct 2026 a second desk, `~/bitra/desk-groq` (`bitra-desk-groq.service`), runs next to the first
+on Groq's `openai/gpt-oss-120b` (falling back to `openai/gpt-oss-20b`), bitra's own most-tested model.
+`setup.sh` builds it from `desk/` and changes only the three `[agents]` lines (`provider`, `model`,
+`fallback`), so market, data, series, rules and costs stay identical and any difference in results is
+the model's. Its `.env` is a link to `~/bitra/desk/.env`, so both desks read one key file. Each desk has
+its own records, `tra hindsight` and paper account (`~/bitra/paper`, `~/bitra/paper-groq`); the dashboard
+sets them side by side under **Model comparison** and shows either in full (`?desk=gemini`, `?desk=groq`).
+On its first forced cycle Groq answered all three roles in 4.9 s, against 40–180 s for Gemini's free tier.
+
 ## Set up or redeploy
 
 From a checkout, copy this folder to the VM and run the script. It installs uv and bitra (pinned,
-`BITRA_VERSION`), writes `desk/` over `~/bitra/desk` (never `.env`, `runs/` or fetched series), and
-installs the user service. It starts the service only once `GEMINI_API_KEY` is set.
+`BITRA_VERSION`, with the google and openai clients), writes `desk/` over `~/bitra/desk` and its Groq
+copy over `~/bitra/desk-groq` (never `.env`, `runs/` or fetched series), and installs the user services.
+It starts each desk only once its key is set (`GEMINI_API_KEY`, `GROQ_API_KEY`).
 
 ```bash
-tar -C bitra-desk -c . | ssh -F /tmp/tailnet/ssh_config bitra-desk \
+tar -C bitra-desk -c . | ssh -F "${TAILNET_DIR:-/tmp/tailnet}/ssh_config" bitra-desk \
   'rm -rf ~/bitra/repo && mkdir -p ~/bitra/repo && tar -C ~/bitra/repo -x && bash ~/bitra/repo/setup.sh'
 ```
 
@@ -91,7 +103,12 @@ so its record overstates how many trades a real account takes. `paper/paper.py` 
 venue mode trades them: one position at a time (an intent while one is open is skipped), entry at the open of
 the first 5-minute bar after the decision, the intent's own size, stop and take, out at either or after the
 12 h hold limit (a bar that reaches both counts as the stop), net of the round trip the intent priced, on
-$10,000 of practice equity. It replays from the desk's first intent each run, so the result is deterministic.
+$1,000 of practice equity, the size a first real account would be. Each trade's size is the smaller of the
+intent's and what keeps the loss at the stop, round trip included, within the desk's
+`max_risk_per_trade_bps` (50, so $5 on $1,000) of the account's equity at entry, rounded down to
+`size_step` (0.001 BTC); a trade that rounds to nothing is skipped and says so. This also resizes the
+intents recorded before the desk's equity went from $10,000 to $1,000. It replays from the desk's first
+intent each run, so the result is deterministic.
 The only network call is Bybit's public kline endpoint, cached in `~/bitra/paper/candles.jsonl`; the result is
 `~/bitra/paper/state.json`, which the dashboard shows. `bitra-paper.timer` runs it every 15 minutes (:05, :20,
 :35, :50). Tests: `python3 -m unittest discover -s bitra-desk/paper -p 'test_*.py'`.
@@ -102,7 +119,7 @@ at the exact stop or take price, with slippage only as the intent's priced estim
 ## Operate
 
 ```bash
-systemctl --user status bitra-desk bitra-dashboard bitra-hindsight.timer
+systemctl --user status bitra-desk bitra-desk-groq bitra-dashboard bitra-hindsight.timer bitra-paper.timer
 journalctl --user -u bitra-desk -n 80          # each hour's cycle; -f to follow
 cd ~/bitra/desk && tra watch --every 5s        # read-only view of the records
 tra sources show                               # every series, its age, stale or not

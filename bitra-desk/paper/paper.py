@@ -5,17 +5,23 @@ The sandbox desk writes an intent whenever every gate passes, even while an earl
 be open, so its record overstates how many trades a real account takes. This replays the intents the
 way venue mode would trade them: one position at a time, an intent while a position is open is
 skipped, entry at the open of the first 5-minute bar that starts once the cycle has finished (the
-decision exists only then), the size and levels the
-intent carries, out at the stop, the take or the 12-hour hold limit (a bar that reaches both levels
+decision exists only then), the levels the intent carries and its size cut to the desk's own risk rule
+on this account's equity (the loss at the stop, round trip included, at most `max_risk_per_trade_bps` of
+equity, rounded down to `size_step`; a trade that rounds to nothing is skipped), out at the stop, the take or the 12-hour hold limit (a bar that reaches both levels
 counts as the stop, as `tra hindsight` does), net of the round trip the intent priced. Nothing is sent
 anywhere: the only network call is Bybit's public kline endpoint, cached on disk.
 
     python3 paper.py --desk ~/bitra/desk --out ~/bitra/paper     # writes state.json, candles.jsonl
+
+The account starts at $1,000 (--equity), the amount a first real account would hold; the desk's own
+[run].equity says the same, so its newer intents are already sized for it.
 """
 from __future__ import annotations
 
 import argparse
 import json
+import math
+import re
 import time
 import urllib.parse
 import urllib.request
@@ -60,6 +66,22 @@ def load_intents(cycles: Path) -> list[dict]:
             "conviction": it.get("conviction"), "reason": it.get("reason", ""),
         })
     return out
+
+
+def desk_sizing(desk: Path) -> tuple[float, float]:
+    """max_risk_per_trade_bps and size_step from the desk's strategy.toml (50 and 0.001 when absent)."""
+    risk, step = 50.0, 0.001
+    try:
+        text = (desk / "strategy.toml").read_text()
+    except OSError:
+        return risk, step
+    m = re.search(r"^max_risk_per_trade_bps\s*=\s*([0-9.]+)", text, re.M)
+    if m:
+        risk = float(m.group(1))
+    m = re.search(r"^size_step\s*=\s*([0-9.]+)", text, re.M)
+    if m:
+        step = float(m.group(1))
+    return risk, step
 
 
 # ---- candles -------------------------------------------------------------------------------
@@ -125,8 +147,9 @@ def update_cache(path: Path, symbol: str, start_ms: int, now_ms: int) -> tuple[d
 # ---- the account ---------------------------------------------------------------------------
 
 def simulate(intents: list[dict], bars: dict[int, tuple[float, float, float, float]], hold_ms: int,
-             start_equity: float) -> dict:
-    """One position at a time; see the module docstring for the rules."""
+             start_equity: float, risk_bps: float | None = None, size_step: float = 0.001) -> dict:
+    """One position at a time; see the module docstring for the rules. Without risk_bps the intent's
+    own size is taken as it is."""
     times = sorted(bars)
     trades: list[dict] = []
     skipped: list[dict] = []
@@ -162,8 +185,8 @@ def simulate(intents: list[dict], bars: dict[int, tuple[float, float, float, flo
         sign = 1 if p["side"] == "long" else -1
         gross = sign * (price - p["entry"]) * p["size"]
         cost = p["round_trip_bps"] / 1e4 * p["entry"] * p["size"]
-        return {**{k: p[k] for k in ("cycle", "side", "setup", "size", "entry", "entry_ms", "stop", "take",
-                                     "round_trip_bps", "conviction", "reason")},
+        return {**{k: p[k] for k in ("cycle", "side", "setup", "size", "desk_size", "entry", "entry_ms", "stop",
+                                     "take", "round_trip_bps", "conviction", "reason")},
                 "exit": price, "exit_ms": at_ms, "exit_reason": why,
                 "gross_usd": round(gross, 2), "cost_usd": round(cost, 2), "net_usd": round(gross - cost, 2),
                 "net_bps": round((gross - cost) / (p["entry"] * p["size"]) * 1e4, 1)}
@@ -181,8 +204,20 @@ def simulate(intents: list[dict], bars: dict[int, tuple[float, float, float, flo
         if entry_ms is None:
             skipped.append({"cycle": it["cycle"], "side": it["side"], "why": "waiting for its first bar"})
             continue
-        pos = {**it, "entry": bars[entry_ms][0], "entry_ms": entry_ms, "next_ms": entry_ms,
-               "deadline_ms": entry_ms + hold_ms, "mark": bars[entry_ms][0]}
+        entry = bars[entry_ms][0]
+        size = it["size"]
+        if risk_bps is not None:
+            equity_now = start_equity + sum(t["net_usd"] for t in trades)
+            loss_per_unit = abs(entry - it["stop"]) + it["round_trip_bps"] / 1e4 * entry
+            fits = math.floor(risk_bps / 1e4 * equity_now / loss_per_unit / size_step + 1e-9) * size_step
+            size = round(min(size, fits), 8)
+            if size < size_step:
+                skipped.append({"cycle": it["cycle"], "side": it["side"],
+                                "why": f"too small: {risk_bps:g} bps of ${equity_now:,.0f} is under one "
+                                       f"{size_step:g} step at this stop"})
+                continue
+        pos = {**it, "size": size, "desk_size": it["size"], "entry": entry, "entry_ms": entry_ms,
+               "next_ms": entry_ms, "deadline_ms": entry_ms + hold_ms, "mark": entry}
     open_pos = None
     if pos is not None:
         done = advance(pos, (times[-1] + BAR_MS) if times else 0)
@@ -191,8 +226,9 @@ def simulate(intents: list[dict], bars: dict[int, tuple[float, float, float, flo
         else:
             sign = 1 if pos["side"] == "long" else -1
             unreal = sign * (pos["mark"] - pos["entry"]) * pos["size"] - pos["round_trip_bps"] / 1e4 * pos["entry"] * pos["size"]
-            open_pos = {k: pos[k] for k in ("cycle", "side", "setup", "size", "entry", "entry_ms", "stop", "take",
-                                            "deadline_ms", "mark", "round_trip_bps", "conviction", "reason")}
+            open_pos = {k: pos[k] for k in ("cycle", "side", "setup", "size", "desk_size", "entry", "entry_ms",
+                                            "stop", "take", "deadline_ms", "mark", "round_trip_bps", "conviction",
+                                            "reason")}
             open_pos["unrealized_usd"] = round(unreal, 2)
 
     realized = round(sum(t["net_usd"] for t in trades), 2)
@@ -216,7 +252,7 @@ def main() -> None:
     p.add_argument("--out", type=Path, default=Path.home() / "bitra" / "paper")
     p.add_argument("--symbol", default="BTCUSDT")
     p.add_argument("--hold-hours", type=float, default=12.0)   # [exit].timeout_bars x the 1h bar
-    p.add_argument("--equity", type=float, default=10_000.0)   # [run].equity
+    p.add_argument("--equity", type=float, default=1_000.0)    # a first real account; [run].equity matches
     args = p.parse_args()
     desk, out = args.desk.expanduser(), args.out.expanduser()
     out.mkdir(parents=True, exist_ok=True)
@@ -227,8 +263,10 @@ def main() -> None:
     if intents:
         start_ms = (intents[0]["at_ms"] // BAR_MS) * BAR_MS
         bars, error = update_cache(out / "candles.jsonl", args.symbol, start_ms, now_ms)
-    state = simulate(intents, bars, int(args.hold_hours * 3_600_000), args.equity)
-    state.update({"generated_ms": now_ms, "symbol": args.symbol, "hold_hours": args.hold_hours, "fetch_error": error})
+    risk_bps, step = desk_sizing(desk)
+    state = simulate(intents, bars, int(args.hold_hours * 3_600_000), args.equity, risk_bps, step)
+    state.update({"generated_ms": now_ms, "symbol": args.symbol, "hold_hours": args.hold_hours, "fetch_error": error,
+                  "risk_bps": risk_bps, "size_step": step})
     tmp = out / "state.json.tmp"
     tmp.write_text(json.dumps(state, indent=1))
     tmp.replace(out / "state.json")

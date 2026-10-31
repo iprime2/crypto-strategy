@@ -115,23 +115,67 @@ class PaperTest(unittest.TestCase):
         desk = make_desk(self)
         pdir = tmpdir(self)
         trade = {"cycle": "c", "side": "short", "setup": "range_reversion", "size": 0.005, "entry": 81300.0,
-                 "entry_ms": 1793232000000, "stop": 81795.3, "take": 79416.0, "round_trip_bps": 13.0,
+                 "entry_ms": 1793232000000, "stop": 81795.3, "take": 79416.0, "round_trip_bps": 13.0, "desk_size": 0.01,
                  "conviction": "0.6", "reason": "<b>x</b>", "exit": 80000.0, "exit_ms": 1793275200000,
                  "exit_reason": "time limit", "gross_usd": 6.5, "cost_usd": 0.53, "net_usd": 5.97, "net_bps": 146.9}
         (pdir / "state.json").write_text(json.dumps({
             "start_equity": 10000, "equity": 10005.97, "realized_usd": 5.97, "unrealized_usd": 0.0,
             "return_pct": 0.06, "closed": 1, "wins": 1, "losses": 0, "open": None, "trades": [trade],
             "skipped": [{"cycle": "d", "side": "short", "why": "a short is already open"}],
-            "equity_curve": [[1793275200000, 10005.97]], "hold_hours": 12, "generated_ms": NOW.timestamp() * 1000,
+            "equity_curve": [[1793275200000, 10005.97]], "hold_hours": 12, "risk_bps": 50, "generated_ms": NOW.timestamp() * 1000,
             "fetch_error": None}))
         page = server.render(server.build_state(desk, now=NOW, service="active", paper_dir=pdir))
-        for text in ("Paper account", "$10,005.97", "+0.06%", "time limit", "+$5.97", "12 h, net of", "Flat: no position open"):
+        for text in ("Paper account", "$10,005.97", "+0.06%", "time limit", "+$5.97", "12 h, net of", "Flat: no position open",
+                     "0.005 BTC (desk 0.01)", "within 50 bps of equity"):
             self.assertIn(text, page)
 
     def test_paper_missing(self):
         page = server.render(server.build_state(make_desk(self), now=NOW, service="active", paper_dir=tmpdir(self)))
         self.assertIn("Paper account", page)
         self.assertIn("Not computed yet", page)
+
+
+class DesksTest(unittest.TestCase):
+    def test_parse_desk(self):
+        g = server.parse_desk("groq=/home/u/bitra/desk-groq")
+        self.assertEqual((g["name"], str(g["paper"]), g["unit"]), ("groq", "/home/u/bitra/paper-groq", "bitra-desk-groq"))
+        d = server.parse_desk("/home/u/bitra/desk")
+        self.assertEqual((d["name"], str(d["paper"]), d["unit"]), ("desk", "/home/u/bitra/paper", "bitra-desk"))
+
+    def test_desk_model_reads_the_agents_table_only(self):
+        desk = tmpdir(self)
+        (desk / "strategy.toml").write_text(
+            '[[channel]]\nname = "taker-taker"\n[agents]\nprovider = "groq"   # the vendor\n'
+            'model = "openai/gpt-oss-120b"\n[agents.roles.x]\nmodel = "other"\n')
+        self.assertEqual(server.desk_model(desk), "groq:openai/gpt-oss-120b")
+        self.assertEqual(server.desk_model(tmpdir(self)), "")
+
+    def test_comparison_and_desk_switch(self):
+        root = tmpdir(self)
+        a, b = make_desk(self), make_desk(self)
+        desks = [{"name": "gemini", "path": a, "paper": root / "pa", "unit": "x"},
+                 {"name": "groq", "path": b, "paper": root / "pb", "unit": "y"}]
+        httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.make_handler(desks))
+        threading.Thread(target=httpd.serve_forever, daemon=True).start()
+        self.addCleanup(httpd.server_close)
+        self.addCleanup(httpd.shutdown)
+        base = f"http://127.0.0.1:{httpd.server_address[1]}"
+        page = urllib.request.urlopen(base + "/").read().decode()
+        self.assertIn("Model comparison", page)
+        self.assertIn("bitra-desk · gemini", page)
+        self.assertIn("<a href='?desk=groq'>groq</a>", page)
+        page = urllib.request.urlopen(base + "/?desk=groq").read().decode()
+        self.assertIn("bitra-desk · groq", page)
+        self.assertIn("<a href='?desk=gemini'>gemini</a>", page)
+        state = json.loads(urllib.request.urlopen(base + "/api/state.json?desk=groq").read())
+        self.assertEqual(state["desk"], str(b))
+        with self.assertRaises(urllib.error.HTTPError) as ctx:
+            urllib.request.urlopen(base + "/?desk=nope")
+        self.assertEqual(ctx.exception.code, 404)
+
+    def test_single_desk_has_no_comparison(self):
+        page = server.render(server.build_state(make_desk(self), now=NOW, service="active"))
+        self.assertNotIn("Model comparison", page)
 
 
 class HttpTest(unittest.TestCase):

@@ -28,7 +28,9 @@ size = 0.01                        # base units; or size_quote = 100 in quote cu
 size_step = 0.001                  # the venue's size increment; sizes round down to it
 # size_step = { BTCUSDT = 0.001, ETHUSDT = 0.01 }   # one per instrument, for a desk on several
 spread_cost_bps = 3.0              # half-spread from the recorded book, declared here
-equity = 10000                     # in quote currency; leave out and every entry is refused
+equity = 1000                      # in quote currency; leave out and every entry is refused
+                                   # $1,000 since 31 Oct 2026: the size a first real account would be.
+                                   # 50 bps risk is then $5 at the stop, so most entries are cut to fit
 latency_ms = 6                     # measured order round trip on a persistent connection
 slippage_bps = 1.0
 settlement_interval_s = 28800      # the venue's funding clock
