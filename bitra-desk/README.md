@@ -22,10 +22,10 @@ The question it answers after 2–4 weeks: did the model's calls beat their exac
 | | |
 |---|---|
 | Instance | `bitra-desk`, `i-08484437b21ad1b89`, `ap-south-1` (Mumbai), created by hand in the console |
-| Type | `t4g.small` (arm64, 2 vCPU, 2 GiB), Ubuntu 24.04, 20 GiB gp3, credit specification Standard |
+| Type | `t4g.small` (arm64, 2 vCPU, 2 GiB, plus a 2 GiB swap file for three desks), Ubuntu 24.04, 20 GiB gp3, credit specification Standard |
 | Address | Elastic IP `15.207.39.80`; security group `bitra-desk-sg`, SSH from the owner's home IP only |
 | Tailnet | `bitra-desk`, `tag:bitra`, Tailscale SSH on (user `ubuntu`) |
-| Cost | about $14/month (instance $8, disk $2, public IPv4 $3.65). Stop it in the console when paused |
+| Cost | about $14/month (instance $8, disk $2, public IPv4 $3.65). Stop it in the console when paused. The Claude desk's model calls come out of the owner's Claude plan's monthly API credit |
 
 Mumbai, not Tokyo: Bybit has been withdrawing from Japan since January 2026; from `ap-south-1` Bybit,
 Binance, OKX, Delta India and Gemini all answered (28 Oct 2026).
@@ -58,23 +58,46 @@ The desk was made with `tra init desk --profile autonomous --agent google`, then
 Changing a setting mid-experiment splits what `tra hindsight` measures into two populations: freeze
 the config once the first days are in.
 
-## Two desks: the model is the only difference
+## Three desks: the model is the only difference
 
-Since 31 Oct 2026 a second desk, `~/bitra/desk-groq` (`bitra-desk-groq.service`), runs next to the first
-on Groq's `openai/gpt-oss-120b` (falling back to `openai/gpt-oss-20b`), bitra's own most-tested model.
-`setup.sh` builds it from `desk/` and changes only the three `[agents]` lines (`provider`, `model`,
-`fallback`), so market, data, series, rules and costs stay identical and any difference in results is
-the model's. Its `.env` is a link to `~/bitra/desk/.env`, so both desks read one key file. Each desk has
-its own records, `tra hindsight` and paper account (`~/bitra/paper`, `~/bitra/paper-groq`); the dashboard
-sets them side by side under **Model comparison** and shows either in full (`?desk=gemini`, `?desk=groq`).
-On its first forced cycle Groq answered all three roles in 4.9 s, against 40–180 s for Gemini's free tier.
+| Desk | Service | Model (fallback) | Since |
+|---|---|---|---|
+| `~/bitra/desk` | `bitra-desk` | Gemini `gemini-3.1-flash-lite` (`gemini-2.5-flash`, `gemini-flash-latest`), free tier | 28 Oct 2026 |
+| `~/bitra/desk-groq` | `bitra-desk-groq` | Groq `openai/gpt-oss-120b` (`openai/gpt-oss-20b`), free tier | 31 Oct 2026 |
+| `~/bitra/desk-claude` | `bitra-desk-claude` | Claude `claude-opus-5-5` (`claude-sonnet-5-5`), bitra's own default model, at its default effort (high), through the `claude` provider below | 31 Oct 2026 |
+
+`setup.sh` builds the second and third from `desk/` and changes only the three `[agents]` lines
+(`provider`, `model`, `fallback`), so market, data, series, rules and costs stay identical and any
+difference in results is the model's. Their `.env` is a link to `~/bitra/desk/.env`, so every desk reads
+one key file. Each desk has its own records, `tra hindsight` and paper account (`~/bitra/paper`,
+`~/bitra/paper-groq`, `~/bitra/paper-claude`); the dashboard sets them side by side under **Model
+comparison** and shows any one in full (`?desk=gemini`, `?desk=groq`, `?desk=claude`). On its first forced
+cycle Groq answered all three roles in 4.9 s, against 40–180 s for Gemini's free tier.
+
+bitra 0.10.2's bundled `anthropic` provider cannot run the technical analyst: that role's answer schema
+puts `minimum`/`maximum` on numbers, which the Claude API refuses with a 400, so the desk's first cycle
+(31 Oct 2026, 08:55 UTC) stopped there. `claude-provider/` is a bitra plugin, registered through
+its provider entry point, that adds a provider named `claude`: the bundled adapter with each numeric bound
+moved into its field's description (bitra still checks the bounds when it reads the answer). `setup.sh`
+installs it beside bitra. Tests: `python3 -m venv /tmp/bv && /tmp/bv/bin/pip install ./bitra-desk/claude-provider
+&& /tmp/bv/bin/python -m unittest discover -s bitra-desk/claude-provider -p 'test_*.py'`.
+
+The Claude desk is the only one that costs money: Opus 5.5 is $4 / $20 per million input / output tokens,
+and at high effort it also spends output tokens thinking. Its first cycle that asked all three
+roles (31 Oct 2026) used about 8,400 input and 1,700 output tokens, about $0.07, so even a model call every
+hour stays near $50 a month. Its key lives in its own Claude Console
+workspace with a monthly spend limit, auto-reload is off and no credits are bought, so it draws only on
+the plan's monthly API credit and stops, rather than charging anything, when that runs out. The dashboard's
+**Model use** table shows its tokens by day.
 
 ## Set up or redeploy
 
-From a checkout, copy this folder to the VM and run the script. It installs uv and bitra (pinned,
-`BITRA_VERSION`, with the google and openai clients), writes `desk/` over `~/bitra/desk` and its Groq
-copy over `~/bitra/desk-groq` (never `.env`, `runs/` or fetched series), and installs the user services.
-It starts each desk only once its key is set (`GEMINI_API_KEY`, `GROQ_API_KEY`).
+From a checkout, copy this folder to the VM and run the script. It adds a 2 GiB swap file if the host
+has none, installs uv and bitra (pinned, `BITRA_VERSION`, with the google, openai and anthropic clients),
+writes `desk/` over `~/bitra/desk` and its Groq and Claude copies over `~/bitra/desk-groq` and
+`~/bitra/desk-claude` (never `.env`, `runs/` or fetched series), and installs the user services. It starts
+each desk only once its key is set (`GEMINI_API_KEY`, `GROQ_API_KEY`, `ANTHROPIC_API_KEY`), and restarts
+the running ones, each of which then runs a cycle at once.
 
 ```bash
 tar -C bitra-desk -c . | ssh -F "${TAILNET_DIR:-/tmp/tailnet}/ssh_config" bitra-desk \
@@ -89,7 +112,7 @@ Keys (owner, on the VM): `nano ~/bitra/desk/.env`, see `desk/.env.example`. Then
 **https://bitra-desk.taildea8d9.ts.net/**: tailnet only (open it with Tailscale on), read-only, refreshes
 every minute. It shows the paper account, each hourly cycle (held, refused, would-be trade, error) with its
 reason, what each analyst says now and why, the data series with their age, every would-be trade, the latest
-`tra hindsight`, and Gemini usage by day and model. The same state as JSON is at `/api/state.json`.
+`tra hindsight`, and model use by day. The same state as JSON is at `/api/state.json`.
 
 `dashboard/server.py` (stdlib only) runs as `bitra-dashboard.service` on 127.0.0.1:8790, and
 `sudo tailscale serve --bg 8790` publishes it; both are set up by `setup.sh`. `bitra-hindsight.timer`
@@ -119,7 +142,7 @@ at the exact stop or take price, with slippage only as the intent's priced estim
 ## Operate
 
 ```bash
-systemctl --user status bitra-desk bitra-desk-groq bitra-dashboard bitra-hindsight.timer bitra-paper.timer
+systemctl --user status bitra-desk bitra-desk-groq bitra-desk-claude bitra-dashboard bitra-hindsight.timer bitra-paper.timer
 journalctl --user -u bitra-desk -n 80          # each hour's cycle; -f to follow
 cd ~/bitra/desk && tra watch --every 5s        # read-only view of the records
 tra sources show                               # every series, its age, stale or not

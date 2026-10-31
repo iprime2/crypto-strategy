@@ -1,12 +1,13 @@
 # User unit, installed by bitra-desk/setup.sh. Started by bitra-paper.timer. Replays the desk's would-be
 # trades as one account on Bybit's public 5-minute bars and writes ~/bitra/paper/state.json; sends nothing.
 [Unit]
-Description=bitra-desk paper accounts, both desks (no orders)
+Description=bitra-desk paper accounts, every desk (no orders)
 After=network-online.target
 
 [Service]
 Type=oneshot
 ExecStart=/usr/bin/python3 %h/bitra/paper/paper.py --desk %h/bitra/desk --out %h/bitra/paper
-# the Groq desk; a leading - keeps a failure there from failing the unit
+# the Groq and Claude desks; a leading - keeps a failure there from failing the unit
 ExecStart=-/usr/bin/python3 %h/bitra/paper/paper.py --desk %h/bitra/desk-groq --out %h/bitra/paper-groq
+ExecStart=-/usr/bin/python3 %h/bitra/paper/paper.py --desk %h/bitra/desk-claude --out %h/bitra/paper-claude
 TimeoutStartSec=300

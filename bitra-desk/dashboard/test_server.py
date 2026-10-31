@@ -139,6 +139,8 @@ class DesksTest(unittest.TestCase):
     def test_parse_desk(self):
         g = server.parse_desk("groq=/home/u/bitra/desk-groq")
         self.assertEqual((g["name"], str(g["paper"]), g["unit"]), ("groq", "/home/u/bitra/paper-groq", "bitra-desk-groq"))
+        c = server.parse_desk("claude=/home/u/bitra/desk-claude")  # the unit name bitra-dashboard.service relies on
+        self.assertEqual((str(c["paper"]), c["unit"]), ("/home/u/bitra/paper-claude", "bitra-desk-claude"))
         d = server.parse_desk("/home/u/bitra/desk")
         self.assertEqual((d["name"], str(d["paper"]), d["unit"]), ("desk", "/home/u/bitra/paper", "bitra-desk"))
 

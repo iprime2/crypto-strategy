@@ -6,7 +6,7 @@ After=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python3 %h/bitra/dashboard/server.py --desk gemini=%h/bitra/desk --desk groq=%h/bitra/desk-groq --port 8790
+ExecStart=/usr/bin/python3 %h/bitra/dashboard/server.py --desk gemini=%h/bitra/desk --desk groq=%h/bitra/desk-groq --desk claude=%h/bitra/desk-claude --port 8790
 Restart=on-failure
 RestartSec=10
 
