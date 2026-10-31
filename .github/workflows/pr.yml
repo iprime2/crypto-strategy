@@ -51,6 +51,13 @@ jobs:
       - run: python3 -m unittest discover -s cex-mm/scripts -p 'test_*.py' -v
       - run: python3 -m unittest discover -s bitra-desk/dashboard -p 'test_*.py' -v
       - run: python3 -m unittest discover -s bitra-desk/paper -p 'test_*.py' -v
+      # bitra-desk's Claude provider is a bitra plugin: test it against the bitra version the desk pins
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: |
+          python -m venv /tmp/bv && /tmp/bv/bin/pip install -q ./bitra-desk/claude-provider
+          /tmp/bv/bin/python -m unittest discover -s bitra-desk/claude-provider -p 'test_*.py' -v
 
   security:
     name: Security scan

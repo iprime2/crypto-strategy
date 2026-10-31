@@ -1,0 +1,16 @@
+[project]
+name = "bitra-claude"
+version = "0.1.0"
+description = "bitra provider `claude`: the bundled Anthropic adapter with schemas Claude's structured outputs accept"
+requires-python = ">=3.11"
+dependencies = ["bitra[anthropic]==0.10.2"]
+
+[project.entry-points."trading_research_agents.providers"]
+claude = "bitra_claude:PROVIDER"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["bitra_claude"]

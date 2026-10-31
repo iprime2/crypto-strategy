@@ -5,7 +5,8 @@ Reads only what `tra run` and `tra hindsight` write under <desk>/runs/cycles and
 state.json (../paper/paper.py); never reads .env.
 Read-only, stdlib only, binds 127.0.0.1. `tailscale serve` publishes it on the tailnet.
 
-    python3 server.py --desk gemini=~/bitra/desk --desk groq=~/bitra/desk-groq --port 8790
+    python3 server.py --desk gemini=~/bitra/desk --desk groq=~/bitra/desk-groq \
+        --desk claude=~/bitra/desk-claude --port 8790
     curl -s '127.0.0.1:8790/api/state.json?desk=groq'      # one desk's state as JSON
 
 Each desk is NAME=PATH; its paper account is the sibling paper<suffix> folder (desk -> paper, desk-groq ->
