@@ -1,0 +1,15 @@
+20261025T174640Z: 41917 samples, 458 ADAUSD trades, 10-30 02:03:00Z..10-30 06:42:27Z
+20261030T064228Z: 37958 samples, 346 ADAUSD trades, 10-30 06:42:41Z..10-30 10:55:49Z
+20261030T105549Z: 134600 samples, 1169 ADAUSD trades, 10-30 10:56:02Z..10-31 02:09:59Z
+window 24.12 h, 214475 samples, 1973 trades, ref fair 0.19075
+hourly vol: 24 hours, median 72 bps, max 122 bps; hours above 122: 30 13:00Z 122
+leg                               fills  notional    PnL$    spr$    inv$    fee$   bp/$  net60   fin
+1000 touch offer15 (calibrated)     874    17,201    7.99   10.52   -0.44   -2.10   4.65   3.71   400
+1000 strict list fee                589    14,108    5.21    8.32   -0.12   -2.99   3.69   3.48   201
+300 strict list fee                 604    14,530    5.60    8.17    0.51   -3.08   3.85   3.73   172
+300 touch offer15                   887    17,599    8.50   10.28    0.37   -2.15   4.83   4.01   400
+gate 1 calibrated leg >= +2.4 bp/$: PASS (+4.65)
+gate 2 1000 ms strict >= 0: PASS (+3.69)
+gate 3 >= 300 fills over >= 24 h: PASS (874 fills, 24.1 h)
+gate 4 an hour above 2x median vol: PASS (1 hours)
+VERDICT: PASS
