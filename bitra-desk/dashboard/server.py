@@ -332,6 +332,13 @@ def usd(v) -> str:
     return f"{'+' if x >= 0 else '−'}${abs(x):,.2f}"
 
 
+def size_txt(tr: dict) -> str:
+    """The paper size, with the desk's own when the account's risk rule cut it."""
+    size, desk = tr.get("size"), tr.get("desk_size")
+    cut = desk is not None and abs(float(desk) - float(size)) > 1e-12
+    return f"{size:g} BTC" + (f" (desk {float(desk):g})" if cut else "")
+
+
 def render_paper(pa: dict | None, now: datetime) -> str:
     """The would-be trades as one account: one position at a time, the desk's own size and levels."""
     if not pa:
@@ -339,7 +346,8 @@ def render_paper(pa: dict | None, now: datetime) -> str:
                 "each hour).</p>")
     out = [f"""<h2>Paper account</h2><p class='note'>The desk's would-be trades taken one at a time, as a real
 account would: entry at the next 5-minute bar, the desk's own size, stop and target, out at either or after
-{e(f"{float(pa.get('hold_hours') or 0):g}")} h, net of the priced round trip. Practice money only; updated
+{e(f"{float(pa.get('hold_hours') or 0):g}")} h, net of the priced round trip; each size cut to keep the loss
+at the stop within {e(f"{float(pa.get('risk_bps') or 0):g}")} bps of equity (the desk's size in brackets when cut). Practice money only; updated
 {e(ago(ms_time(pa.get('generated_ms')), now))}.{' Candle fetch failed: ' + e(pa['fetch_error']) if pa.get('fetch_error') else ''}</p>
 <div class="tiles">
 <div class="tile"><b>${float(pa['equity']):,.2f}</b><span>equity (from ${float(pa['start_equity']):,.0f})</span></div>
@@ -355,7 +363,7 @@ account would: entry at the next 5-minute bar, the desk's own size, stop and tar
         out.append(f"<tr><td class='nw'>{pill(o['side'])} {e(o.get('setup'))} · {e(t(ms_time(o['entry_ms'])))}</td>"
                    f"<td class='num'>{o['entry']:.1f}</td><td class='num'>{o['mark']:.1f}</td>"
                    f"<td class='num'>{o['stop']:.1f}</td><td class='num'>{o['take']:.1f}</td>"
-                   f"<td class='num'>{o['size']} BTC</td><td class='num'>{e(usd(o['unrealized_usd']))}</td>"
+                   f"<td class='num'>{e(size_txt(o))}</td><td class='num'>{e(usd(o['unrealized_usd']))}</td>"
                    f"<td class='nw'>{e(t(ms_time(o['deadline_ms'])))}</td></tr>")
     else:
         out.append("<tr><td colspan=8>Flat: no position open.</td></tr>")
@@ -366,7 +374,7 @@ account would: entry at the next 5-minute bar, the desk's own size, stop and tar
     for tr in reversed(pa.get("trades") or []):
         out.append(f"<tr><td class='nw'>{e(t(ms_time(tr['entry_ms'])))} → {e(t(ms_time(tr['exit_ms']), with_date=False))}</td>"
                    f"<td>{pill(tr['side'])}</td><td class='num'>{tr['entry']:.1f}</td><td class='num'>{tr['exit']:.1f}</td>"
-                   f"<td class='nw'>{e(tr['exit_reason'])}</td><td class='num'>{tr['size']} BTC</td>"
+                   f"<td class='nw'>{e(tr['exit_reason'])}</td><td class='num'>{e(size_txt(tr))}</td>"
                    f"<td class='num'>{e(usd(tr['net_usd']))} ({tr['net_bps']:+.0f} bps)</td>"
                    f"<td class='num'>${curve.get(tr['exit_ms'], 0):,.2f}</td></tr>")
     if not pa.get("trades"):

@@ -81,6 +81,32 @@ class SimulateTest(unittest.TestCase):
         self.assertEqual(s["equity"], 10_000)
 
 
+class SizingTest(unittest.TestCase):
+    def test_size_is_cut_to_the_risk_rule_on_this_equity(self):
+        bars = bars_from([FLAT, (100.0, 100.1, 97.9, 98.0)])
+        s = paper.simulate([intent(T0)], bars, HOLD, 100, risk_bps=50, size_step=0.001)
+        t = s["trades"][0]
+        # 50 bps of $100 is $0.50; the stop is 1.00 away plus 0.10 of round trip: 0.4545 -> 0.454
+        self.assertEqual((t["size"], t["desk_size"]), (0.454, 2.0))
+        self.assertAlmostEqual(t["net_usd"], 0.86)  # (100 - 98) x 0.454 - 10 bps of 45.4
+        self.assertAlmostEqual(s["equity"], 100.86)
+
+    def test_size_that_fits_is_kept(self):
+        s = paper.simulate([intent(T0)], bars_from([FLAT]), HOLD, 1_000, risk_bps=50, size_step=0.001)
+        self.assertEqual(s["open"]["size"], 2.0)  # 2 x 1.10 = 2.20 at the stop, under $5
+
+    def test_trade_that_rounds_to_nothing_is_skipped(self):
+        s = paper.simulate([intent(T0)], bars_from([FLAT]), HOLD, 1, risk_bps=50, size_step=0.01)
+        self.assertIsNone(s["open"])
+        self.assertTrue(s["skipped"][0]["why"].startswith("too small"))
+
+    def test_desk_sizing_reads_the_desks_rule(self):
+        d = tmpdir(self)
+        self.assertEqual(paper.desk_sizing(d), (50.0, 0.001))
+        (d / "strategy.toml").write_text("[run]\nsize_step = 0.01   # step\n[controls]\nmax_risk_per_trade_bps = 25\n")
+        self.assertEqual(paper.desk_sizing(d), (25.0, 0.01))
+
+
 class DataTest(unittest.TestCase):
     def test_parse_klines_sorts_and_refuses_errors(self):
         rows = paper.parse_klines({"retCode": 0, "result": {"list": [

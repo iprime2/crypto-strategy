@@ -51,7 +51,7 @@ ssh -F /tmp/tailnet/ssh_config bitra-desk   # then this
 | Sentiment | Crypto Fear & Greed (alternative.me, daily, no key): bullish above 71, bearish below 50, the 25th/75th percentiles of its last 90 days, read as momentum |
 | Macro | FRED (`FRED_API_KEY`): US 10-year yield `DGS10`, bearish above 4.65 and bullish below 4.18; broad dollar `DTWEXBGS`, bearish above 120.7 and bullish below 118.7 (each the 25th/75th percentiles of its last year). The dollar is released weekly, so its `max_age` is 12 days |
 | Cost model | Bybit taker 5.5 bps a side, measured round trip 15.02 bps; refused unless the claimed edge is 2x the round trip |
-| Risk | 50 bps of $10,000 paper equity at the stop; no new entry after a 3% day or a 10% drawdown |
+| Risk | 50 bps of $1,000 equity at the stop ($5), size cut to fit; no new entry after a 3% day or a 10% drawdown. $1,000 since 31 Oct 2026 (was $10,000), the size of a first real account |
 
 The desk was made with `tra init desk --profile autonomous --agent google`, then changed to 1h bars,
 4h/1d context, a 12-bar hold, a 1h cooldown, the two series above and their conviction weights.
@@ -103,7 +103,12 @@ so its record overstates how many trades a real account takes. `paper/paper.py` 
 venue mode trades them: one position at a time (an intent while one is open is skipped), entry at the open of
 the first 5-minute bar after the decision, the intent's own size, stop and take, out at either or after the
 12 h hold limit (a bar that reaches both counts as the stop), net of the round trip the intent priced, on
-$10,000 of practice equity. It replays from the desk's first intent each run, so the result is deterministic.
+$1,000 of practice equity, the size a first real account would be. Each trade's size is the smaller of the
+intent's and what keeps the loss at the stop, round trip included, within the desk's
+`max_risk_per_trade_bps` (50, so $5 on $1,000) of the account's equity at entry, rounded down to
+`size_step` (0.001 BTC); a trade that rounds to nothing is skipped and says so. This also resizes the
+intents recorded before the desk's equity went from $10,000 to $1,000. It replays from the desk's first
+intent each run, so the result is deterministic.
 The only network call is Bybit's public kline endpoint, cached in `~/bitra/paper/candles.jsonl`; the result is
 `~/bitra/paper/state.json`, which the dashboard shows. `bitra-paper.timer` runs it every 15 minutes (:05, :20,
 :35, :50). Tests: `python3 -m unittest discover -s bitra-desk/paper -p 'test_*.py'`.
