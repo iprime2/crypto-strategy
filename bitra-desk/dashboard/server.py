@@ -536,6 +536,24 @@ background:var(--surface);text-decoration:none;font-size:13px;font-weight:600}
 .bar{height:10px;position:relative;background:var(--surface-2);border-radius:5px}
 .bar i{position:absolute;top:0;bottom:0;border-radius:5px;background:var(--ink-2)}
 .bar::after{content:"";position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:var(--axis)}
+.postabs>input{position:absolute;opacity:0;pointer-events:none}
+.seg{display:inline-flex;gap:2px;margin:12px 16px;padding:3px;border-radius:10px;background:var(--surface-2)}
+.seg label{padding:5px 14px;border-radius:8px;font-size:13px;font-weight:600;color:var(--ink-2);cursor:pointer}
+.seg .count{color:var(--muted);font-weight:500;margin-left:3px}
+#pos-open:checked~.seg label[for=pos-open],#pos-closed:checked~.seg label[for=pos-closed]{background:var(--surface);
+color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.18)}
+#pos-open:focus-visible~.seg label[for=pos-open],#pos-closed:focus-visible~.seg label[for=pos-closed]{outline:2px solid
+var(--ink);outline-offset:1px}
+.postabs .panel{display:none}
+#pos-open:checked~.p-open,#pos-closed:checked~.p-closed{display:block}
+.postabs td .sw{width:9px;height:9px;vertical-align:-1px}
+@media (max-width:560px){.postabs table,.postabs tbody,.postabs tr,.postabs td{display:block}
+.postabs tr:first-child{display:none}.postabs tr{display:grid;grid-template-columns:1fr 1fr;gap:5px 14px;padding:12px 16px;
+border-bottom:1px solid var(--grid)}.postabs tr:last-child{border-bottom:0}
+.postabs td{border:0;padding:0;display:flex;justify-content:space-between;gap:8px;font-size:12.5px;text-align:right}
+.postabs td::before{content:attr(data-label);color:var(--muted);text-align:left}
+.postabs td.lead{font-weight:650;font-size:13.5px}.postabs td.lead::before{content:none}
+.postabs td[colspan]{grid-column:1/-1;display:block}}
 details.fold{margin-top:12px}
 details.fold>summary{list-style:none;cursor:pointer;padding:12px 16px;display:flex;align-items:center;gap:10px}
 details.fold>summary::-webkit-details-marker{display:none}
@@ -729,6 +747,66 @@ def render_grid(rows: list[dict], states: dict, now: datetime) -> str:
     return "".join(out)
 
 
+def positions(rows: list[dict], states: dict) -> tuple[list[dict], list[dict]]:
+    """Every desk's open paper position and closed paper trades, newest first, each tagged with its desk."""
+    opened, closed = [], []
+    for r in rows:
+        pa = states[r["name"]].get("paper") or {}
+        curve = {c[0]: c[1] for c in pa.get("equity_curve") or []}
+        if pa.get("open"):
+            opened.append({**pa["open"], "desk": r["name"], "slot": r["slot"]})
+        for tr in pa.get("trades") or []:
+            closed.append({**tr, "desk": r["name"], "slot": r["slot"], "equity_after": curve.get(tr["exit_ms"])})
+    opened.sort(key=lambda x: -x["entry_ms"])
+    closed.sort(key=lambda x: -x["exit_ms"])
+    return opened, closed
+
+
+def render_positions(rows: list[dict], states: dict) -> str:
+    """One table for all desks, Open or Closed: two radio inputs make the switch, so it works without script.
+    Each cell carries data-label, so a phone can show each row as a small card instead of a wide row."""
+    opened, closed = positions(rows, states)
+
+    def cell(label: str, value: str, cls: str = "num") -> str:
+        return f"<td class='{cls}' data-label='{label}'>{value}</td>"
+
+    def desk(x: dict) -> str:
+        return cell("Desk", f"<span><span class='sw' style='--c:var(--s{x['slot']})'></span> {e(x['desk'])}</span>",
+                    "nw lead")
+
+    o_rows = []
+    for x in opened:
+        pnl = x.get("unrealized_usd")
+        o_rows.append("<tr>" + desk(x) + cell("Side", pill(x["side"]), "") + cell("Setup", e(x.get("setup")), "nw")
+                      + cell("Opened", e(t(ms_time(x["entry_ms"]))), "nw") + cell("Entry", f"{x['entry']:,.1f}")
+                      + cell("Mark", f"{x['mark']:,.1f}") + cell("Stop", f"{x['stop']:,.1f}")
+                      + cell("Take", f"{x['take']:,.1f}") + cell("Size", e(size_txt(x)))
+                      + cell("Unrealized", e(usd(pnl)), f"num {tone(pnl)}")
+                      + cell("Closes by", e(t(ms_time(x.get("deadline_ms")))), "nw") + "</tr>")
+    c_rows = []
+    for x in closed:
+        when = f"{t(ms_time(x['entry_ms']))} → {t(ms_time(x['exit_ms']), with_date=False)}"
+        net = f"{usd(x['net_usd'])} ({float(x.get('net_bps') or 0):+.0f} bps)"
+        c_rows.append("<tr>" + desk(x) + cell("Side", pill(x["side"]), "") + cell("Setup", e(x.get("setup")), "nw")
+                      + cell("When", e(when), "nw") + cell("Entry", f"{x['entry']:,.1f}")
+                      + cell("Exit", f"{x['exit']:,.1f}") + cell("Why", e(x["exit_reason"]), "nw")
+                      + cell("Size", e(size_txt(x))) + cell("Net", e(net), f"num {tone(x['net_usd'])}")
+                      + cell("Desk equity after", e(money(x["equity_after"]))) + "</tr>")
+    o_rows = "".join(o_rows) or "<tr><td colspan=11>No open positions: every desk is flat.</td></tr>"
+    c_rows = "".join(c_rows) or "<tr><td colspan=10>No closed trades yet.</td></tr>"
+    return f"""<section id='positions'><div class='sec-head'><h2>Positions</h2><span class='sub'>every desk's paper
+account, newest first; practice money</span></div>
+<div class='card postabs'><input type='radio' name='pos-tab' id='pos-open' checked>
+<input type='radio' name='pos-tab' id='pos-closed'>
+<div class='seg'><label for='pos-open'>Open <span class='count'>{len(opened)}</span></label><label for='pos-closed'>Closed <span class='count'>{len(closed)}</span></label></div>
+<div class='panel p-open tablewrap'><table><tr><th>Desk</th><th>Side</th><th>Setup</th><th>Opened</th>
+<th class='num'>Entry</th><th class='num'>Mark</th><th class='num'>Stop</th><th class='num'>Take</th><th class='num'>Size</th>
+<th class='num'>Unrealized</th><th>Closes by</th></tr>{o_rows}</table></div>
+<div class='panel p-closed tablewrap'><table><tr><th>Desk</th><th>Side</th><th>Setup</th><th>When</th>
+<th class='num'>Entry</th><th class='num'>Exit</th><th>Why</th><th class='num'>Size</th><th class='num'>Net</th>
+<th class='num'>Desk equity after</th></tr>{c_rows}</table></div></div></section>"""
+
+
 def chart_payload(rows: list[dict], states: dict, candles: list[tuple[int, float]], now: datetime) -> dict:
     desks = []
     for r in rows:
@@ -776,6 +854,7 @@ time; the values are in the cards above and the closed trades below'><div class=
 {PRICE_HOURS} hours with each desk's paper trades marked'><div class='tip' hidden></div></div>
 <p class='note'>Bybit 5-minute closes from the paper accounts' candle cache, last {PRICE_HOURS} h. Hover a marker
 for the trade.</p></div></section>""")
+    out.append(render_positions(rows, states))
     if len(rows) > 1:
         out.append(render_grid(rows, states, now))
     out.append(f"<script type='application/json' id='chart-data'>{script_json(chart_payload(rows, states, candles, now))}"
@@ -1134,10 +1213,12 @@ async function refresh() {
     if (!next) return;
     const open = {};
     for (const d of document.querySelectorAll("details[id]")) open[d.id] = d.open;
+    const tab = document.querySelector("input[name=pos-tab]:checked");
     const strips = [...document.querySelectorAll(".strip")].map(s => s.scrollLeft);
     next.querySelectorAll("script:not([type])").forEach(n => n.remove());
     document.getElementById("app").replaceWith(next);
     for (const id in open) { const d = document.getElementById(id); if (d) d.open = open[id]; }
+    if (tab && document.getElementById(tab.id)) document.getElementById(tab.id).checked = true;
     init();
     document.querySelectorAll(".strip").forEach((s, i) => { if (strips[i] != null && strips[i] < s.scrollWidth - s.clientWidth - 4) s.scrollLeft = strips[i]; });
   } catch (err) { /* offline for a moment: the next minute tries again */ }
