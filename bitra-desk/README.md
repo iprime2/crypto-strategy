@@ -133,6 +133,35 @@ the scroll position and the open sections. The selected desk's state as JSON is 
 runs `tra hindsight` at half past each hour so the hindsight section stays current. Tests:
 `python3 -m unittest discover -s bitra-desk/dashboard -p 'test_*.py'`.
 
+## Telegram updates
+
+The bot **Bitra Desk** (`@bitra_desk_bot`) sends the owner two things, from the VM, with nothing running
+anywhere else:
+
+- **A digest every 2 hours** (07:42, 09:42 … IST), as one photo with a caption, in the look of the project's
+  other Telegram cards (the live ADA and trend paper-book updates). The card: a status pill, the leading
+  desk's equity, BTCUSDT and its 24 h change, every desk's paper equity since start on one chart, and the
+  desks ranked with their equity, return, wins and losses and latest call. The caption reads on its own: who
+  leads, each desk's latest call and its age, what each did since the last digest, the Claude API spend and
+  a warning for any desk whose service is not running, with each desk's hindsight in an expandable block
+  and the dashboard link. If the card cannot be drawn or Telegram refuses the photo, the same digest goes
+  out as text.
+- **An alert when a paper trade opens or closes**, or a desk's service stops or comes back, checked every
+  15 minutes (three minutes after each paper-account run). The first run only records what already exists.
+
+Messages between 23:00 and 07:00 IST arrive silently. The bot only sends: it takes no commands and sends to
+one chat only. `telegram/notify.py` (stdlib) reads the desks through `dashboard/server.py`, so its figures
+are the dashboard's; `telegram/card.py` draws the card with Pillow (`python3-pil`, `fonts-inter`, both installed
+by `setup.sh`), at 1000 px wide; it keeps what it has reported in `~/bitra/telegram/seen.json` and runs as
+`bitra-telegram-digest.timer` and `bitra-telegram-alerts.timer`.
+
+Set up: create the bot with @BotFather, then put its token on the VM as `TELEGRAM_BOT_TOKEN=` in
+`~/bitra/telegram/telegram.env` (mode 600; never in a chat or the repo) and re-run `setup.sh`. Press Start in
+the bot: the next run writes that chat into the same file as `TELEGRAM_CHAT_ID` and sends a welcome. From then
+on it sends to that chat only. `python3 ~/bitra/telegram/notify.py test` sends one test message, and
+`systemctl --user start bitra-telegram-digest` one digest now. Tests (they need Pillow):
+`python3 -m unittest discover -s bitra-desk/telegram -p 'test_*.py'`.
+
 ## Paper account
 
 The sandbox desk writes an intent whenever every gate passes, even while an earlier one would still be open,
@@ -157,6 +186,7 @@ at the exact stop or take price, with slippage only as the intent's priced estim
 
 ```bash
 systemctl --user status bitra-desk bitra-desk-groq bitra-desk-claude bitra-dashboard bitra-hindsight.timer bitra-paper.timer
+systemctl --user list-timers 'bitra-*'          # hindsight, paper and the two Telegram timers
 journalctl --user -u bitra-desk -n 80          # each hour's cycle; -f to follow
 cd ~/bitra/desk && tra watch --every 5s        # read-only view of the records
 tra sources show                               # every series, its age, stale or not

@@ -1,0 +1,10 @@
+# Every 2 hours at :12 UTC (07:42, 09:42 ... IST), after the hour's cycles and the :05 paper run.
+[Unit]
+Description=bitra-desk Telegram digest, every 2 hours
+
+[Timer]
+OnCalendar=*-*-* 00/2:12:00
+Persistent=false
+
+[Install]
+WantedBy=timers.target

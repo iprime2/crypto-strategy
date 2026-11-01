@@ -1,0 +1,12 @@
+# User unit, installed by bitra-desk/setup.sh. Started by bitra-telegram-alerts.timer. Tells the owner's Telegram
+# chat when a paper trade opens or closes or a desk's service stops; the first run only records what exists.
+[Unit]
+Description=bitra-desk Telegram alerts (read-only, outbound only)
+After=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=-%h/bitra/telegram/telegram.env
+Environment=TELEGRAM_ENV_FILE=%h/bitra/telegram/telegram.env
+ExecStart=/usr/bin/python3 %h/bitra/telegram/notify.py alerts --desk gemini=%h/bitra/desk --desk groq=%h/bitra/desk-groq --desk claude=%h/bitra/desk-claude
+TimeoutStartSec=120
