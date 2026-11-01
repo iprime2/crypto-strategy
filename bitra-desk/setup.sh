@@ -15,7 +15,8 @@ CDESK="$HOME/bitra/desk-claude"
 BITRA_VERSION="${BITRA_VERSION:-0.10.2}"
 
 sudo apt-get update -qq
-sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq git tmux jq curl
+# python3-pil and fonts-inter draw the Telegram digest card
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq git tmux jq curl python3-pil fonts-inter
 
 # Each desk's process holds about 420 MB and the host has 2 GiB: swap keeps three of them and an hourly
 # hindsight run from ending in the OOM killer. They sleep between cycles, so what is swapped is idle.
@@ -73,7 +74,7 @@ mkdir -p "$HOME/bitra/dashboard" "$HOME/bitra/paper" "$HOME/bitra/paper-groq" "$
 cp "$HERE/dashboard/server.py" "$HOME/bitra/dashboard/server.py"
 cp "$HERE/paper/paper.py" "$HOME/bitra/paper/paper.py"
 mkdir -p "$HOME/bitra/telegram"
-cp "$HERE/telegram/notify.py" "$HOME/bitra/telegram/notify.py"
+cp "$HERE/telegram/notify.py" "$HERE/telegram/card.py" "$HOME/bitra/telegram/"
 
 mkdir -p "$HOME/.config/systemd/user"
 cp "$HERE"/systemd/*.service "$HERE"/systemd/*.timer "$HOME/.config/systemd/user/"

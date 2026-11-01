@@ -51,7 +51,6 @@ jobs:
       - run: python3 -m unittest discover -s cex-mm/scripts -p 'test_*.py' -v
       - run: python3 -m unittest discover -s bitra-desk/dashboard -p 'test_*.py' -v
       - run: python3 -m unittest discover -s bitra-desk/paper -p 'test_*.py' -v
-      - run: python3 -m unittest discover -s bitra-desk/telegram -p 'test_*.py' -v
       # bitra-desk's Claude provider is a bitra plugin: test it against the bitra version the desk pins
       - uses: actions/setup-python@v5
         with:
@@ -59,6 +58,10 @@ jobs:
       - run: |
           python -m venv /tmp/bv && /tmp/bv/bin/pip install -q ./bitra-desk/claude-provider
           /tmp/bv/bin/python -m unittest discover -s bitra-desk/claude-provider -p 'test_*.py' -v
+      # the Telegram notifier draws its card with Pillow (python3-pil on the VM; the tests need no particular font)
+      - run: |
+          python -m venv /tmp/tv && /tmp/tv/bin/pip install -q pillow
+          /tmp/tv/bin/python -m unittest discover -s bitra-desk/telegram -p 'test_*.py' -v
 
   security:
     name: Security scan

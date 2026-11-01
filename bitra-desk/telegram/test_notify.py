@@ -82,6 +82,54 @@ class DigestTest(unittest.TestCase):
         self.assertIn("gemini asked 2 (1 would-be trade), held 1", text)
 
 
+def three_desks() -> dict:
+    recent = [{"at": NOW - timedelta(minutes=40), "outcome": "refused", "target": "short", "setup": "<i>x</i>",
+               "confidence": 0.55}]
+    states = {"gemini": state(1011.81, [trade(1793300000000, 11.81)], recent=recent),
+              "groq": state(1000.0, service="failed"),
+              "claude": state(1000.5, model="claude:claude-opus-5-5", cost=0.31)}
+    for s in states.values():
+        s["first_cycle"] = NOW - timedelta(days=2)
+    return states
+
+
+class CardTest(unittest.TestCase):
+    def test_model_ranks_desks_and_keeps_series_in_desk_order(self):
+        m = notify.card_model(three_desks(), [(1793400000000, 77000.0), (1793486400000, 77478.6)], NOW)
+        self.assertEqual([r["name"] for r in m["rows"]], ["gemini", "claude", "groq"])
+        self.assertEqual([s["name"] for s in m["series"]], ["gemini", "groq", "claude"])  # colors follow the desk
+        self.assertEqual((m["leader"]["name"], m["leader"]["equity_txt"]), ("gemini", "$1,011.81"))
+        self.assertEqual(m["rows"][0]["call"], "▼ short 0.55")
+        self.assertEqual(m["rows"][0]["record"], "1W 0L")
+        self.assertEqual(m["flags"], ["groq failed"])
+        self.assertAlmostEqual(m["series"][0]["points"][-1][1], 1.181, places=3)
+        self.assertEqual(m["series"][0]["points"][0][1], 0.0)
+        self.assertAlmostEqual(m["btc"]["chg"], (77478.6 / 77000 - 1) * 100)
+
+    def test_caption_reads_alone_fits_and_escapes(self):
+        states = three_desks()
+        m = notify.card_model(states, [], NOW)
+        cap = notify.card_caption(states, m, NOW, NOW - timedelta(hours=2))
+        self.assertLessEqual(notify.tglen(cap), 1024)
+        self.assertTrue(cap.startswith("⚠️ groq failed · <b>gemini</b> leads at <b>$1,011.81</b> (+1.18%)"))
+        self.assertIn("&lt;i&gt;x&lt;/i&gt;", cap)
+        self.assertNotIn("<i>x</i>", cap)
+        self.assertIn("Claude API ≈ $0.31", cap)
+        self.assertIn("bitra-desk.taildea8d9.ts.net", cap)
+        short = notify.card_caption(states, m, NOW, NOW - timedelta(hours=2), limit=300)
+        self.assertLessEqual(notify.tglen(short), 300)
+        self.assertIn("leads at", short)
+
+    def test_card_is_a_sharp_png(self):
+        import card
+        png = card.render(notify.card_model(three_desks(), [(1793400000000, 77000.0), (1793486400000, 77478.6)], NOW))
+        self.assertEqual(png[:8], b"\x89PNG\r\n\x1a\n")
+        width, height = int.from_bytes(png[16:20], "big"), int.from_bytes(png[20:24], "big")
+        self.assertEqual(width, 1000)  # 400 CSS px at 2.5x
+        self.assertGreater(height, 900)
+        self.assertGreater(len(png), 20_000)
+
+
 class EventsTest(unittest.TestCase):
     def test_first_run_records_without_alerting(self):
         alerts, seen = notify.events({"gemini": state(1005.0, [trade(1, 5.0)])}, {})

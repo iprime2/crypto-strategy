@@ -20,10 +20,12 @@ import argparse
 import html
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.parse
 import urllib.request
+import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -56,24 +58,40 @@ def api_get(token: str, method: str) -> dict:
         raise SendError(redact(f"{method}: {exc}", token)) from None
 
 
-def send(token: str, chat_id: str, text: str, silent: bool = False) -> None:
-    data = urllib.parse.urlencode({"chat_id": chat_id, "text": text, "parse_mode": "HTML",
-                                   "disable_web_page_preview": "true",
-                                   "disable_notification": "true" if silent else "false"}).encode()
-    req = urllib.request.Request(f"{API}/bot{token}/sendMessage", data=data)
+def post(token: str, method: str, req: urllib.request.Request) -> None:
     try:
-        with urllib.request.urlopen(req, timeout=20) as r:
+        with urllib.request.urlopen(req, timeout=45) as r:
             body = json.load(r)
     except urllib.error.HTTPError as exc:
         try:
             desc = json.loads(exc.read() or b"{}").get("description", "")
         except ValueError:
             desc = ""
-        raise SendError(redact(f"sendMessage {exc.code}: {desc}", token)) from None
+        raise SendError(redact(f"{method} {exc.code}: {desc}", token)) from None
     except (urllib.error.URLError, OSError, ValueError) as exc:
-        raise SendError(redact(f"sendMessage: {exc}", token)) from None
+        raise SendError(redact(f"{method}: {exc}", token)) from None
     if not body.get("ok"):
-        raise SendError(redact(f"sendMessage: {body.get('description', 'not ok')}", token))
+        raise SendError(redact(f"{method}: {body.get('description', 'not ok')}", token))
+
+
+def send(token: str, chat_id: str, text: str, silent: bool = False) -> None:
+    data = urllib.parse.urlencode({"chat_id": chat_id, "text": text, "parse_mode": "HTML",
+                                   "disable_web_page_preview": "true",
+                                   "disable_notification": "true" if silent else "false"}).encode()
+    post(token, "sendMessage", urllib.request.Request(f"{API}/bot{token}/sendMessage", data=data))
+
+
+def send_photo(token: str, chat_id: str, png: bytes, caption: str, silent: bool = False) -> None:
+    """The card as a photo with its caption (multipart upload: the fields, then the PNG)."""
+    b = uuid.uuid4().hex
+    fields = {"chat_id": chat_id, "caption": caption, "parse_mode": "HTML",
+              "disable_notification": "true" if silent else "false"}
+    parts = [f'--{b}\r\nContent-Disposition: form-data; name="{k}"\r\n\r\n{v}\r\n'.encode() for k, v in fields.items()]
+    parts.append(f'--{b}\r\nContent-Disposition: form-data; name="photo"; filename="card.png"\r\n'
+                 f'Content-Type: image/png\r\n\r\n'.encode() + png + f"\r\n--{b}--\r\n".encode())
+    req = urllib.request.Request(f"{API}/bot{token}/sendPhoto", data=b"".join(parts),
+                                 headers={"Content-Type": f"multipart/form-data; boundary={b}"})
+    post(token, "sendPhoto", req)
 
 
 def discover_chat(token: str, env_file: Path) -> str | None:
@@ -129,13 +147,21 @@ def activity(name: str, s: dict, since: datetime) -> str:
     return out
 
 
+def btc(candles: list[tuple[int, float]]) -> dict | None:
+    """The last 5-minute close and its change over 24 h, in %."""
+    if not candles:
+        return None
+    last_ms, last = candles[-1]
+    day_ago = next((c for a, c in reversed(candles) if a <= last_ms - 86_400_000), None)
+    return {"price": last, "chg": (last / day_ago - 1) * 100 if day_ago else None}
+
+
 def digest_text(states: dict, candles: list[tuple[int, float]], now: datetime, since: datetime) -> str:
     lines = [f"<b>Bitra Desk</b> · {e(server.t(now))} IST"]
-    if candles:
-        last_ms, last = candles[-1]
-        day_ago = next((c for a, c in reversed(candles) if a <= last_ms - 86_400_000), None)
-        chg = f" ({server.signed((last / day_ago - 1) * 100, '{:.2f}')}% 24 h)" if day_ago else ""
-        lines.append(f"BTCUSDT <b>{last:,.1f}</b>{chg}")
+    b = btc(candles)
+    if b:
+        chg = f" ({server.signed(b['chg'], '{:.2f}')}% 24 h)" if b["chg"] is not None else ""
+        lines.append(f"BTCUSDT <b>{b['price']:,.1f}</b>{chg}")
     lines.append("")
     for i, r in enumerate(ranked(states), 1):
         if r["equity"] is not None:
@@ -161,6 +187,94 @@ def digest_text(states: dict, candles: list[tuple[int, float]], now: datetime, s
             lines.append(f"⚠️ {e(n)}: service {e(s.get('service'))}")
     lines.append(f'<a href="{DASHBOARD_URL}">Dashboard</a> (with Tailscale on)')
     return "\n".join(lines)
+
+
+def flags(states: dict) -> list[str]:
+    """Short problems for the card's pill and the caption's first line."""
+    out = []
+    for n, s in states.items():
+        if s.get("service") not in ("active", "unknown"):
+            out.append(f"{n} {s.get('service')}")
+        elif (s.get("last_cycle") or {}).get("outcome") in ("error", "incomplete"):
+            out.append(f"{n} error")
+    return out
+
+
+def card_model(states: dict, candles: list[tuple[int, float]], now: datetime) -> dict:
+    """What card.render() draws: plain numbers and short texts, nothing computed there."""
+    ranks = ranked(states)
+    rows = []
+    for r in ranks:
+        st, call = r["stance"], None
+        if st:
+            conf = server.num(st.get("confidence"))
+            call = f"{server.ARROW.get(st['target'], '')} {st['target']}" + (f" {conf:.2f}" if conf is not None else "")
+        rows.append({"name": r["name"], "slot": r["slot"], "ret": server.num(r["return_pct"]), "call": call,
+                     "equity_txt": server.money(r["equity"]),
+                     "record": f"{r['wins']}W {r['losses']}L" if r["closed"] else "–"})
+    lead = ranks[0]
+    series = []
+    for i, (n, s) in enumerate(states.items()):
+        pa = s.get("paper") or {}
+        start = float(pa.get("start_equity") or 0)
+        if not start:
+            continue
+        first = s.get("first_cycle")
+        pts = [[server.ms(first), 0.0]] if first else []
+        pts += [[int(a), (float(v) / start - 1) * 100] for a, v in pa.get("equity_curve") or []]
+        pts.append([server.ms(now), (float(pa.get("equity") or start) / start - 1) * 100])
+        series.append({"name": n, "slot": i + 1, "points": pts})
+    local = now.astimezone(IST)
+    return {"time": f"{local.day} {local:%b %H:%M} IST", "flags": flags(states), "btc": btc(candles),
+            "now_ms": server.ms(now), "series": series, "rows": rows,
+            "leader": {"name": lead["name"], "slot": lead["slot"], "equity_txt": rows[0]["equity_txt"],
+                       "ret": server.num(lead["return_pct"]) or 0.0,
+                       "record": (f"{lead['closed']} trades, {lead['wins']}W {lead['losses']}L" if lead["closed"]
+                                  else "no trades yet")},
+            "note": "Paper money, no real orders · details in the caption"}
+
+
+def tglen(h: str) -> int:
+    """Telegram's length of an HTML message: the text without tags, in UTF-16 code units."""
+    return len(html.unescape(re.sub(r"<[^>]+>", "", h)).encode("utf-16-le")) // 2
+
+
+def card_caption(states: dict, model: dict, now: datetime, since: datetime, limit: int = 1024) -> str:
+    """The card's caption, readable on its own; detail lines drop from the end until it fits."""
+    lead, fl = model["leader"], model["flags"]
+    l1 = ((f"⚠️ {e(' + '.join(fl))} · " if fl else "") + f"<b>{e(lead['name'])}</b> leads at "
+          f"<b>{e(lead['equity_txt'])}</b> ({server.signed(lead['ret'], '{:.2f}')}%)" + ("" if fl else " ✅"))
+    l2 = f"<i>Bitra Desk · paper money, no real orders · {now.astimezone(IST):%H:%M} IST</i>"
+    ranks = ranked(states)
+    bullets = [f"• <b>{e(r['name'])}</b> {call_line(r)}" for r in ranks]
+    hours = max(1, round((now - since).total_seconds() / 3600))
+    bullets.append(f"• Last {hours} h: " + " · ".join(activity(n, s, since) for n, s in states.items()))
+    for n, s in states.items():
+        cost = s.get("cost") or {}
+        if cost.get("total_usd") is not None:
+            bullets.append(f"• {e(n.capitalize())} API ≈ ${cost['total_usd']:,.2f} so far "
+                           f"(${cost.get('today_usd') or 0:,.2f} today)")
+    details = []
+    for r in ranks:
+        o = r["open"]
+        if o:
+            details.append(f"{e(r['name'])} holds a paper {e(o['side'])} from {o['entry']:,.1f} "
+                           f"({server.usd(o.get('unrealized_usd'))})")
+    for r in ranks:
+        side = (f"its side {server.signed(r['side_model'])} vs reverse {server.signed(r['side_reverse'])} bps over "
+                f"{e(r['side_n'])} decisions: {e(r['verdict'])}" if r["side_model"] is not None else "hindsight not computed yet")
+        details.append(f"{e(r['name'])} ({e(r['model'])}): {side}")
+    details.append("Each desk started with $1,000 of paper money on BTCUSDT; only the model differs.")
+    tail = [f'<a href="{DASHBOARD_URL}">Dashboard</a> (with Tailscale on)']
+    while True:
+        quote = [f"<blockquote expandable>{chr(10).join(details)}</blockquote>"] if details else []
+        text = "\n".join([l1, l2, ""] + bullets + quote + tail)
+        if tglen(text) <= limit or not (details or len(bullets) > len(ranks)):
+            return text if tglen(text) <= limit else "\n".join([l1, l2] + tail)
+        if details:
+            details.pop()
+        else:
+            bullets.pop()
 
 
 def trade_key(t: dict) -> str:
@@ -248,9 +362,15 @@ def main() -> int:
             last = seen.get("last_digest_ms")
             since = server.ms_time(last) if last else now - timedelta(hours=DIGEST_HOURS)
             candles = server.load_candles([d["paper"] for d in desks], since_ms=server.ms(now) - 25 * 3_600_000)
-            send(token, chat, digest_text(states, candles, now, since), silent=quiet(now))
+            try:  # the card, with the text digest as the fallback (no Pillow, a drawing error, a refused photo)
+                import card
+                model = card_model(states, candles, now)
+                send_photo(token, chat, card.render(model), card_caption(states, model, now, since), silent=quiet(now))
+                print("digest card sent")
+            except Exception as exc:  # noqa: BLE001 - whatever stopped the card, the text digest still goes out
+                print(f"card not sent ({redact(f'{type(exc).__name__}: {exc}', token)[:200]}); sending the text digest")
+                send(token, chat, digest_text(states, candles, now, since), silent=quiet(now))
             seen["last_digest_ms"] = server.ms(now)
-            print("digest sent")
         else:
             alerts, seen = events(states, seen)
             for text in alerts:
