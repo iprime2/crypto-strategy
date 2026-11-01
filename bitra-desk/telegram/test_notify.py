@@ -106,6 +106,18 @@ class CardTest(unittest.TestCase):
         self.assertEqual(m["series"][0]["points"][0][1], 0.0)
         self.assertAlmostEqual(m["btc"]["chg"], (77478.6 / 77000 - 1) * 100)
 
+    def test_model_has_the_last_24_hours_and_each_desks_counts(self):
+        m = notify.card_model(three_desks(), [], NOW)
+        strip = m["strip"]
+        self.assertEqual([r["name"] for r in strip["rows"]], ["gemini", "groq", "claude"])
+        self.assertEqual([len(r["cells"]) for r in strip["rows"]], [24, 24, 24])
+        self.assertEqual(strip["rows"][0]["cells"][22], ["asked", "▼"])  # 05:32 UTC: the refused short, 40 min ago
+        self.assertEqual(strip["rows"][0]["cells"][23], ["none", ""])
+        # squares are UTC hours (12:30 IST is 07:00 UTC); labelled every 6 IST hours, the day at midnight
+        self.assertEqual(strip["labels"], [[0, "12"], [6, "18"], [12, "1 Nov"], [18, "06"]])
+        gem = next(r for r in m["rows"] if r["name"] == "gemini")
+        self.assertEqual((gem["would_trade"], gem["asked"], gem["held"]), (1, 6, 4))
+
     def test_caption_reads_alone_fits_and_escapes(self):
         states = three_desks()
         m = notify.card_model(states, [], NOW)
