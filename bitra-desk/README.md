@@ -133,6 +133,28 @@ the scroll position and the open sections. The selected desk's state as JSON is 
 runs `tra hindsight` at half past each hour so the hindsight section stays current. Tests:
 `python3 -m unittest discover -s bitra-desk/dashboard -p 'test_*.py'`.
 
+## Telegram updates
+
+The bot **Bitra Desk** (`@bitra_desk_bot`) sends the owner two things, from the VM, with nothing running
+anywhere else:
+
+- **A digest every 2 hours** (07:42, 09:42 … IST): BTCUSDT and its 24 h change, the desks ranked by paper
+  equity with each one's latest call and any open position, what each desk did since the last digest, the
+  Claude API spend, a warning for any desk whose service is not running, and the dashboard link.
+- **An alert when a paper trade opens or closes**, or a desk's service stops or comes back, checked every
+  15 minutes (three minutes after each paper-account run). The first run only records what already exists.
+
+Messages between 23:00 and 07:00 IST arrive silently. The bot only sends: it takes no commands and sends to
+one chat only. `telegram/notify.py` (stdlib) reads the desks through `dashboard/server.py`, so its figures
+are the dashboard's; it keeps what it has reported in `~/bitra/telegram/seen.json` and runs as
+`bitra-telegram-digest.timer` and `bitra-telegram-alerts.timer`.
+
+Set up: create the bot with @BotFather, then put its token on the VM as `TELEGRAM_BOT_TOKEN=` in
+`~/bitra/telegram/telegram.env` (mode 600; never in a chat or the repo) and re-run `setup.sh`. Press Start in
+the bot: the next run writes that chat into the same file as `TELEGRAM_CHAT_ID` and sends a welcome. From then
+on it sends to that chat only. `python3 ~/bitra/telegram/notify.py test` sends one test message. Tests:
+`python3 -m unittest discover -s bitra-desk/telegram -p 'test_*.py'`.
+
 ## Paper account
 
 The sandbox desk writes an intent whenever every gate passes, even while an earlier one would still be open,
@@ -157,6 +179,7 @@ at the exact stop or take price, with slippage only as the intent's priced estim
 
 ```bash
 systemctl --user status bitra-desk bitra-desk-groq bitra-desk-claude bitra-dashboard bitra-hindsight.timer bitra-paper.timer
+systemctl --user list-timers 'bitra-*'          # hindsight, paper and the two Telegram timers
 journalctl --user -u bitra-desk -n 80          # each hour's cycle; -f to follow
 cd ~/bitra/desk && tra watch --every 5s        # read-only view of the records
 tra sources show                               # every series, its age, stale or not

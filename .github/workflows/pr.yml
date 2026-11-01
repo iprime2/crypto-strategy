@@ -51,6 +51,7 @@ jobs:
       - run: python3 -m unittest discover -s cex-mm/scripts -p 'test_*.py' -v
       - run: python3 -m unittest discover -s bitra-desk/dashboard -p 'test_*.py' -v
       - run: python3 -m unittest discover -s bitra-desk/paper -p 'test_*.py' -v
+      - run: python3 -m unittest discover -s bitra-desk/telegram -p 'test_*.py' -v
       # bitra-desk's Claude provider is a bitra plugin: test it against the bitra version the desk pins
       - uses: actions/setup-python@v5
         with:

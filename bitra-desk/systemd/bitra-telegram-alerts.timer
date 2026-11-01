@@ -1,0 +1,10 @@
+# Every 15 minutes, three minutes after each paper-account run (:05, :20, :35, :50).
+[Unit]
+Description=bitra-desk Telegram alerts, every 15 minutes
+
+[Timer]
+OnCalendar=*-*-* *:08,23,38,53:00
+Persistent=false
+
+[Install]
+WantedBy=timers.target

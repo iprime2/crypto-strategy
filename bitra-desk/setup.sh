@@ -5,7 +5,7 @@
 # read-only dashboard (published on the tailnet by `tailscale serve`) and the hindsight and paper timers.
 # Never touches ~/bitra/desk/.env (beyond creating it empty), runs/ or the fetched series under
 # sources/*/. Starts a desk only once its model's key (GEMINI_API_KEY, GROQ_API_KEY, ANTHROPIC_API_KEY)
-# is set.
+# is set, and the Telegram timers only once ~/bitra/telegram/telegram.env holds the bot's token.
 # Run as the login user from a copy of this folder; uses sudo for apt, swap and linger. Safe to re-run.
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -72,6 +72,8 @@ cp "$HERE/README.md" "$HOME/bitra/README.md"
 mkdir -p "$HOME/bitra/dashboard" "$HOME/bitra/paper" "$HOME/bitra/paper-groq" "$HOME/bitra/paper-claude"
 cp "$HERE/dashboard/server.py" "$HOME/bitra/dashboard/server.py"
 cp "$HERE/paper/paper.py" "$HOME/bitra/paper/paper.py"
+mkdir -p "$HOME/bitra/telegram"
+cp "$HERE/telegram/notify.py" "$HOME/bitra/telegram/notify.py"
 
 mkdir -p "$HOME/.config/systemd/user"
 cp "$HERE"/systemd/*.service "$HERE"/systemd/*.timer "$HOME/.config/systemd/user/"
@@ -113,3 +115,14 @@ start_desk() {  # UNIT DIR KEY
 }
 start_desk bitra-desk-groq "$GDESK" GROQ_API_KEY
 start_desk bitra-desk-claude "$CDESK" ANTHROPIC_API_KEY
+
+# Telegram updates (outbound only), once the owner has put the bot's token in ~/bitra/telegram/telegram.env.
+TG_ENV="$HOME/bitra/telegram/telegram.env"
+if grep -q '^TELEGRAM_BOT_TOKEN=.' "$TG_ENV" 2>/dev/null; then
+  chmod 600 "$TG_ENV"
+  systemctl --user enable --now bitra-telegram-digest.timer bitra-telegram-alerts.timer
+  echo "telegram: digest every 2 h, alerts every 15 min ($(grep -q '^TELEGRAM_CHAT_ID=.' "$TG_ENV" && echo 'chat set' || echo 'waiting for Start in the bot'))"
+else
+  systemctl --user disable --now bitra-telegram-digest.timer bitra-telegram-alerts.timer 2>/dev/null || true
+  echo "telegram: not set up. Put TELEGRAM_BOT_TOKEN in $TG_ENV (mode 600), then re-run this script."
+fi
