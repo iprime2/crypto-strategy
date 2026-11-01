@@ -164,11 +164,11 @@ class DesksTest(unittest.TestCase):
         base = f"http://127.0.0.1:{httpd.server_address[1]}"
         page = urllib.request.urlopen(base + "/").read().decode()
         self.assertIn("Model comparison", page)
-        self.assertIn("bitra-desk · gemini", page)
-        self.assertIn("<a href='?desk=groq'>groq</a>", page)
+        self.assertIn("<title>bitra-desk · gemini</title>", page)
+        self.assertIn("href='?desk=groq#detail'", page)  # its card and its tab
         page = urllib.request.urlopen(base + "/?desk=groq").read().decode()
-        self.assertIn("bitra-desk · groq", page)
-        self.assertIn("<a href='?desk=gemini'>gemini</a>", page)
+        self.assertIn("<title>bitra-desk · groq</title>", page)
+        self.assertIn("<a class='tab' href='?desk=groq#detail' style='--c:var(--s2)' aria-current=page>", page)
         state = json.loads(urllib.request.urlopen(base + "/api/state.json?desk=groq").read())
         self.assertEqual(state["desk"], str(b))
         with self.assertRaises(urllib.error.HTTPError) as ctx:
@@ -178,6 +178,84 @@ class DesksTest(unittest.TestCase):
     def test_single_desk_has_no_comparison(self):
         page = server.render(server.build_state(make_desk(self), now=NOW, service="active"))
         self.assertNotIn("Model comparison", page)
+
+
+class OverviewDataTest(unittest.TestCase):
+    def test_summary_carries_the_technical_answer_as_fields(self):
+        s = server.build_state(make_desk(self), now=NOW, service="active")
+        refused = next(x for x in s["recent"] if x["outcome"] == "refused")
+        self.assertEqual((refused["target"], refused["setup"], refused["confidence"]), ("short", "range_breakout", 0.55))
+        held = next(x for x in s["recent"] if x["outcome"] == "held")
+        self.assertEqual(held["target"], "short")  # the fixture's held cycle still records an answer
+
+    def test_candles_merge_dedupe_and_skip_bad_lines(self):
+        a, b = tmpdir(self), tmpdir(self)
+        (a / "candles.jsonl").write_text("[1000, 1, 2, 0.5, 1.5]\nnot json\n[2000, 1, 2, 0.5, 1.7]\n")
+        (b / "candles.jsonl").write_text("[2000, 1, 2, 0.5, 1.7]\n[3000, 1, 2, 0.5, 1.9]\n")
+        self.assertEqual(server.load_candles([a, b, tmpdir(self)]), [(1000, 1.5), (2000, 1.7), (3000, 1.9)])
+        self.assertEqual(server.load_candles([a, b], since_ms=2000), [(2000, 1.7), (3000, 1.9)])
+
+    def test_hourly_decisions_keep_the_most_telling_cycle_per_hour(self):
+        h0 = datetime(2026, 10, 29, 8, 0, tzinfo=timezone.utc)
+        recent = [  # newest first, as build_state returns them
+            {"at": h0.replace(hour=9, minute=40), "outcome": "held"},
+            {"at": h0.replace(hour=9, minute=5), "outcome": "would trade", "target": "short"},
+            {"at": h0.replace(minute=30), "outcome": "held"},
+            {"at": h0.replace(minute=0), "outcome": "refused", "target": "flat"},
+        ]
+        slots = server.hourly_decisions(recent, NOW, hours=4)
+        self.assertEqual([x["hour"].hour for x in slots], [7, 8, 9, 10])
+        self.assertIsNone(slots[0]["cycle"])
+        self.assertEqual(slots[1]["cycle"]["target"], "flat")  # asked beats held
+        self.assertEqual(slots[2]["cycle"]["outcome"], "would trade")
+        self.assertIsNone(slots[3]["cycle"])
+
+    def test_api_cost_prices_known_models_only(self):
+        rows = [{"at": NOW.timestamp(), "model": "claude-opus-5-5", "outcome": "ok",
+                 "input_tokens": 1_000_000, "output_tokens": 100_000},
+                {"at": NOW.timestamp() - 2 * 86400, "model": "claude-sonnet-5-5", "outcome": "ok",
+                 "input_tokens": 500_000, "output_tokens": 0}]
+        cost = server.api_cost(rows, NOW)
+        self.assertAlmostEqual(cost["total_usd"], 4.0 + 2.0 + 1.0)
+        self.assertAlmostEqual(cost["today_usd"], 6.0)
+        free = server.api_cost([{"at": NOW.timestamp(), "model": "gemini-3.1-flash-lite", "input_tokens": 9}], NOW)
+        self.assertIsNone(free["total_usd"])
+
+    def test_script_json_cannot_close_its_script_tag(self):
+        out = server.script_json({"reason": "</script><script>alert(1)</script> & <b>"})
+        self.assertNotIn("<", out)
+        self.assertNotIn(">", out)
+        self.assertEqual(json.loads(out)["reason"], "</script><script>alert(1)</script> & <b>")
+
+
+class OverviewRenderTest(unittest.TestCase):
+    def states(self, reason="technical: confidence 0.55 below the declared 0.6"):
+        pdir = tmpdir(self)
+        (pdir / "state.json").write_text(json.dumps({
+            "start_equity": 1000, "equity": 1004.5, "realized_usd": 4.5, "unrealized_usd": 0.0, "return_pct": 0.45,
+            "closed": 1, "wins": 1, "losses": 0, "open": None, "skipped": [], "hold_hours": 12, "risk_bps": 50,
+            "equity_curve": [[1793232000000, 1004.5]], "generated_ms": NOW.timestamp() * 1000, "fetch_error": None,
+            "trades": [{"side": "short", "setup": "x", "entry": 80000.0, "entry_ms": 1793200000000, "exit": 79000.0,
+                        "exit_ms": 1793232000000, "exit_reason": "take", "size": 0.004, "desk_size": 0.004,
+                        "net_usd": 4.5, "net_bps": 120.0, "reason": reason}]}))
+        a = server.build_state(make_desk(self, reason), now=NOW, service="active", paper_dir=pdir)
+        b = server.build_state(make_desk(self), now=NOW, service="failed")
+        return {"gemini": a, "groq": b}
+
+    def test_leaderboard_grid_and_charts(self):
+        page = server.render_overview(self.states(), "groq", [(1793200000000, 80000.0), (1793203600000, 79500.0)], NOW)
+        self.assertIn("Model comparison", page)
+        self.assertIn("$1,004.50", page)
+        self.assertIn("href='?desk=gemini#detail'", page)
+        self.assertEqual(page.count("class='cell"), 2 * server.GRID_HOURS)
+        data = json.loads(page.split("<script type='application/json' id='chart-data'>")[1].split("</script>")[0])
+        self.assertEqual([d["name"] for d in data["desks"]], ["gemini", "groq"])
+        self.assertEqual(data["desks"][0]["trades"][0]["side"], "short")
+        self.assertEqual(data["price"][-1], [1793203600000, 79500.0])
+
+    def test_overview_escapes_model_text(self):
+        page = server.render_overview(self.states("<img src=x onerror=alert(1)>"), "gemini", [], NOW)
+        self.assertNotIn("<img src=x", page)
 
 
 class HttpTest(unittest.TestCase):
