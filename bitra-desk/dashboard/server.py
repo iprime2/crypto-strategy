@@ -9,7 +9,7 @@ two charts in the browser from data embedded in it (no library, nothing fetched 
 refreshes itself every minute.
 
     python3 server.py --desk gemini=~/bitra/desk --desk groq=~/bitra/desk-groq \
-        --desk claude=~/bitra/desk-claude --port 8790
+        --desk claude=~/bitra/desk-claude --consensus ~/bitra/paper-consensus --port 8790
     curl -s '127.0.0.1:8790/api/state.json?desk=groq'      # one desk's state as JSON
 
 Each desk is NAME=PATH; its paper account is the sibling paper<suffix> folder (desk -> paper, desk-groq ->
@@ -437,12 +437,12 @@ def size_txt(tr: dict) -> str:
 
 CSS = """
 :root{color-scheme:light;--page:#f9f9f7;--surface:#fcfcfb;--surface-2:#f0efec;--ink:#0b0b0b;--ink-2:#52514e;
---muted:#6f6d68;--grid:#e1e0d9;--axis:#c3c2b7;--ring:rgba(11,11,11,.10);--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;
+--muted:#6f6d68;--grid:#e1e0d9;--axis:#c3c2b7;--ring:rgba(11,11,11,.10);--s0:#52514e;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;
 --up:#006300;--down:#b42323;--good:#0ca30c;--bad:#d03b3b;--warn:#8a5a00;--warn-bg:#fbf0d9;--go-bg:#e3f3ea;
 --bad-bg:#f8e2dc;--shadow:0 1px 2px rgba(11,11,11,.05)}
 @media (prefers-color-scheme:dark){:root{color-scheme:dark;--page:#0d0d0d;--surface:#1a1a19;--surface-2:#252524;
 --ink:#f0efec;--ink-2:#c3c2b7;--muted:#9a988f;--grid:#2c2c2a;--axis:#45453f;--ring:rgba(255,255,255,.10);
---s1:#3987e5;--s2:#d95926;--s3:#199e70;--up:#3ec43e;--down:#f08a8a;--good:#0ca30c;--bad:#e66767;--warn:#f0c46b;
+--s0:#c3c2b7;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--up:#3ec43e;--down:#f08a8a;--good:#0ca30c;--bad:#e66767;--warn:#f0c46b;
 --warn-bg:#3a2e14;--go-bg:#183326;--bad-bg:#3d1f19;--shadow:none}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--page);color:var(--ink);font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
@@ -480,6 +480,9 @@ font-variant-numeric:tabular-nums}
 .line2>div{display:grid;grid-template-columns:104px minmax(0,1fr);gap:8px}
 .line2 span.k{color:var(--muted)}
 .sw{display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--c);flex:none}
+.sw.dash{background:none;border:2px dashed var(--c)}
+.desk.cons::before{background:repeating-linear-gradient(90deg,var(--c) 0 6px,transparent 6px 10px)}
+.chart .line.cons{stroke-dasharray:5 4}
 .status{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--muted)}
 .status i{width:7px;height:7px;border-radius:50%;background:var(--good)}.status.down i{background:var(--bad)}
 .status.down{color:var(--bad)}
@@ -654,7 +657,7 @@ def comparison_row(name: str, s: dict, slot: int = 1) -> dict:
             "cost": s.get("cost") or {}, "stance": stance(s), "now": s["now"]}
 
 
-def desk_card(r: dict, rank: int, selected: str) -> str:
+def desk_card(r: dict, rank: int, selected: str, flat: dict | None = None) -> str:
     eq = (f"${float(r['equity']):,.2f}<small class='{tone(r['return_pct'])}'>{float(r['return_pct']):+.2f}%</small>"
           if r["equity"] is not None else "<span class='sub'>no paper account yet</span>")
     closed = f"{r['closed']} · {r['wins']}W {r['losses']}L" if r["closed"] is not None else "–"
@@ -685,7 +688,41 @@ def desk_card(r: dict, rank: int, selected: str) -> str:
 <div><dt>Asked / held</dt><dd>{r['refused'] + r['would_trade']} / {r['held']}</dd></div></dl>
 <div class='line2'><div><span class='k'>Latest call</span><span>{call}</span></div>
 <div><span class='k'>Side vs reverse</span><span>{hs}</span></div>
-<div><span class='k'>Model calls</span><span>{r['calls_today']} today ({r['failed_today']} failed) · {e(spend)}</span></div></div>
+<div><span class='k'>Model calls</span><span>{r['calls_today']} today ({r['failed_today']} failed) · {e(spend)}</span></div>
+{flat_line(flat)}</div>
+</a>"""
+
+
+def flat_line(f: dict | None) -> str:
+    """What the other desks' trades did in the hours this desk said flat (from the consensus file)."""
+    if f is None:
+        return ""
+    n = f.get("others_intents") or 0
+    if not n:
+        then = "no trades by the others then"
+    elif not f.get("closed"):
+        then = f"{n} trade{'s' if n != 1 else ''} by the others then, still open"
+    else:
+        won = f"{float(f.get('won') or 0) * 100:.0f}% won"
+        then = f"{n} trade{'s' if n != 1 else ''} by the others then: {signed(f.get('mean_net_bps'))} bps, {won}"
+    return f"<div><span class='k'>When flat</span><span>{f.get('flat_hours', 0)} h · {e(then)}</span></div>"
+
+
+def consensus_card(c: dict, desks_n: int) -> str:
+    """The derived account that trades only on agreement, beside the desks' cards."""
+    eq = (f"${float(c['equity']):,.2f}<small class='{tone(c['return_pct'])}'>{float(c['return_pct']):+.2f}%</small>"
+          if c.get("equity") is not None else "<span class='sub'>not computed yet</span>")
+    closed = f"{c.get('closed', 0)} · {c.get('wins', 0)}W {c.get('losses', 0)}L" if c.get("closed") is not None else "–"
+    o = c.get("open")
+    open_line = (f"<div><span class='k'>Open</span><span>{e(o['side'])} from {o['entry']:,.1f} via {e(' + '.join(o.get('agreed') or []))}, "
+                 f"<span class='{tone(o.get('unrealized_usd'))}'>{e(usd(o.get('unrealized_usd')))}</span></span></div>" if o else "")
+    return f"""<a class='card desk cons' href='#positions' style='--c:var(--s0)'>
+<div class='d-head'><span class='sw dash'></span><b>consensus</b><span class='rank'>derived</span></div>
+<div class='model'>a trade only when 2 of {desks_n} desks agree and one passed its gates</div>
+<div class='eq'>{eq}</div>
+<dl class='stats'><div><dt>Closed</dt><dd>{e(closed)}</dd></div><div><dt>Taken</dt><dd>{len(c.get('taken') or [])} taken of {c.get('agreed_hours', 0)} agreed hours</dd></div>
+<div><dt>All asked</dt><dd>{c.get('hours_all', 0)} h</dd></div></dl>
+<div class='line2'>{open_line}<div><span class='k'>Rule</span><span>{e(c.get('rule', ''))}</span></div></div>
 </a>"""
 
 
@@ -747,7 +784,7 @@ def render_grid(rows: list[dict], states: dict, now: datetime) -> str:
     return "".join(out)
 
 
-def positions(rows: list[dict], states: dict) -> tuple[list[dict], list[dict]]:
+def positions(rows: list[dict], states: dict, extra: list[tuple[str, dict]] = ()) -> tuple[list[dict], list[dict]]:
     """Every desk's open paper position and closed paper trades, newest first, each tagged with its desk."""
     opened, closed = [], []
     for r in rows:
@@ -757,27 +794,38 @@ def positions(rows: list[dict], states: dict) -> tuple[list[dict], list[dict]]:
             opened.append({**pa["open"], "desk": r["name"], "slot": r["slot"]})
         for tr in pa.get("trades") or []:
             closed.append({**tr, "desk": r["name"], "slot": r["slot"], "equity_after": curve.get(tr["exit_ms"])})
+    for name, pa in extra:
+        curve = {c[0]: c[1] for c in pa.get("equity_curve") or []}
+        if pa.get("open"):
+            o = pa["open"]
+            opened.append({**o, "desk": name, "slot": 0, "via": " + ".join(o.get("agreed") or [])})
+        for tr in pa.get("trades") or []:
+            closed.append({**tr, "desk": name, "slot": 0, "via": " + ".join(tr.get("agreed") or []),
+                           "equity_after": curve.get(tr["exit_ms"])})
     opened.sort(key=lambda x: -x["entry_ms"])
     closed.sort(key=lambda x: -x["exit_ms"])
     return opened, closed
 
 
-def render_positions(rows: list[dict], states: dict) -> str:
+def render_positions(rows: list[dict], states: dict, extra: list[tuple[str, dict]] = ()) -> str:
     """One table for all desks, Open or Closed: two radio inputs make the switch, so it works without script.
     Each cell carries data-label, so a phone can show each row as a small card instead of a wide row."""
-    opened, closed = positions(rows, states)
+    opened, closed = positions(rows, states, extra)
 
     def cell(label: str, value: str, cls: str = "num") -> str:
         return f"<td class='{cls}' data-label='{label}'>{value}</td>"
 
     def desk(x: dict) -> str:
-        return cell("Desk", f"<span><span class='sw' style='--c:var(--s{x['slot']})'></span> {e(x['desk'])}</span>",
-                    "nw lead")
+        return cell("Desk", f"<span><span class='sw{' dash' if x['slot'] == 0 else ''}' style='--c:var(--s{x['slot']})'></span> "
+                    f"{e(x['desk'])}</span>", "nw lead")
+
+    def setup(x: dict) -> str:
+        return e(x.get("setup")) + (f" <span class='sub'>via {e(x['via'])}</span>" if x.get("via") else "")
 
     o_rows = []
     for x in opened:
         pnl = x.get("unrealized_usd")
-        o_rows.append("<tr>" + desk(x) + cell("Side", pill(x["side"]), "") + cell("Setup", e(x.get("setup")), "nw")
+        o_rows.append("<tr>" + desk(x) + cell("Side", pill(x["side"]), "") + cell("Setup", setup(x), "nw")
                       + cell("Opened", e(t(ms_time(x["entry_ms"]))), "nw") + cell("Entry", f"{x['entry']:,.1f}")
                       + cell("Mark", f"{x['mark']:,.1f}") + cell("Stop", f"{x['stop']:,.1f}")
                       + cell("Take", f"{x['take']:,.1f}") + cell("Size", e(size_txt(x)))
@@ -787,7 +835,7 @@ def render_positions(rows: list[dict], states: dict) -> str:
     for x in closed:
         when = f"{t(ms_time(x['entry_ms']))} → {t(ms_time(x['exit_ms']), with_date=False)}"
         net = f"{usd(x['net_usd'])} ({float(x.get('net_bps') or 0):+.0f} bps)"
-        c_rows.append("<tr>" + desk(x) + cell("Side", pill(x["side"]), "") + cell("Setup", e(x.get("setup")), "nw")
+        c_rows.append("<tr>" + desk(x) + cell("Side", pill(x["side"]), "") + cell("Setup", setup(x), "nw")
                       + cell("When", e(when), "nw") + cell("Entry", f"{x['entry']:,.1f}")
                       + cell("Exit", f"{x['exit']:,.1f}") + cell("Why", e(x["exit_reason"]), "nw")
                       + cell("Size", e(size_txt(x))) + cell("Net", e(net), f"num {tone(x['net_usd'])}")
@@ -807,7 +855,8 @@ account, newest first; practice money</span></div>
 <th class='num'>Desk equity after</th></tr>{c_rows}</table></div></div></section>"""
 
 
-def chart_payload(rows: list[dict], states: dict, candles: list[tuple[int, float]], now: datetime) -> dict:
+def chart_payload(rows: list[dict], states: dict, candles: list[tuple[int, float]], now: datetime,
+                  consensus: dict | None = None) -> dict:
     desks = []
     for r in rows:
         s = states[r["name"]]
@@ -828,12 +877,20 @@ def chart_payload(rows: list[dict], states: dict, candles: list[tuple[int, float
                                "open": True})
         desks.append({"name": r["name"], "slot": r["slot"], "start": float(pa.get("start_equity") or 0),
                       "curve": curve, "trades": trades})
+    cons = None
+    firsts = [s["first_cycle"] for s in states.values() if s.get("first_cycle")]
+    if consensus and consensus.get("start_equity") and firsts:
+        start = float(consensus["start_equity"])
+        cons = {"name": "consensus", "slot": 0, "start": start,
+                "curve": [[ms(min(firsts)), start]] + [[int(a), float(b)] for a, b in consensus.get("equity_curve") or []]
+                + [[ms(now), float(consensus.get("equity") or start)]], "trades": []}
     since = ms(now) - PRICE_HOURS * 3_600_000
     price = [[a, b] for a, b in candles if a >= since and (a % 900_000 == 0 or (a, b) == candles[-1])]
-    return {"now": ms(now), "desks": desks, "price": price}
+    return {"now": ms(now), "desks": desks, "consensus": cons, "price": price}
 
 
-def render_overview(states: dict, selected: str, candles: list[tuple[int, float]], now: datetime) -> str:
+def render_overview(states: dict, selected: str, candles: list[tuple[int, float]], now: datetime,
+                    consensus: dict | None = None) -> str:
     """The desks side by side (when there are several), the two charts and the hour-by-hour strip."""
     rows = [comparison_row(n, st, slot=i + 1) for i, (n, st) in enumerate(states.items())]
     out = []
@@ -841,10 +898,14 @@ def render_overview(states: dict, selected: str, candles: list[tuple[int, float]
         ranked = sorted(rows, key=lambda r: -(num(r["equity"]) if r["equity"] is not None else -1e18))
         out.append("<section><div class='sec-head'><h2>Model comparison</h2><span class='sub'>Same market, data, "
                    "rules and costs; only the model differs. Paper money, $1,000 each.</span></div><div class='board'>")
-        out += [desk_card(r, i + 1, selected) for i, r in enumerate(ranked)]
+        flats = (consensus or {}).get("flat_scores") or {}
+        out += [desk_card(r, i + 1, selected, flats.get(r["name"]) if consensus else None) for i, r in enumerate(ranked)]
+        if consensus:
+            out.append(consensus_card(consensus, len(rows)))
         out.append("</div></section>")
     legend = "".join(f"<span><i class='sw' style='--c:var(--s{r['slot']})'></i>{e(r['name'])}</span>" for r in rows)
-    out.append(f"""<section><div class='sec-head'><h2>Paper equity</h2><span class='legend'>{legend}</span></div>
+    eq_legend = legend + ("<span><i class='sw dash' style='--c:var(--s0)'></i>consensus</span>" if consensus else "")
+    out.append(f"""<section><div class='sec-head'><h2>Paper equity</h2><span class='legend'>{eq_legend}</span></div>
 <div class='card pad'><div class='chart' id='eq-chart' role='img' aria-label='Paper account equity of each desk over
 time; the values are in the cards above and the closed trades below'><div class='tip' hidden></div></div>
 <p class='note'>Steps at each closed trade; the line ends at today's equity, open position included.</p></div></section>
@@ -854,10 +915,11 @@ time; the values are in the cards above and the closed trades below'><div class=
 {PRICE_HOURS} hours with each desk's paper trades marked'><div class='tip' hidden></div></div>
 <p class='note'>Bybit 5-minute closes from the paper accounts' candle cache, last {PRICE_HOURS} h. Hover a marker
 for the trade.</p></div></section>""")
-    out.append(render_positions(rows, states))
+    out.append(render_positions(rows, states, [("consensus", consensus)] if consensus else []))
     if len(rows) > 1:
         out.append(render_grid(rows, states, now))
-    out.append(f"<script type='application/json' id='chart-data'>{script_json(chart_payload(rows, states, candles, now))}"
+    out.append("<script type='application/json' id='chart-data'>"
+               f"{script_json(chart_payload(rows, states, candles, now, consensus))}"
                "</script>")
     return "".join(out)
 
@@ -1118,7 +1180,8 @@ function hover(box, f, linesAt) {
 }
 const valueAt = (pts, at) => { let v = pts[0][1]; for (const p of pts) { if (p[0] <= at) v = p[1]; else break; } return v; };
 function drawEquity(box, data) {
-  const desks = data.desks.filter(d => d.curve.length);
+  const desks = data.desks.filter(d => d.curve.length)
+    .concat(data.consensus && data.consensus.curve.length ? [data.consensus] : []);
   if (!desks.length) return empty(box, "No paper account yet.");
   const t0 = Math.min(...desks.map(d => d.curve[0][0])), t1 = data.now;
   const vals = desks.flatMap(d => d.curve.map(p => p[1]));
@@ -1136,7 +1199,7 @@ function drawEquity(box, data) {
   for (const d of desks) {
     let path = "";
     d.curve.forEach((p, i) => { path += i ? `H${f.x(p[0])}V${f.y(p[1])}` : `M${f.x(p[0])},${f.y(p[1])}`; });
-    svg("path", {d: path, class: "line", stroke: `var(--s${d.slot})`}, f.root);
+    svg("path", {d: path, class: "line" + (d.slot === 0 ? " cons" : ""), stroke: `var(--s${d.slot})`}, f.root);
     const last = d.curve[d.curve.length - 1];
     svg("circle", {cx: f.x(last[0]), cy: f.y(last[1]), r: 4, fill: `var(--s${d.slot})`, class: "ring"}, f.root);
     ends.push({d, y: f.y(last[1]), v: last[1]});
@@ -1234,7 +1297,14 @@ def to_json(s: dict) -> str:
     return json.dumps(s, default=lambda o: o.isoformat() if isinstance(o, datetime) else str(o), indent=1)
 
 
-def make_handler(desks: list[dict] | Path, paper_dir: Path | None = None):
+def load_json(path: Path) -> dict | None:
+    try:
+        return json.loads(path.read_text())
+    except (OSError, ValueError):
+        return None
+
+
+def make_handler(desks: list[dict] | Path, paper_dir: Path | None = None, consensus_dir: Path | None = None):
     if isinstance(desks, Path):  # one desk, as before
         desks = [{"name": "", "path": desks, "paper": paper_dir or desks.parent / "paper", "unit": "bitra-desk"}]
 
@@ -1255,7 +1325,8 @@ def make_handler(desks: list[dict] | Path, paper_dir: Path | None = None):
             if path == "/":
                 since = int(now.timestamp() * 1000) - max(PRICE_HOURS, 25) * 3_600_000
                 candles = load_candles([d["paper"] for d in desks], since_ms=since)
-                overview = render_overview(states, chosen["name"], candles, now)
+                cons = load_json(consensus_dir / "state.json") if consensus_dir else None
+                overview = render_overview(states, chosen["name"], candles, now, cons)
                 body = render(state, chosen["name"], overview, candles, [d["name"] for d in desks]).encode()
                 ctype = "text/html; charset=utf-8"
             else:
@@ -1279,9 +1350,12 @@ def main() -> None:
                    help="NAME=PATH, repeat for each desk; default ~/bitra/desk")
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=8790)
+    p.add_argument("--consensus", type=Path, default=None,
+                   help="folder with paper/consensus.py's state.json: adds the consensus account and the flat scores")
     args = p.parse_args()
     desks = [parse_desk(spec) for spec in (args.desk or [str(Path.home() / "bitra" / "desk")])]
-    server = ThreadingHTTPServer((args.host, args.port), make_handler(desks))
+    cons_dir = args.consensus.expanduser() if args.consensus else None
+    server = ThreadingHTTPServer((args.host, args.port), make_handler(desks, consensus_dir=cons_dir))
     print(f"bitra-desk dashboard on http://{args.host}:{args.port}/ reading "
           + ", ".join(f"{d['name']}={d['path']}" for d in desks), flush=True)
     server.serve_forever()

@@ -70,9 +70,9 @@ model_desk "$GDESK" groq openai/gpt-oss-120b groq:openai/gpt-oss-20b
 model_desk "$CDESK" claude claude-opus-5-5 claude:claude-sonnet-5-5  # the provider claude-provider/ adds
 
 cp "$HERE/README.md" "$HOME/bitra/README.md"
-mkdir -p "$HOME/bitra/dashboard" "$HOME/bitra/paper" "$HOME/bitra/paper-groq" "$HOME/bitra/paper-claude"
+mkdir -p "$HOME/bitra/dashboard" "$HOME/bitra/paper" "$HOME/bitra/paper-groq" "$HOME/bitra/paper-claude" "$HOME/bitra/paper-consensus"
 cp "$HERE/dashboard/server.py" "$HOME/bitra/dashboard/server.py"
-cp "$HERE/paper/paper.py" "$HOME/bitra/paper/paper.py"
+cp "$HERE/paper/paper.py" "$HERE/paper/consensus.py" "$HOME/bitra/paper/"
 mkdir -p "$HOME/bitra/telegram"
 cp "$HERE/telegram/notify.py" "$HERE/telegram/card.py" "$HOME/bitra/telegram/"
 
