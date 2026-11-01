@@ -253,6 +253,32 @@ class OverviewRenderTest(unittest.TestCase):
         self.assertEqual(data["desks"][0]["trades"][0]["side"], "short")
         self.assertEqual(data["price"][-1], [1793203600000, 79500.0])
 
+    def test_positions_table_lists_every_desk_with_an_open_closed_switch(self):
+        states = self.states()
+        pdir = tmpdir(self)
+        (pdir / "state.json").write_text(json.dumps({
+            "start_equity": 1000, "equity": 1000.49, "realized_usd": 0, "unrealized_usd": 0.49, "return_pct": 0.05,
+            "closed": 0, "wins": 0, "losses": 0, "skipped": [], "hold_hours": 12, "risk_bps": 50, "trades": [],
+            "equity_curve": [], "generated_ms": NOW.timestamp() * 1000, "fetch_error": None,
+            "open": {"side": "short", "setup": "range_<b>reversion</b>", "entry": 77946.1, "entry_ms": 1793300000000,
+                     "mark": 77900.0, "stop": 78227.1, "take": 77378.4, "size": 0.012, "desk_size": 0.012,
+                     "unrealized_usd": 0.49, "deadline_ms": 1793343200000}}))
+        states["groq"] = server.build_state(make_desk(self), now=NOW, service="active", paper_dir=pdir)
+        page = server.render_overview(states, "gemini", [], NOW)
+        sec = page.split("<section id='positions'>")[1].split("</section>")[0]
+        self.assertIn("<label for='pos-open'>Open <span class='count'>1</span></label>", sec)
+        self.assertIn("<label for='pos-closed'>Closed <span class='count'>1</span></label>", sec)
+        opened = sec.split("class='panel p-open")[1].split("class='panel p-closed")[0]
+        closed = sec.split("class='panel p-closed")[1]
+        self.assertIn("groq", opened)
+        self.assertIn("77,946.1", opened)
+        self.assertIn("+$0.49", opened)
+        self.assertIn("range_&lt;b&gt;reversion&lt;/b&gt;", opened)  # model text stays text
+        self.assertNotIn("gemini", opened)
+        self.assertIn("gemini", closed)
+        self.assertIn("+$4.50", closed)
+        self.assertIn("$1,004.50", closed)  # equity after the trade, from the desk's curve
+
     def test_overview_escapes_model_text(self):
         page = server.render_overview(self.states("<img src=x onerror=alert(1)>"), "gemini", [], NOW)
         self.assertNotIn("<img src=x", page)

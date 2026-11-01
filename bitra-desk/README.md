@@ -117,6 +117,9 @@ Keys (owner, on the VM): `nano ~/bitra/desk/.env`, see `desk/.env.example`. Then
 - **Paper equity**: every desk's paper account on one chart, stepping at each closed trade.
 - **BTCUSDT and the paper trades**: the last 96 h of Bybit 5-minute closes with each desk's paper trades on
   it (▲ long or ▼ short at the entry, ● at the exit, in the desk's color).
+- **Positions**: every desk's paper positions in one table, with an Open / Closed switch: the open ones with
+  entry, mark, stop, take, size, unrealized result and when the hold ends; the closed ones with entry, exit,
+  why it closed, size, net result and the desk's equity after it. On a phone each position is a small card.
 - **Hour by hour**: the last 48 hours as one row of squares per desk, so the same hour can be compared
   across models: a would-be trade, a call the desk's rules refused, flat, held (too quiet to ask) or an error.
   Hover or tap a square for what the model said and why.
