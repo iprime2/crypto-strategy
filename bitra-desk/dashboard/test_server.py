@@ -279,6 +279,41 @@ class OverviewRenderTest(unittest.TestCase):
         self.assertIn("+$4.50", closed)
         self.assertIn("$1,004.50", closed)  # equity after the trade, from the desk's curve
 
+    def test_consensus_account_and_flat_scores_on_the_overview(self):
+        states = self.states()
+        cons = {"start_equity": 1000, "equity": 1003.2, "return_pct": 0.32, "realized_usd": 3.2, "unrealized_usd": 0.0,
+                "closed": 1, "wins": 1, "losses": 0, "open": None, "skipped": [], "equity_curve": [[1793232000000, 1003.2]],
+                "hold_hours": 12, "risk_bps": 50, "generated_ms": NOW.timestamp() * 1000, "fetch_error": None,
+                "trades": [{"side": "short", "setup": "range_reversion", "entry": 80000.0, "entry_ms": 1793200000000,
+                            "exit": 79200.0, "exit_ms": 1793232000000, "exit_reason": "take", "size": 0.004,
+                            "desk_size": 0.004, "net_usd": 3.2, "net_bps": 100.0, "desk": "gemini",
+                            "agreed": ["gemini", "groq"]}],
+                "rule": "two agree", "desks": ["gemini", "groq"], "hours_any": 9, "hours_all": 4, "agreed_hours": 3,
+                "taken": [{"hour": "2026-10-29T08", "side": "short", "desk": "gemini", "agreed": ["gemini", "groq"]}],
+                "flat_scores": {"gemini": {"flat_hours": 5, "others_intents": 2, "closed": 2, "mean_net_bps": -40.0,
+                                           "won": 0.0, "sum_net_usd": -1.6, "by_desk": {"groq": 2}},
+                                "groq": {"flat_hours": 0, "others_intents": 0, "closed": 0, "mean_net_bps": None,
+                                         "won": None, "sum_net_usd": None, "by_desk": {}}}}
+        page = server.render_overview(states, "gemini", [], NOW, consensus=cons)
+        card = page.split("class='card desk cons'")[1].split("</a>")[0]
+        self.assertIn("$1,003.20", card)
+        self.assertIn("1 taken of 3 agreed hours", card)
+        gem = page.split("<b>gemini</b>")[1].split("</a>")[0]
+        self.assertIn("When flat", gem)
+        self.assertIn("5 h · 2 trades by the others then: −40.0 bps, 0% won", gem)
+        groq = page.split("<b>groq</b>")[1].split("</a>")[0]
+        self.assertIn("0 h", groq)
+        data = json.loads(page.split("<script type='application/json' id='chart-data'>")[1].split("</script>")[0])
+        self.assertEqual(data["consensus"]["curve"][-1][1], 1003.2)
+        closed = page.split("class='panel p-closed")[1]
+        self.assertIn("consensus", closed)
+        self.assertIn("via gemini + groq", closed)
+        plain = server.render_overview(states, "gemini", [], NOW)
+        self.assertNotIn("card desk cons", plain)
+        self.assertNotIn("When flat", plain)
+        plain_data = json.loads(plain.split("<script type='application/json' id='chart-data'>")[1].split("</script>")[0])
+        self.assertIsNone(plain_data["consensus"])
+
     def test_overview_escapes_model_text(self):
         page = server.render_overview(self.states("<img src=x onerror=alert(1)>"), "gemini", [], NOW)
         self.assertNotIn("<img src=x", page)

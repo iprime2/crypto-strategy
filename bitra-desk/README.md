@@ -120,6 +120,13 @@ Keys (owner, on the VM): `nano ~/bitra/desk/.env`, see `desk/.env.example`. Then
 - **Positions**: every desk's paper positions in one table, with an Open / Closed switch: the open ones with
   entry, mark, stop, take, size, unrealized result and when the hold ends; the closed ones with entry, exit,
   why it closed, size, net result and the desk's equity after it. On a phone each position is a small card.
+- **Consensus**, beside the desks' cards: a derived paper account that takes a desk's would-be trade only when
+  at least two desks named the same direction in the same hour and one of them passed its gates (the highest
+  conviction among them). It is a dashed line on the equity chart and its positions are in the table, marked
+  "via" the desks that agreed. Each desk's card also shows **When flat**: the hours it answered flat, and what
+  the other desks' trades in those hours returned (`tra hindsight` cannot score a flat answer, since it has no
+  side to replay). Both come from `paper/consensus.py`, which runs on the paper timer and writes
+  `~/bitra/paper-consensus/state.json`; no model is called.
 - **Hour by hour**: the last 48 hours as one row of squares per desk, so the same hour can be compared
   across models: a would-be trade, a call the desk's rules refused, flat, held (too quiet to ask) or an error.
   Hover or tap a square for what the model said and why.
@@ -182,7 +189,7 @@ intents recorded before the desk's equity went from $10,000 to $1,000. It replay
 intent each run, so the result is deterministic.
 The only network call is Bybit's public kline endpoint, cached in `~/bitra/paper/candles.jsonl`; the result is
 `~/bitra/paper/state.json`, which the dashboard shows. `bitra-paper.timer` runs it every 15 minutes (:05, :20,
-:35, :50). Tests: `python3 -m unittest discover -s bitra-desk/paper -p 'test_*.py'`.
+:35, :50), then `paper/consensus.py` for the consensus account and the flat scores (`~/bitra/paper-consensus`). Tests: `python3 -m unittest discover -s bitra-desk/paper -p 'test_*.py'`.
 
 Limits: 5-minute bars, so a stop and take touched inside one bar count as the stop; fills at the bar's open and
 at the exact stop or take price, with slippage only as the intent's priced estimate; no funding.
