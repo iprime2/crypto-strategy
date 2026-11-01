@@ -671,23 +671,31 @@ def desk_card(r: dict, rank: int, selected: str) -> str:
 </a>"""
 
 
+def cell_kind(c: dict | None) -> tuple[str, str]:
+    """One hour of the strip: its kind (none, held, trade, asked, flat, refused, err) and glyph. The dashboard and
+    the Telegram card both draw from this."""
+    if c is None:
+        return "none", ""
+    outcome, target = c["outcome"], c.get("target")
+    if outcome == "would trade":
+        return "trade", ARROW.get((c.get("intent") or {}).get("target") or target or "", "●")
+    if outcome == "held":
+        return "held", ""
+    if outcome in ("error", "incomplete"):
+        return "err", "!"
+    if target == "flat":
+        return "flat", "–"
+    if target:
+        return "asked", ARROW.get(target, "?")
+    return "refused", "·"
+
+
 def grid_cell(name: str, slot: dict) -> str:
     c = slot["cycle"]
     if c is None:
         return "<span class='cell none' aria-hidden='true'></span>"
+    cls, glyph = cell_kind(c)
     outcome, target = c["outcome"], c.get("target")
-    if outcome == "would trade":
-        cls, glyph = "trade", ARROW.get((c.get("intent") or {}).get("target") or target or "", "●")
-    elif outcome == "held":
-        cls, glyph = "held", ""
-    elif outcome in ("error", "incomplete"):
-        cls, glyph = "err", "!"
-    elif target == "flat":
-        cls, glyph = "flat", "–"
-    elif target:
-        cls, glyph = "asked", ARROW.get(target, "?")
-    else:
-        cls, glyph = "refused", "·"
     conf = num(c.get("confidence"))
     said = (f" · said {target} {c.get('setup') or ''}" + (f" at {conf:.2f}" if conf is not None else "")) if target else ""
     tip = f"{name} · {t(c['at'])} IST · {outcome}{said} · {clip(c.get('reason') or '', 200)}"

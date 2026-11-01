@@ -140,8 +140,10 @@ anywhere else:
 
 - **A digest every 2 hours** (07:42, 09:42 … IST), as one photo with a caption, in the look of the project's
   other Telegram cards (the live ADA and trend paper-book updates). The card: a status pill, the leading
-  desk's equity, BTCUSDT and its 24 h change, every desk's paper equity since start on one chart, and the
-  desks ranked with their equity, return, wins and losses and latest call. The caption reads on its own: who
+  desk's equity, BTCUSDT and its 24 h change, every desk's paper equity since start on one chart, the last
+  24 hours as one row of squares per desk (the dashboard's hour strip: would-be trade, asked, flat, held,
+  error), and the desks ranked with their equity, return, wins and losses, latest call and their would-be
+  trades, asked and held counts since they started. The caption reads on its own: who
   leads, each desk's latest call and its age, what each did since the last digest, the Claude API spend and
   a warning for any desk whose service is not running, with each desk's hindsight in an expandable block
   and the dashboard link. If the card cannot be drawn or Telegram refuses the photo, the same digest goes

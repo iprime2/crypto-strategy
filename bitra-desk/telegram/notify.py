@@ -36,6 +36,7 @@ API = "https://api.telegram.org"
 DASHBOARD_URL = "https://bitra-desk.taildea8d9.ts.net/"
 IST = server.IST
 DIGEST_HOURS = 2
+STRIP_HOURS = 24  # the card's hour-by-hour strip; the dashboard shows 48
 QUIET_FROM, QUIET_TO = 23, 7  # IST: messages still arrive, without a sound
 WELCOME = ("👋 <b>Bitra Desk</b> is connected.\n\nEvery 2 hours: a digest of the three desks. As it happens: "
            "an alert when a paper trade opens or closes, or a desk stops. Silent from 23:00 to 07:00 IST.\n"
@@ -211,7 +212,8 @@ def card_model(states: dict, candles: list[tuple[int, float]], now: datetime) ->
             call = f"{server.ARROW.get(st['target'], '')} {st['target']}" + (f" {conf:.2f}" if conf is not None else "")
         rows.append({"name": r["name"], "slot": r["slot"], "ret": server.num(r["return_pct"]), "call": call,
                      "equity_txt": server.money(r["equity"]),
-                     "record": f"{r['wins']}W {r['losses']}L" if r["closed"] else "–"})
+                     "record": f"{r['wins']}W {r['losses']}L" if r["closed"] else "–",
+                     "would_trade": r["would_trade"], "asked": r["refused"] + r["would_trade"], "held": r["held"]})
     lead = ranks[0]
     series = []
     for i, (n, s) in enumerate(states.items()):
@@ -225,8 +227,21 @@ def card_model(states: dict, candles: list[tuple[int, float]], now: datetime) ->
         pts.append([server.ms(now), (float(pa.get("equity") or start) / start - 1) * 100])
         series.append({"name": n, "slot": i + 1, "points": pts})
     local = now.astimezone(IST)
+    hours = server.hourly_decisions([], now, hours=STRIP_HOURS)
+    labels = []
+    for i, h in enumerate(hours):
+        lh = h["hour"].astimezone(IST)
+        if lh.hour == 0:
+            labels.append([i, f"{lh.day} {lh:%b}"])
+        elif lh.hour % 6 == 0:
+            labels.append([i, f"{lh.hour:02d}"])
+    strip = {"labels": labels, "rows": [
+        {"name": n, "slot": i + 1,
+         "cells": [list(server.cell_kind(h["cycle"])) for h in server.hourly_decisions(s.get("recent") or [], now,
+                                                                                       hours=STRIP_HOURS)]}
+        for i, (n, s) in enumerate(states.items())]}
     return {"time": f"{local.day} {local:%b %H:%M} IST", "flags": flags(states), "btc": btc(candles),
-            "now_ms": server.ms(now), "series": series, "rows": rows,
+            "now_ms": server.ms(now), "series": series, "rows": rows, "strip": strip,
             "leader": {"name": lead["name"], "slot": lead["slot"], "equity_txt": rows[0]["equity_txt"],
                        "ret": server.num(lead["return_pct"]) or 0.0,
                        "record": (f"{lead['closed']} trades, {lead['wins']}W {lead['losses']}L" if lead["closed"]

@@ -1,6 +1,7 @@
 """The bitra-desk digest as a Telegram card: a PNG drawn with Pillow in the look of the project's other Telegram
 cards (a dark card 400 px wide: header and status pill, the leader's equity, BTCUSDT beside it, the desks' paper
-equity since start, a table of the desks, a note), at 2.5x for a sharp photo. Drawn at twice that size and scaled
+equity since start, the last 24 hours as one row of squares per desk, a table of the desks with their counts,
+a note), at 2.5x for a sharp photo. Drawn at twice that size and scaled
 down, so lines and text are smooth. Input is a plain dict from notify.card_model(); output is PNG bytes.
 Needs Pillow (apt python3-pil) and, for the intended look, the Inter font (apt fonts-inter); DejaVu otherwise.
 """
@@ -82,6 +83,11 @@ class Card:
             self.d.ellipse([(x - rr) * K, (y - rr) * K, (x + rr) * K, (y + rr) * K], fill=ring)
         self.d.ellipse([(x - r) * K, (y - r) * K, (x + r) * K, (y + r) * K], fill=fill)
 
+    def rect(self, box, fill=None, outline=None, radius=2.5, w=1.0):
+        x0, y0, x1, y1 = box
+        self.d.rounded_rectangle([x0 * K, y0 * K, x1 * K, y1 * K], radius=radius * K, fill=fill, outline=outline,
+                                 width=max(1, round(w * K)) if outline else 0)
+
     def pill(self, x_right, y_mid, s, ok: bool):
         size = 11.5
         tw = self.width(s, "semibold", size) + 13  # the dot and its gap
@@ -109,7 +115,7 @@ def nice_step(lo: float, hi: float) -> float:
     return 50 * mag
 
 
-def chart(c: Card, series: list[dict], now_ms: int, top: float, left=PAD + 34, right=W - PAD - 66, height=112):
+def chart(c: Card, series: list[dict], now_ms: int, top: float, left=PAD + 34, right=W - PAD - 66, height=104):
     """Each desk's paper equity as % since its start, as steps; labels at the line ends."""
     pts = [p for s in series for p in s["points"]]
     t0, t1 = min(p[0] for p in pts), max(now_ms, max(p[0] for p in pts))
@@ -154,10 +160,69 @@ def chart(c: Card, series: list[dict], now_ms: int, top: float, left=PAD + 34, r
     c.text(right, top + height - 3, day(t1), "regular", 11, DIM, anchor="rs")
 
 
+CELL_H, CELL_GAP, ROW_STEP = 16, 2, 19
+
+
+def square(c: Card, box, kind: str, glyph: str, col):
+    """One hour, as the dashboard's strip draws it: a would-be trade solid, a refused call tinted, flat or
+    refused grey, held an empty square with a dot, an error outlined; nothing when the desk had not started."""
+    x0, y0, x1, y1 = box
+    ink = INK
+    if kind == "trade":
+        c.rect(box, fill=col)
+        ink = "#ffffff"
+    elif kind == "asked":
+        c.rect(box, fill=blend(col, .35))
+    elif kind in ("flat", "refused"):
+        c.rect(box, fill=GRID)
+        ink = SUB
+    elif kind == "held":
+        c.rect(box, outline=ROWLINE)
+        c.dot((x0 + x1) / 2, (y0 + y1) / 2, 1.1, BASE)
+    elif kind == "err":
+        c.rect(box, outline=DN, w=1.2)
+        ink = DN
+    if glyph:
+        c.text((x0 + x1) / 2, (y0 + y1) / 2 + 0.5, glyph, "semibold", 8.5, ink, anchor="mm")
+
+
+def strip(c: Card, s: dict, top: float) -> float:
+    """The last hours as one row of squares per desk, hour labels below; returns the bottom."""
+    x0 = PAD + 56
+    n = len(s["rows"][0]["cells"]) if s["rows"] else 0
+    cw = (W - PAD - x0 - CELL_GAP * (n - 1)) / max(1, n)
+    for i, row in enumerate(s["rows"]):
+        y, col = top + ROW_STEP * i, DESK.get(row["slot"], INK)
+        c.dot(PAD + 4, y + CELL_H / 2, 4, col)
+        c.text(PAD + 13, y + CELL_H / 2, row["name"], "medium", 12, INK, anchor="lm")
+        for j, (kind, glyph) in enumerate(row["cells"]):
+            x = x0 + j * (cw + CELL_GAP)
+            square(c, (x, y, x + cw, y + CELL_H), kind, glyph, col)
+    base = top + ROW_STEP * len(s["rows"]) + 9
+    for j, label in s["labels"]:
+        c.text(x0 + j * (cw + CELL_GAP) + cw / 2, base, label, "regular", 10, DIM, anchor="ms")
+    return base
+
+
+def legend(c: Card, y: float):
+    """The strip's key, right-aligned on the section's header line."""
+    x = W - PAD
+    for kind, glyph, label in reversed((("trade", "▼", "would-be trade"), ("asked", "▼", "asked"),
+                                        ("flat", "–", "flat"), ("held", "", "held"), ("err", "!", "error"))):
+        x -= c.width(label, "regular", 10.5)
+        c.text(x, y, label, "regular", 10.5, MUT)
+        x -= 13
+        square(c, (x, y - 10, x + 9, y + 2), kind, glyph, DIM)
+        x -= 9
+
+
 def render(m: dict) -> bytes:
     """PNG bytes of the card for the model `m` (see notify.card_model)."""
-    rows = m["rows"]
-    height = 300 + 26 * len(rows) + 30
+    rows, hours = m["rows"], m.get("strip") or {"rows": [], "labels": []}
+    strip_top = 296
+    strip_bottom = strip_top + ROW_STEP * len(hours["rows"]) + 9 if hours["rows"] else strip_top - 24
+    table_y = strip_bottom + 28
+    height = table_y + 7 + 40 * len(rows) + 34
     c = Card(height)
     # header: the label and the status pill
     c.text(PAD, 27, f"BITRA DESK · {m['time']}".upper(), "semibold", 11.5, DIM, spacing=0.7)
@@ -190,19 +255,23 @@ def render(m: dict) -> bytes:
         x -= 18
         c.line([(x, 146), (x + 12, 146)], DESK.get(s["slot"], INK), 3)
         x -= 8
-    if any(len(s["points"]) for s in m["series"]):
-        chart(c, [s for s in m["series"] if s["points"]], m["now_ms"], top=158)
+    if any(len(x["points"]) for x in m["series"]):
+        chart(c, [x for x in m["series"] if x["points"]], m["now_ms"], top=158)
     else:
         c.text(PAD, 200, "No paper account yet.", "regular", 13.5, MUT)
+    if hours["rows"]:  # the last 24 hours, one row of squares per desk
+        c.text(PAD, strip_top - 12, "Last 24 hours", "regular", 12.5, SUB)
+        legend(c, strip_top - 12)
+        strip(c, hours, strip_top)
     # the desks, ranked
     eq_x, ret_x, wl_x = PAD + 142, PAD + 204, PAD + 250  # right edges; the call is right-aligned to the card
     cols = [(PAD, "DESK", "l"), (eq_x, "EQUITY", "r"), (ret_x, "RETURN", "r"), (wl_x, "W / L", "r"),
             (W - PAD, "LATEST CALL", "r")]
-    y = 296
+    y = table_y
     for cx, label, al in cols:
         c.text(cx, y, label, "medium", 10.5, DIM, anchor=al + "s", spacing=0.5)
     for i, r in enumerate(rows):
-        top = y + 7 + 26 * i
+        top = y + 7 + 40 * i
         c.line([(PAD, top), (W - PAD, top)], ROWLINE, 1)
         base = top + 18.5
         weight = "semibold" if i == 0 else "regular"
@@ -214,5 +283,8 @@ def render(m: dict) -> bytes:
         c.text(wl_x, base, r["record"], "regular", 13.5, SUB, anchor="rs")
         call = r["call"] or "–"
         c.text(W - PAD, base, call, "regular", 13.5, SUB if r["call"] else MUT, anchor="rs")
-    c.text(PAD, y + 7 + 26 * len(rows) + 22, m["note"], "regular", 11.5, NOTE)
+        if r.get("asked") is not None:  # since the desk started, as the dashboard's cards count them
+            c.text(PAD + 13, base + 15, f"would-be trades {r['would_trade']} · asked {r['asked']} · held {r['held']}",
+                   "regular", 11.5, MUT)
+    c.text(PAD, y + 7 + 40 * len(rows) + 22, m["note"], "regular", 11.5, NOTE)
     return c.png()
