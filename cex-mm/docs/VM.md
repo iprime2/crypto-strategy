@@ -35,8 +35,8 @@ git clone git@github.com:iprime2/crypto-strategy.git ~/crypto-strategy
 | `cex-mm-shadow.service` | `scripts/shadow.sh start $SHADOW_SYMBOLS` with `config/dism.env` |
 | `cex-mm-shadow-dashboard.service` | dashboard on 127.0.0.1:8788 |
 | `cex-mm-shadow-watchdog.timer` | every 2 min, restarts the test if the dry-run or recorder died |
-| `cex-mm-trend-paper.timer` | hourly `scripts/trend_paper.py`: rebalances the trend paper book once per UTC day (00:05 UTC) |
-| `cex-mm-trend-paper-weekly.timer` | hourly `scripts/trend_paper.py --weekly --target-vol 0.25 --band 0.10`: the weekly book from `resource/07`, rebalanced once per ISO week on the Monday 00:00 UTC close, state in `artifacts/trend/paper-weekly/` |
+| `cex-mm-trend-paper.timer` | hourly `scripts/trend_paper.py`: rebalances the trend paper book once per UTC day (00:05 UTC). Installed but **not enabled** by `setup.sh`: archived 2026-11-02 (see [Trend paper trader](#trend-paper-trader)) |
+| `cex-mm-trend-paper-weekly.timer` | hourly `scripts/trend_paper.py --weekly --target-vol 0.25 --band 0.10`: the weekly book from `resource/07`, rebalanced once per ISO week on the Monday 00:00 UTC close, state in `artifacts/trend/paper-weekly/`. Installed but **not enabled** by `setup.sh`: archived 2026-11-02 |
 | `cex-mm-shadow-housekeep.timer` | daily 03:30 UTC `scripts/shadow_housekeep.py --apply`: deletes shadow runs older than 14 days. Installed but **not enabled** by `setup.sh` (see [Housekeeping](#housekeeping)) |
 | `cex-mm-oems.service` | the OEMS on 127.0.0.1:8791. Installed but **not enabled** by `setup.sh` (see [OEMS (optional)](#oems-optional)) |
 
@@ -74,6 +74,8 @@ journalctl --user -u cex-mm-shadow-housekeep -n 30                   # what the 
 ```
 
 ## Trend paper trader
+
+**Archived 2026-11-02.** Both books were stopped on 2 Nov 2026, and their units and state were removed from the VM. The final journals, and how to reopen, are in `cex-mm/artifacts/research/2026-11-02-trend-paper-archived.md`. The rest of this section describes the setup as it ran.
 
 `scripts/trend_paper.py` paper-trades the rule from `scripts/trend_backtest.py` on Delta mainnet public data:
 target weights from Delta closes, whole contracts, fills walked through the live L2 book, Delta funding.
