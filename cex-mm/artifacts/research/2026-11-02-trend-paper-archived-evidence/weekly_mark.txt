@@ -1,0 +1,4 @@
+2026-11-02 14:03 UTC  signal 2026-11-01 (Sunday close)  equity $995.87 after $0.01 funding  target vol 0.25  band 10%  weekly
+coin    held  target  trade   notional          mid
+(nothing to trade)
+skipped inside the band: BCH +1 of 11 contracts

@@ -13,7 +13,7 @@ Market making on crypto perpetuals: research and design (`STRATEGY.md`, `resourc
 | `cex-mm/quote-bot/` | `mm-core` (pure quote/risk math), `mm-delta`, `mm-bybit`, `mm-binance` (venue I/O), `mm-bot` (CLI + loop) |
 | `cex-mm/backend/mm-oems` | Axum + SQLx OEMS on 127.0.0.1:8791, TimescaleDB on 127.0.0.1:5462. Supervises the live bot. |
 | `cex-mm/web` | Vite + React trader UI on 127.0.0.1:5179 (Trade, Performance, Blotter, Risk, Strategy) |
-| `cex-mm/dashboard/` | Python dashboards: `server.py` (legacy, 8787), `shadow_server.py` (shadow test on 8788, trend paper trader at `/trend`) |
+| `cex-mm/dashboard/` | Python dashboards: `server.py` (legacy, 8787), `shadow_server.py` (shadow test on 8788, trend paper trader at `/trend`, archived 2 Nov 2026 and frozen) |
 | `cex-mm/scripts/` | `shadow.sh`, `shadow_fill_sim.py`, `live.sh` + `live_vs_shadow.py` (real-money run next to the shadow, and its comparison), `trend_backtest.py`, `trend_paper.py`, `flatten_delta.py`, `fire_drill.sh`, smoke scripts |
 | `cex-mm/artifacts/research/` | Dated quant memos `YYYY-MM-DD-<slug>.md`. Read the newest before analysis. |
 | `bitra-desk/` | Sandbox learning desk for the bitra AI-agent framework on its own VM (`bitra-desk`, Mumbai, `tag:bitra`): config, `setup.sh`, user services, runbook, a tailnet-only dashboard at https://bitra-desk.taildea8d9.ts.net/, and three desks that differ only in their model (Gemini, Groq, Claude) with a paper account each. A Telegram bot (`@bitra_desk_bot`) sends the owner a 2-hourly digest and trade alerts. No orders, no exchange or Delta keys. |
