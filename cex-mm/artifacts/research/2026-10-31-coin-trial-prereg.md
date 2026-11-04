@@ -58,3 +58,27 @@ A wide spread can be a sign of informed flow. Only markouts can tell.
   - The account-wide daily loss stop covers it.
 - **FAIL:** drop the coin from the shadow.
 - **Several PASS:** start with the one with the best test-half calibrated PnL per $. Add one coin at a time.
+
+## Addendum: first evaluation, 2026-11-04 17:30Z (23:00 IST)
+
+Run as pre-registered: `coin_trial_eval.py` (md5 206f5916…) on shadow run 20261031T172449Z, window 31 Oct 17:30Z to 4 Nov 17:30Z, selection half to 2 Nov 17:30Z, simulator md5 a93c1658. Output: `2026-10-31-coin-trial-prereg-evidence/eval_20261104.txt`.
+
+| Coin | Chosen half-spread | Test calibrated fills | Calibrated bp/$ | 1000 ms strict | 300 ms strict | Worst dip | Verdict |
+|---|---|---|---|---|---|---|---|
+| SOPH | ± 15 | 176 | −10.62 | −14.93 | −32.75 | −$3.80 | **FAIL** |
+| PARTI | ± 15 | 76 | −0.43 | +22.43 | +38.47 | −$5.88 | **NEED MORE DATA** (150 fills needed) |
+| RSR | ± 15 | 164 | +10.26 | −38.31 | −0.37 | −$3.94 | **FAIL** (strict legs below 0) |
+| OP | ± 12 | 137 | +36.92 | +41.93 | −57.40 | −$3.72 | **NEED MORE DATA** (150 fills needed) |
+
+Context (not part of the rules):
+
+- The recorder stayed healthy. ADA's recorded Delta trades held at 1,600 to 2,500 a day.
+- The coins' own activity changed a lot. Recorded trades per day, 1 Nov → 4 Nov (to 17:36Z): RSR 4,533 → 60; SOPH 4,911 → 18,993 (2 Nov) → 626; PARTI 760 → 657; OP 281 → 127.
+- RSR's good selection half (+5 to +10 bp/$ at every width) did not carry into the test half, where its market went quiet.
+- The strict legs rest on 12 to 45 fills, so they are noisy. The rules are applied as written.
+
+Decision, as pre-registered:
+
+- SOPH and RSR are dropped from the shadow at its next restart. The restart needs the owner's word.
+- PARTI and OP get the final evaluation on 2026-11-07 17:30Z: same rules, window 31 Oct 17:30Z to 7 Nov 17:30Z, and no third look.
+- No coin is proposed for live yet.

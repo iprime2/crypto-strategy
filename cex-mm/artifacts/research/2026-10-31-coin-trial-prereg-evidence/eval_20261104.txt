@@ -1,0 +1,45 @@
+runs ['20261031T172449Z']; window 2026-10-31T17:30:00Z .. 2026-11-04T17:30:00Z; selection half to 2026-11-02T17:30Z
+
+=== SOPHUSDT: selection 426046 samples / 25484 trades, test 427038 samples / 5730 trades
+  select +/- 6 bps:  4905 fills    96,418 $   10.77 PnL   1.12 bp/$ dd -12.90 (qty 270)
+  select +/- 8 bps:  3512 fills    68,626 $    7.77 PnL   1.13 bp/$ dd -12.46 (qty 270)
+  select +/-10 bps:  2807 fills    55,658 $   -7.09 PnL  -1.27 bp/$ dd -21.05 (qty 270)
+  select +/-12 bps:  2093 fills    43,360 $   -7.64 PnL  -1.76 bp/$ dd -17.56 (qty 270)
+  select +/-15 bps:  1416 fills    30,019 $   10.69 PnL   3.56 bp/$ dd  -8.86 (qty 270)
+  test +/-15 calibrated  :   176 fills     1,946 $   -2.07 PnL -10.62 bp/$ dd  -3.80
+  test +/-15 1000 strict :    33 fills       400 $   -0.60 PnL -14.93 bp/$ dd  -1.71
+  test +/-15 300 strict  :    18 fills       292 $   -0.96 PnL -32.75 bp/$ dd  -2.25
+SOPHUSDT: FAIL at +/-15 bps (calibrated -10.62, 1000 strict -14.93, 300 strict -32.75, worst dip -3.80)
+
+=== PARTIUSDT: selection 426586 samples / 1429 trades, test 426813 samples / 948 trades
+  select +/- 6 bps:   441 fills    12,208 $  -17.72 PnL -14.52 bp/$ dd -18.66 (qty 9)
+  select +/- 8 bps:   331 fills     8,884 $  -18.23 PnL -20.52 bp/$ dd -20.14 (qty 9)
+  select +/-10 bps:   260 fills     7,028 $  -13.23 PnL -18.82 bp/$ dd -14.54 (qty 9)
+  select +/-12 bps:   185 fills     5,016 $   -8.13 PnL -16.21 bp/$ dd  -8.54 (qty 9)
+  select +/-15 bps:   114 fills     3,110 $   -3.53 PnL -11.35 bp/$ dd  -5.53 (qty 9)
+  test +/-15 calibrated  :    76 fills     2,541 $   -0.11 PnL  -0.43 bp/$ dd  -5.88
+  test +/-15 1000 strict :    45 fills     1,480 $    3.32 PnL  22.43 bp/$ dd  -4.30
+  test +/-15 300 strict  :    31 fills     1,113 $    4.28 PnL  38.47 bp/$ dd  -2.53
+PARTIUSDT: NEED MORE DATA (76 test fills, 150 needed)
+
+=== RSRUSDT: selection 427090 samples / 5681 trades, test 427157 samples / 290 trades
+  select +/- 6 bps:  2400 fills    40,676 $   22.08 PnL   5.43 bp/$ dd  -3.33 (qty 264)
+  select +/- 8 bps:  2220 fills    37,422 $   23.94 PnL   6.40 bp/$ dd  -3.95 (qty 264)
+  select +/-10 bps:  1947 fills    33,270 $   25.43 PnL   7.64 bp/$ dd  -4.06 (qty 264)
+  select +/-12 bps:  1735 fills    30,442 $   28.69 PnL   9.43 bp/$ dd  -3.99 (qty 264)
+  select +/-15 bps:  1162 fills    21,039 $   21.86 PnL  10.39 bp/$ dd  -6.42 (qty 264)
+  test +/-15 calibrated  :   164 fills     3,263 $    3.35 PnL  10.26 bp/$ dd  -3.94
+  test +/-15 1000 strict :    36 fills       771 $   -2.96 PnL -38.31 bp/$ dd  -4.63
+  test +/-15 300 strict  :    35 fills       840 $   -0.03 PnL  -0.37 bp/$ dd  -3.07
+RSRUSDT: FAIL at +/-15 bps (calibrated +10.26, 1000 strict -38.31, 300 strict -0.37, worst dip -3.94)
+
+=== OPUSDT: selection 427139 samples / 459 trades, test 427168 samples / 314 trades
+  select +/- 6 bps:   297 fills     3,463 $    1.72 PnL   4.97 bp/$ dd  -2.26 (qty 3486)
+  select +/- 8 bps:   273 fills     3,148 $    0.74 PnL   2.34 bp/$ dd  -2.41 (qty 3486)
+  select +/-10 bps:   248 fills     2,897 $    0.98 PnL   3.39 bp/$ dd  -2.26 (qty 3486)
+  select +/-12 bps:   161 fills     2,066 $    1.76 PnL   8.51 bp/$ dd  -2.51 (qty 3486)
+  select +/-15 bps:    65 fills     1,004 $   -0.42 PnL  -4.15 bp/$ dd  -2.52 (qty 3486)
+  test +/-12 calibrated  :   137 fills     1,509 $    5.57 PnL  36.92 bp/$ dd  -3.72
+  test +/-12 1000 strict :    12 fills       327 $    1.37 PnL  41.93 bp/$ dd  -2.46
+  test +/-12 300 strict  :     9 fills       204 $   -1.17 PnL -57.40 bp/$ dd  -2.77
+OPUSDT: NEED MORE DATA (137 test fills, 150 needed)
