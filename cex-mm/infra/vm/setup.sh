@@ -32,6 +32,7 @@ done
 # User services keep running after logout and start at boot.
 sudo loginctl enable-linger "$USER"
 systemctl --user daemon-reload
-systemctl --user enable --now cex-mm-shadow.service cex-mm-shadow-dashboard.service cex-mm-shadow-watchdog.timer \
-  cex-mm-trend-paper.timer cex-mm-trend-paper-weekly.timer
+# The trend paper timers are installed but not enabled: the books were archived on 2026-11-02
+# (cex-mm/artifacts/research/2026-11-02-trend-paper-archived.md).
+systemctl --user enable --now cex-mm-shadow.service cex-mm-shadow-dashboard.service cex-mm-shadow-watchdog.timer
 "$CEX_MM/scripts/shadow.sh" status
