@@ -82,3 +82,8 @@ Decision, as pre-registered:
 - SOPH and RSR are dropped from the shadow at its next restart. The restart needs the owner's word.
 - PARTI and OP get the final evaluation on 2026-11-07 17:30Z: same rules, window 31 Oct 17:30Z to 7 Nov 17:30Z, and no third look.
 - No coin is proposed for live yet.
+
+Shadow restarted by the owner at 2026-11-05 16:53:20Z as run 20261105T165320Z, with ADA, PARTI and OP only.
+
+- Same commit (ca140f6). The binary was not rebuilt: it is byte-identical to the live bot's.
+- The 7 Nov evaluation joins both runs, as the method allows.
