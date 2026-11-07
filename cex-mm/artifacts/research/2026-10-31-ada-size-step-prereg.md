@@ -100,3 +100,31 @@ Rule used: the crash-window worst dip should fit inside a daily stop of 3–5% o
 - **$50,000:** the risk budget stops binding and ADA's market does. Past about 1,000–1,500 per quote, the crash-window profit falls and the worst dip grows quickly.
   - So the useful ADA size is about 1,000–1,500 per quote, about $200–290 a quote and a cap of $400–580.
   - That puts about 1% of the money at work. More money would need more markets, not bigger ADA quotes.
+
+## Result, 2026-11-07 03:15Z (08:45 IST): all four gates PASS
+
+Output: `2026-10-31-ada-size-step-prereg-evidence/eval_20261107.txt`. Script md5 9eddea5a…, simulator md5 a93c1658…, END 2026-11-07T03:15:34Z.
+
+1. **Live data: PASS.**
+   - 5,926 fills over runs 20261030T064303Z, 20261030T105618Z and 20261031T115939Z: +$40.26, +3.89 bp/$ (bar: 2,000 fills and +2.0).
+2. **Fast market: PASS, narrowly.**
+   - One stress hour: 5 Nov 15:00Z at 250 bps against the 244 bar (159 hours, median 55 bps).
+   - Through 5 Nov the live bot had no daily-loss halt, and that UTC day was the best of the window (+$9.02).
+   - Worst UTC day in the window: +$1.06 (4 Nov); 7 Nov reads −$0.06 after 54 fills so far.
+   - No position past the cap: the largest |inventory| over all 1,384,820 live `MM_METRICS` rows is exactly 400.
+   - This stress hour is far milder than 29 Oct (4.9× and 6.2× the median), so a crash of that size is still untested on these settings.
+3. **Replay: PASS.**
+   - 159.1 h of shadow data (runs 20261031T115906Z, 20261031T172449Z and 20261105T165320Z).
+   - Calibrated 300/600: 5,708 fills, +$47.29, +3.87 bp/$, worst dip −$5.26.
+   - 1000 ms strict: +2.87 bp/$.
+   - For reference, 200/400 calibrated: +$35.84, +3.97 bp/$, worst dip −$3.33.
+4. **No open incident: PASS.**
+   - 0 unseen fills confirmed by neither feed nor venue: 240 unseen, all caught up.
+   - 0 frozen-book trips.
+   - Bot and venue agree (short 200 at 03:04Z).
+
+**Recommendation, as pre-registered:**
+
+- Step up to 300/600 with a $15 daily loss stop.
+- The change is a config PR to `config/dism.env` (`MM_ORDER_QTY_ADAUSDT=300`, `MM_MAX_INVENTORY_ADAUSDT=600`, `MM_DAILY_LOSS_LIMIT_USD=15`), then a restart of the shadow and the live bot, only on the owner's word.
+- The rollback rules above apply from the first fill of the new run.

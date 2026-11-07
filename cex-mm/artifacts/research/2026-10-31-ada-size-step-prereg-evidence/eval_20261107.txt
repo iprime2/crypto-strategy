@@ -1,0 +1,19 @@
+END=2026-11-07T03:15:34Z
+20261031T115906Z: 47521 samples, 430 ADAUSD trades
+20261031T172449Z: 1063132 samples, 10664 ADAUSD trades
+20261105T165320Z: 303887 samples, 2674 ADAUSD trades
+window 2026-10-31T12:00:00Z .. 2026-11-07T03:15:34Z: 159.06 h, 1414540 samples, 13768 trades, ref fair 0.19008
+hourly vol: 159 hours, median 55 bps, max 250 bps; stress hours (>= 244 bps): 05 Nov 15:00Z 250
+leg                                       fills  notional    PnL$   bp/$ worst dd$
+300/600 1000 touch offer15 (calibrated)    5708   122,266   47.29   3.87     -5.26
+300/600 1000 strict list fee               2545    88,109   25.31   2.87     -6.98
+200/400 1000 touch offer15 (calibrated)    5453    90,220   35.84   3.97     -3.33
+200/400 1000 strict list fee               2427    61,628   17.83   2.89     -4.73
+gate 3: >= 72 h of data: PASS (159.1 h)
+gate 3: >= 300 calibrated fills: PASS (5708)
+gate 3: calibrated >= +2.4 bp/$: PASS (+3.87)
+gate 3: 1000 ms strict >= 0: PASS (+2.87)
+gate 3: calibrated worst drawdown >= -15 $: PASS (-5.26)
+GATE 3: PASS | stress hours for gate 2: 1
+
+[exited with code 0]
