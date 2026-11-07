@@ -87,3 +87,18 @@ Shadow restarted by the owner at 2026-11-05 16:53:20Z as run 20261105T165320Z, w
 
 - Same commit (ca140f6). The binary was not rebuilt: it is byte-identical to the live bot's.
 - The 7 Nov evaluation joins both runs, as the method allows.
+
+## Addendum: final evaluation, 2026-11-07 17:30Z (23:00 IST)
+
+Same script (md5 206f5916…) and rules, run on shadow runs 20261031T172449Z, 20261105T165320Z and 20261107T044402Z. Window 31 Oct 17:30Z to 7 Nov 17:30Z; the selection half ends 4 Nov 05:30Z. Output: `2026-10-31-coin-trial-prereg-evidence/eval_20261107.txt`. Only PARTI and OP were open. SOPH and RSR failed on 4 Nov and left the shadow on 5 Nov; their lines in the output are not a second look.
+
+| Coin | Chosen half-spread | Test calibrated fills | Calibrated bp/$ | 1000 ms strict | 300 ms strict | Worst dip | Verdict |
+|---|---|---|---|---|---|---|---|
+| PARTI | ± 15 | 232 | −9.38 | −18.91 | −10.92 | −$10.54 | **FAIL** |
+| OP | ± 12 | 256 | −14.00 | +22.32 | −25.36 | −$9.58 | **FAIL** |
+
+Decision, as pre-registered:
+
+- No coin from this trial goes live; ADA stays the only market.
+- PARTI and OP leave the shadow at its next restart. That restart needs the owner's word.
+- Any further market needs a fresh scan and a new pre-registration.
